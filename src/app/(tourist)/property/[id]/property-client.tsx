@@ -437,18 +437,13 @@ export default function PropertyStorefrontPage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                if (navigator.clipboard) {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast.success("Link copied to clipboard!");
-                }
-              }}
-              className="p-2 rounded-full border border-neutral-200 text-neutral-600 hover:bg-neutral-100"
-              aria-label="Share property link"
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
+            {property && (
+              <ShareButton 
+                propertyId={propertyId} 
+                propertyName={property.name} 
+                propertyDescription={property.description}
+              />
+            )}
             <button
               onClick={() => {
                 toggleSave(propertyId, property?.name);
@@ -474,6 +469,7 @@ export default function PropertyStorefrontPage() {
               src={property.cover_image_url}
               alt={property.name}
               fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
               priority
               className="object-cover"
             />
@@ -696,6 +692,7 @@ export default function PropertyStorefrontPage() {
                           src={coverImage}
                           alt={room.name}
                           fill
+                          sizes="(max-width: 768px) 100vw, 200px"
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1">
@@ -1066,6 +1063,7 @@ export default function PropertyStorefrontPage() {
                 src={gallery.images[gallery.currentIndex]}
                 alt={`${gallery.roomName} angle ${gallery.currentIndex + 1}`}
                 fill
+                sizes="100vw"
                 className="object-contain"
               />
 
@@ -1118,7 +1116,7 @@ export default function PropertyStorefrontPage() {
                       : "border-transparent opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <Image src={img} alt={`Angle ${idx + 1}`} fill className="object-cover" />
+                  <Image src={img} alt={`Angle ${idx + 1}`} fill sizes="100px" className="object-cover" />
                   <span className="absolute bottom-0.5 right-1 text-[9px] font-mono text-white bg-black/70 px-1 rounded">
                     #{idx + 1}
                   </span>
