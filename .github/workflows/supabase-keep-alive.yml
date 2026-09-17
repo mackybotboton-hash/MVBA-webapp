@@ -1,0 +1,27 @@
+name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Runs at 00:00 UTC on every 3rd day of the week (Sun, Wed, Fri)
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database / Keep-Alive Endpoint
+        run: |
+          if [ -n "${{ secrets.APP_URL }}" ]; then
+            echo "Pinging webapp keep-alive endpoint..."
+            curl -s -f -X GET "${{ secrets.APP_URL }}/api/keep-alive" || exit 1
+            echo "Successfully pinged webapp keep-alive endpoint!"
+          elif [ -n "${{ secrets.SUPABASE_URL }}" ] && [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "Pinging Supabase REST API directly..."
+            curl -s -f -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/profiles?select=id&limit=1" \
+              -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+              -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" || exit 1
+            echo "Successfully pinged Supabase REST API!"
+          else
+            echo "Notice: Please add SUPABASE_URL & SUPABASE_ANON_KEY (or APP_URL) to your GitHub Repository Secrets."
+          fi
