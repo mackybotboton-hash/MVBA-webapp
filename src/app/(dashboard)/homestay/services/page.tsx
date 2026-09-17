@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/tourist/empty-state";
 
-export default function ResortServicesPage() {
+export default function HomestayServicesPage() {
   const [property, setProperty] = React.useState<any>(null);
   const [services, setServices] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -50,7 +50,7 @@ export default function ResortServicesPage() {
         .from("properties")
         .select("*")
         .eq("owner_id", user.id)
-        .eq("type", "resort")
+        .eq("type", "homestay")
         .limit(1);
 
       const ownerProp = propData && propData.length > 0 ? (propData as any[])[0] : null;
@@ -103,7 +103,7 @@ export default function ResortServicesPage() {
       if (error) throw error;
 
       toast.success("Service package added!", {
-        description: "Tourists can view this service on your resort storefront.",
+        description: "Tourists can view this service on your homestay storefront.",
       });
 
       setServices((prev) => [...prev, data]);
@@ -144,7 +144,7 @@ export default function ResortServicesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-            Resort Packages & Menus
+            Homestay Services & Tours
           </h1>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1">
             Manage add-on services that tourists can book alongside their rooms.
@@ -175,16 +175,16 @@ export default function ResortServicesPage() {
       {!property ? (
         <EmptyState
           icon={Building2}
-          title="Create a resort listing first"
-          description="You need to set up your resort profile before adding extra services."
+          title="Create a homestay listing first"
+          description="You need to set up your homestay profile before adding extra services."
           actionLabel="View Dashboard"
-          onAction={() => (window.location.href = "/resort")}
+          onAction={() => (window.location.href = "/homestay")}
         />
       ) : services.length === 0 ? (
         <EmptyState
           icon={Ship}
           title="No services added yet"
-          description="Expand your tourist revenue by adding Bretania island hopping boat transfers, picnic packages, or dive rentals."
+          description="Expand your tourist revenue by offering island hopping, food packages, or other tours."
           actionLabel="Add First Service"
           onAction={() => setIsModalOpen(true)}
         />
@@ -262,7 +262,7 @@ export default function ResortServicesPage() {
           <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
               <h3 className="font-bold text-base text-neutral-900">
-                Add Resort Service Package
+                Add Homestay Service Package
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}

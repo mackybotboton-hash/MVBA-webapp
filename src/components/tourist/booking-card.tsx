@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Receipt,
   QrCode,
+  Star,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,7 @@ export interface BookingCardProps {
   onCancelBooking?: (bookingId: string) => void;
   onViewBoardingPass?: (booking: BookingData) => void;
   onPayDeposit?: (booking: BookingData) => void;
+  onRateStay?: (booking: BookingData) => void;
   className?: string;
 }
 
@@ -50,6 +52,7 @@ export function BookingCard({
   onCancelBooking,
   onViewBoardingPass,
   onPayDeposit,
+  onRateStay,
   className,
 }: BookingCardProps) {
   const checkIn = new Date(booking.check_in_date);
@@ -247,6 +250,18 @@ export function BookingCard({
             >
               <Receipt className="h-3.5 w-3.5 mr-1" />
               Pay Deposit
+            </Button>
+          )}
+
+          {booking.status === "completed" && onRateStay && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-8 px-3 border-amber-200 text-amber-700 hover:bg-amber-50"
+              onClick={() => onRateStay(booking)}
+            >
+              <Star className="h-3.5 w-3.5 mr-1 fill-amber-400 text-amber-400" />
+              Rate Stay
             </Button>
           )}
 

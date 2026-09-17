@@ -344,22 +344,21 @@ export default function ResortDashboardPage() {
 
             {/* Association Dues Quick Card */}
             <div
-              onClick={() => setIsDuesModalOpen(true)}
-              className="rounded-xl border border-neutral-200 p-5 bg-white hover:border-neutral-300 transition-all flex items-center justify-between group cursor-pointer"
+              className="rounded-xl border border-neutral-200 p-5 bg-white flex items-center justify-between group opacity-50 cursor-not-allowed pointer-events-none"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <Receipt className="h-4 w-4 text-neutral-800" />
-                  <h3 className="font-bold text-sm text-neutral-900 group-hover:text-black">
+                  <h3 className="font-bold text-sm text-neutral-900">
                     Association Dues
                   </h3>
                   <Badge variant="subtle" size="sm">₱1,500/mo</Badge>
                 </div>
                 <p className="text-xs text-neutral-600">
-                  Submit monthly GCash / bank payment receipt
+                  Submit monthly GCash / bank payment receipt (Disabled)
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="text-xs border-neutral-200">
+              <Button variant="outline" size="sm" className="text-xs border-neutral-200" disabled>
                 Upload Receipt
               </Button>
             </div>

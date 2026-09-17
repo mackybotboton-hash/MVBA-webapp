@@ -1,26 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
+const { createClient } = require('@supabase/supabase-js');
+const fs = require('fs');
+require('dotenv').config({ path: '.env.local' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function test() {
-  console.log("Fetching properties WITH ROOMS without auth...");
+  const propertyId = '2601c009-13a3-45a7-9a86-fae335500b6a';
+
   const { data, error } = await supabase
-    .from("properties")
-    .select(`
-      id,
-      name,
-      rooms (
-        base_price,
-        max_capacity
-      )
-    `)
-    .eq("status", "active");
-  console.log("Data:", JSON.stringify(data, null, 2));
-  console.log("Error:", error);
+    .from("reviews")
+    .select("*")
+    .limit(1);
+
+  if (error) {
+    console.error("ERROR querying reviews:", error.message, error.details, error.hint);
+  } else {
+    console.log("SUCCESS querying reviews:", data);
+  }
 }
 
 test();

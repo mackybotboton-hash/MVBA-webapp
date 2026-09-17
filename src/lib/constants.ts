@@ -15,6 +15,9 @@ import {
   BarChart3,
   CalendarRange,
   Briefcase,
+  Settings,
+  Anchor,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -51,13 +54,14 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   badge?: string;
+  disabled?: boolean;
 }
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Properties", href: "/admin/properties", icon: Building2 },
-  { label: "Dues Tracker", href: "/admin/dues", icon: Receipt },
+  { label: "Dues Tracker", href: "/admin/dues", icon: Receipt, disabled: true },
   { label: "Transactions", href: "/admin/transactions", icon: Briefcase },
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
   { label: "Chat", href: "/admin/chat", icon: MessageSquare },
@@ -67,7 +71,11 @@ export const HOMESTAY_NAV_ITEMS: NavItem[] = [
   { label: "Today", href: "/homestay", icon: CalendarCheck },
   { label: "Rooms", href: "/homestay/rooms", icon: BedDouble },
   { label: "Bookings", href: "/homestay/bookings", icon: Ticket },
+  { label: "Services", href: "/homestay/services", icon: Compass },
+  { label: "Dispatch", href: "/homestay/dispatch", icon: Anchor },
   { label: "Chat", href: "/homestay/chat", icon: MessageSquare },
+  { label: "Reviews", href: "/homestay/reviews", icon: Star },
+  { label: "Profile & Policies", href: "/homestay/profile", icon: Settings },
 ];
 
 export const RESORT_NAV_ITEMS: NavItem[] = [
@@ -75,8 +83,11 @@ export const RESORT_NAV_ITEMS: NavItem[] = [
   { label: "Rooms", href: "/resort/rooms", icon: BedDouble },
   { label: "Bookings", href: "/resort/bookings", icon: Ticket },
   { label: "Services", href: "/resort/services", icon: Ship },
+  { label: "Dispatch", href: "/resort/dispatch", icon: Anchor },
   { label: "Calendar", href: "/resort/calendar", icon: CalendarRange },
   { label: "Chat", href: "/resort/chat", icon: MessageSquare },
+  { label: "Reviews", href: "/resort/reviews", icon: Star },
+  { label: "Profile & Policies", href: "/resort/profile", icon: Settings },
 ];
 
 export const TOURIST_NAV_ITEMS: NavItem[] = [

@@ -280,7 +280,7 @@ export default function HomestayDashboardPage() {
             </div>
 
             {/* Association Dues Widget */}
-            <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-2">
+            <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-2 opacity-50 cursor-not-allowed pointer-events-none">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
                   Association Dues
@@ -292,10 +292,10 @@ export default function HomestayDashboardPage() {
               </p>
               <button
                 type="button"
-                onClick={() => setIsDuesModalOpen(true)}
-                className="text-xs text-neutral-800 hover:text-black font-bold flex items-center gap-1"
+                disabled
+                className="text-xs text-neutral-800 font-bold flex items-center gap-1 cursor-not-allowed"
               >
-                <span>Upload GCash Receipt</span> &rarr;
+                <span>Upload GCash Receipt (Disabled)</span> &rarr;
               </button>
             </div>
           </div>

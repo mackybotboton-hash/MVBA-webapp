@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { DigitalBoardingPassModal } from "@/components/tourist/digital-boarding-pass-modal";
 import { GCashDepositModal } from "@/components/tourist/gcash-deposit-modal";
+import { TouristReviewModal } from "@/components/tourist/tourist-review-modal";
 
 
 type BookingFilterTab = "all" | "pending" | "accepted" | "completed" | "cancelled";
@@ -34,6 +35,7 @@ export default function TouristBookingsPage() {
   const [activeTab, setActiveTab] = React.useState<BookingFilterTab>("all");
   const [selectedPassBooking, setSelectedPassBooking] = React.useState<any | null>(null);
   const [selectedDepositBooking, setSelectedDepositBooking] = React.useState<BookingData | null>(null);
+  const [selectedReviewBooking, setSelectedReviewBooking] = React.useState<BookingData | null>(null);
 
   const fetchBookings = React.useCallback(async () => {
     setIsLoading(true);
@@ -287,6 +289,7 @@ export default function TouristBookingsPage() {
                   })
                 }
                 onPayDeposit={(b) => setSelectedDepositBooking(b)}
+                onRateStay={(b) => setSelectedReviewBooking(b)}
               />
             ))}
           </div>
@@ -306,6 +309,13 @@ export default function TouristBookingsPage() {
         onClose={() => setSelectedDepositBooking(null)}
         booking={selectedDepositBooking}
         onSuccess={fetchBookings}
+      />
+
+      {/* Rate Stay Modal */}
+      <TouristReviewModal
+        isOpen={!!selectedReviewBooking}
+        onClose={() => setSelectedReviewBooking(null)}
+        booking={selectedReviewBooking}
       />
     </div>
   );

@@ -47,6 +47,33 @@ export function AdminSidebar() {
             (item.href !== "/admin" && pathname.startsWith(item.href));
           const Icon = item.icon;
 
+          const content = (
+            <>
+              <Icon
+                className={cn(
+                  "h-5 w-5 flex-shrink-0 transition-colors",
+                  isActive && !item.disabled
+                    ? "text-black"
+                    : "text-gray-400 group-hover:text-gray-600"
+                )}
+              />
+              {!collapsed && <span>{item.label}</span>}
+            </>
+          );
+
+          if (item.disabled) {
+            return (
+              <div
+                key={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group opacity-50 cursor-not-allowed pointer-events-none text-gray-500"
+                )}
+              >
+                {content}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.href}
@@ -58,15 +85,7 @@ export function AdminSidebar() {
                   : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
               )}
             >
-              <Icon
-                className={cn(
-                  "h-5 w-5 flex-shrink-0 transition-colors",
-                  isActive
-                    ? "text-black"
-                    : "text-gray-400 group-hover:text-gray-600"
-                )}
-              />
-              {!collapsed && <span>{item.label}</span>}
+              {content}
             </Link>
           );
         })}

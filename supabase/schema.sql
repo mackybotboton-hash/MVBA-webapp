@@ -18,6 +18,8 @@ CREATE TYPE booking_status AS ENUM ('pending', 'accepted', 'declined', 'cancelle
 CREATE TYPE payment_status AS ENUM ('awaiting_deposit', 'deposit_uploaded', 'verified', 'completed', 'refunded');
 CREATE TYPE service_type AS ENUM ('boat', 'food', 'tour', 'spa');
 CREATE TYPE dues_status AS ENUM ('paid', 'unpaid', 'overdue');
+CREATE TYPE payment_type AS ENUM ('upfront', 'cash');
+CREATE TYPE review_status AS ENUM ('published', 'hidden');
 
 -- ============================================================
 -- 2. PROFILES TABLE (extends auth.users)
@@ -55,6 +57,9 @@ CREATE TABLE properties (
   address TEXT DEFAULT '',
   cover_image_url TEXT DEFAULT '',
   promo_video_url TEXT DEFAULT '',
+  policies TEXT DEFAULT '',
+  check_in_time TEXT DEFAULT '14:00',
+  check_out_time TEXT DEFAULT '12:00',
   status property_status NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -142,6 +147,7 @@ CREATE TABLE extra_services (
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
   price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  payment_type payment_type NOT NULL DEFAULT 'cash',
   image_url TEXT DEFAULT '',
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -217,6 +223,57 @@ CREATE INDEX idx_announcements_target ON announcements(target_role);
 CREATE INDEX idx_announcements_created ON announcements(created_at DESC);
 
 -- ============================================================
+-- 10.5 NEW FEATURES TABLES (Reviews, Addons, Dispatches)
+-- ============================================================
+
+-- 10.5.a Reviews Table
+CREATE TABLE reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  tourist_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT DEFAULT '',
+  status review_status NOT NULL DEFAULT 'published',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT unique_booking_review UNIQUE (booking_id)
+);
+CREATE INDEX idx_reviews_property ON reviews(property_id);
+CREATE INDEX idx_reviews_tourist ON reviews(tourist_id);
+
+-- 10.5.b Booking Add-ons Table
+CREATE TABLE booking_addons (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+  service_id UUID NOT NULL REFERENCES extra_services(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  price_at_booking NUMERIC(10,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_booking_addons_booking ON booking_addons(booking_id);
+
+-- 10.5.c Boat Dispatches Table
+CREATE TABLE boat_dispatches (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  service_id UUID REFERENCES extra_services(id) ON DELETE SET NULL,
+  booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+  vessel_name TEXT NOT NULL,
+  registration_no TEXT DEFAULT '',
+  captain_name TEXT NOT NULL,
+  pax_count INTEGER NOT NULL DEFAULT 1,
+  destination TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Scheduled', -- Scheduled, At Sea, Returned, Cancelled
+  departure_time TIMESTAMPTZ,
+  arrival_time TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_boat_dispatches_property ON boat_dispatches(property_id);
+CREATE INDEX idx_boat_dispatches_status ON boat_dispatches(status);
+
+-- ============================================================
 -- 11. UPDATED_AT TRIGGER FUNCTION
 -- ============================================================
 
@@ -245,6 +302,12 @@ CREATE TRIGGER set_updated_at BEFORE UPDATE ON extra_services
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON association_dues
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON reviews
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER set_updated_at BEFORE UPDATE ON boat_dispatches
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- ============================================================
@@ -288,6 +351,9 @@ ALTER TABLE extra_services ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE association_dues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booking_addons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE boat_dispatches ENABLE ROW LEVEL SECURITY;
 
 -- ---- PROFILES ----
 -- Everyone can read profiles (needed for chat, property views)
@@ -448,6 +514,65 @@ CREATE POLICY "Everyone can view announcements"
 -- Admins can manage announcements
 CREATE POLICY "Admins can manage announcements"
   ON announcements FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ---- REVIEWS ----
+-- Everyone can view published reviews
+CREATE POLICY "Everyone can view published reviews"
+  ON reviews FOR SELECT USING (status = 'published');
+
+-- Tourists can create reviews for their completed bookings
+CREATE POLICY "Tourists can insert own reviews"
+  ON reviews FOR INSERT WITH CHECK (
+    auth.uid() = tourist_id AND
+    EXISTS (SELECT 1 FROM bookings WHERE bookings.id = booking_id AND bookings.status = 'completed')
+  );
+
+-- Tourists can update their own reviews
+CREATE POLICY "Tourists can update own reviews"
+  ON reviews FOR UPDATE USING (auth.uid() = tourist_id);
+
+-- Admins can manage all reviews
+CREATE POLICY "Admins can manage reviews"
+  ON reviews FOR ALL USING (
+    EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+  );
+
+-- ---- BOOKING ADDONS ----
+-- Tourists can view their own booking addons
+CREATE POLICY "Tourists can view own booking addons"
+  ON booking_addons FOR SELECT USING (
+    EXISTS (SELECT 1 FROM bookings WHERE bookings.id = booking_id AND bookings.tourist_id = auth.uid())
+  );
+
+-- Property owners can view addons for their bookings
+CREATE POLICY "Owners can view addons for their bookings"
+  ON booking_addons FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM bookings 
+      JOIN rooms ON rooms.id = bookings.room_id
+      JOIN properties ON properties.id = rooms.property_id
+      WHERE bookings.id = booking_addons.booking_id AND properties.owner_id = auth.uid()
+    )
+  );
+
+-- Tourists can create addons for their bookings
+CREATE POLICY "Tourists can insert own addons"
+  ON booking_addons FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM bookings WHERE bookings.id = booking_id AND bookings.tourist_id = auth.uid())
+  );
+
+-- ---- BOAT DISPATCHES ----
+-- Owners can manage dispatches for their properties
+CREATE POLICY "Owners can manage own dispatches"
+  ON boat_dispatches FOR ALL USING (
+    EXISTS (SELECT 1 FROM properties WHERE properties.id = property_id AND properties.owner_id = auth.uid())
+  );
+
+-- Admins can view all dispatches
+CREATE POLICY "Admins can view all dispatches"
+  ON boat_dispatches FOR SELECT USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
   );
 
