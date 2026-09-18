@@ -30,6 +30,7 @@ import {
   PlaySquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SocialVideoEmbed } from "@/components/ui/social-video-embed";
@@ -393,11 +394,9 @@ export default function PropertyStorefrontPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-black border-t-transparent mx-auto" />
-          <p className="text-xs text-neutral-600">Loading stay details...</p>
-        </div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <LoadingLogo size="large" />
+        <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading stay details...</p>
       </div>
     );
   }

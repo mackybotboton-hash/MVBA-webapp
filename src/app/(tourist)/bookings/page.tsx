@@ -21,6 +21,7 @@ import {
 } from "@/components/tourist/booking-card";
 import { EmptyState } from "@/components/tourist/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Button } from "@/components/ui/button";
 import { DigitalBoardingPassModal } from "@/components/tourist/digital-boarding-pass-modal";
 import { GCashDepositModal } from "@/components/tourist/gcash-deposit-modal";
@@ -229,26 +230,9 @@ export default function TouristBookingsPage() {
 
         {/* Content: Loading Skeleton, Empty State, or Booking Cards List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-4"
-              >
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-5 w-48" />
-                  <Skeleton className="h-5 w-24 rounded-full" />
-                </div>
-                <div className="grid grid-cols-3 gap-4 py-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Skeleton className="h-8 w-24 rounded-md" />
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col items-center justify-center py-20">
+            <LoadingLogo size="large" />
+            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading your reservations</p>
           </div>
         ) : filteredBookings.length === 0 ? (
           <EmptyState

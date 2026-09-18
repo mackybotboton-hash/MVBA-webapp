@@ -23,9 +23,7 @@ import {
   PropertyCard,
   type PropertyCardData,
 } from "@/components/tourist/property-card";
-import {
-  PropertyListSkeleton,
-} from "@/components/tourist/property-card-skeleton";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import {
   FilterDialog,
   INITIAL_FILTERS,
@@ -457,7 +455,10 @@ export default function TouristDiscoveryPage() {
 
         {/* 5. Listing Content: Loading State, Empty State, or Results */}
         {isLoading ? (
-          <PropertyListSkeleton count={6} viewMode={viewMode} />
+          <div className="flex flex-col items-center justify-center py-24">
+            <LoadingLogo size="large" />
+            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading available stays</p>
+          </div>
         ) : filteredProperties.length === 0 ? (
           <EmptyState
             icon={Compass}
