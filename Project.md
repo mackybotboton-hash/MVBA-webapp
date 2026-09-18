@@ -265,9 +265,10 @@ The system implements `request_booking_atomic` in PostgreSQL (`supabase/concurre
 > [!IMPORTANT]
 > **Every feature or architectural change must update this `Project.md` file before pushing to a feature branch.**
 
-### Database Migration Notice for Project Leader
-When merging `feat/security-hardening` to `main`, the project leader must execute the following file in the Supabase SQL Editor:
-- **`supabase/migrations/security-hardening.sql`**
+### Master Account Instructions for Project Leader
+When merging `feat/security-hardening` to `main`, the project leader must review:
+- 📖 **[`SECURITY_HANDOFF.md`](file:///c:/Users/nemsu/Downloads/Private/code/MVBA-webapp/SECURITY_HANDOFF.md)** (Full step-by-step master account guide)
+- 🗄️ **[`supabase/migrations/security-hardening.sql`](file:///c:/Users/nemsu/Downloads/Private/code/MVBA-webapp/supabase/migrations/security-hardening.sql)** (SQL Editor execution script)
 
 ### Pre-Push Verification Checklist
 When preparing a branch to push (`feat/*`, `fix/*`, `refactor/*`):
