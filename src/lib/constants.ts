@@ -65,6 +65,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Transactions", href: "/admin/transactions", icon: Briefcase },
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
   { label: "Chat", href: "/admin/chat", icon: MessageSquare },
+  { label: "Content", href: "/admin/content", icon: Settings },
 ];
 
 export const HOMESTAY_NAV_ITEMS: NavItem[] = [

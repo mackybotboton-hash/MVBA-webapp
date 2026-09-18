@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 import { WeatherAlertBanner } from "@/components/shared/weather-alert-banner";
+import { createClient } from "@/lib/supabase/client";
 
 interface IslandAttraction {
   name: string;
@@ -60,13 +61,36 @@ const BRETANIA_ISLANDS: IslandAttraction[] = [
 ];
 
 export default function TouristExplorePage() {
-  const [activeIsland, setActiveIsland] = React.useState<string>(
-    BRETANIA_ISLANDS[0].name
-  );
+  const [islands, setIslands] = React.useState<IslandAttraction[]>(BRETANIA_ISLANDS);
+  const [activeIsland, setActiveIsland] = React.useState<string>(BRETANIA_ISLANDS[0].name);
+
+  React.useEffect(() => {
+    async function fetchIslands() {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("explore_islands")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+
+      if (data && data.length > 0) {
+        const mapped = data.map((d: any) => ({
+          name: d.name,
+          tagline: d.tagline,
+          description: d.description,
+          features: d.features,
+          imageUrl: d.image_url,
+        }));
+        setIslands(mapped);
+        setActiveIsland(mapped[0].name);
+      }
+    }
+    fetchIslands();
+  }, []);
 
   const selectedIsland =
-    BRETANIA_ISLANDS.find((i) => i.name === activeIsland) ||
-    BRETANIA_ISLANDS[0];
+    islands.find((i) => i.name === activeIsland) ||
+    islands[0];
 
   return (
     <div className="min-h-screen bg-white">
@@ -148,7 +172,7 @@ export default function TouristExplorePage() {
 
             {/* Island Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
-              {BRETANIA_ISLANDS.map((island) => (
+              {islands.map((island) => (
                 <button
                   key={island.name}
                   onClick={() => setActiveIsland(island.name)}

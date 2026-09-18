@@ -40,6 +40,20 @@ export default async function TouristProfilePage() {
     role: "tourist",
   };
 
+  const { data: helplineData } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "helpline")
+    .maybeSingle();
+
+  const defaultHelpline = {
+    phone: "(+63) 912-345-6789",
+    description:
+      "Need urgent assistance, weather updates, or boat coastguard verification? Contact the San Agustin Municipal Tourism Office at (+63) 912-345-6789.",
+  };
+
+  const helpline = helplineData?.value || defaultHelpline;
+
   const isOwnerOrAdmin = ["resort", "homestay", "admin"].includes(userProfile.role);
   const portalUrl =
     userProfile.role === "resort"
@@ -206,7 +220,7 @@ export default async function TouristProfilePage() {
             <span>San Agustin Tourism & Emergency Helpline</span>
           </div>
           <p className="text-neutral-600 text-[11px] leading-relaxed">
-            Need urgent assistance, weather updates, or boat coastguard verification? Contact the San Agustin Municipal Tourism Office at (+63) 912-345-6789.
+            {helpline.description || `Need urgent assistance, weather updates, or boat coastguard verification? Contact the San Agustin Municipal Tourism Office at ${helpline.phone || "(+63) 912-345-6789"}.`}
           </p>
         </div>
 
