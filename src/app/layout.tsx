@@ -58,7 +58,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)} data-scroll-behavior="smooth">
-      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground tracking-tight min-h-screen selection:bg-neutral-200 selection:text-black`}>
+      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground text-base leading-relaxed tracking-tight min-h-screen selection:bg-neutral-200 selection:text-black`}>
         <QueryProvider>
           {children}
           <PushInitializer />

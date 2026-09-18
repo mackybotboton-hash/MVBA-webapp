@@ -245,21 +245,21 @@ function FeedCard({ property, isActive, onBook }: { property: FeedProperty, isAc
           
           <div className="flex-1 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-md bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
+              <span className="px-2.5 py-1 rounded-md bg-white/60 backdrop-blur-md text-slate-900 text-[10px] font-bold uppercase tracking-wider">
                 {property.type}
               </span>
               {property.rating && (
-                <div className="flex items-center gap-1 text-yellow-400 font-medium text-sm drop-shadow-md">
+                <div className="flex items-center gap-1 text-yellow-400 font-semibold text-sm drop-shadow-md">
                   <Star className="w-4 h-4 fill-current" /> {property.rating}
                 </div>
               )}
             </div>
             
-            <h1 className="text-3xl font-bold text-white drop-shadow-lg leading-tight">
+            <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-md leading-tight">
               {property.name}
             </h1>
             
-            <p className="text-white/80 text-sm font-medium flex items-center gap-1.5 drop-shadow-sm">
+            <p className="text-white font-semibold drop-shadow-md text-sm flex items-center gap-1.5">
               <MapPin className="w-4 h-4" /> {property.address}
             </p>
           </div>
