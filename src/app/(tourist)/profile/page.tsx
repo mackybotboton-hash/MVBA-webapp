@@ -52,7 +52,7 @@ export default async function TouristProfilePage() {
       "Need urgent assistance, weather updates, or boat coastguard verification? Contact the San Agustin Municipal Tourism Office at (+63) 912-345-6789.",
   };
 
-  const helpline = helplineData?.value || defaultHelpline;
+  const helpline = (helplineData as any)?.value || defaultHelpline;
 
   const isOwnerOrAdmin = ["resort", "homestay", "admin"].includes(userProfile.role);
   const portalUrl =

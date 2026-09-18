@@ -120,8 +120,7 @@ export function useRealtimeMessages(userId: string | undefined, initialMessages:
   }, [userId, supabase, queryClient]);
 
   const markAsRead = useCallback(async (messageId: string) => {
-    const { error } = await supabase
-      .from("messages")
+    const { error } = await (supabase.from("messages") as any)
       .update({ is_read: true })
       .eq("id", messageId);
     

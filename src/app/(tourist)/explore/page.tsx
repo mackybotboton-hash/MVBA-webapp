@@ -228,9 +228,9 @@ export default function TouristExplorePage() {
                   Key Island Highlights:
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {selectedIsland.features.map((f) => (
+                  {selectedIsland.features.map((f: any, idx: number) => (
                     <Badge
-                      key={f}
+                      key={idx}
                       variant="subtle"
                       className="border-neutral-200 bg-neutral-50 text-neutral-800 text-sm py-1"
                     >

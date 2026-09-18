@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Loader2, Save, Plus, Trash2 } from "lucide-react";
 
@@ -34,8 +33,8 @@ export default function AdminContentPage() {
         .eq("key", "helpline")
         .maybeSingle();
 
-      if (data?.value) {
-        setHelpline(data.value as any);
+      if ((data as any)?.value) {
+        setHelpline((data as any).value);
       }
     } catch (e) {
       console.error(e);
@@ -65,7 +64,7 @@ export default function AdminContentPage() {
     setIsSavingHelpline(true);
     try {
       const { error } = await supabase.from("app_settings").upsert(
-        { key: "helpline", value: helpline },
+        { key: "helpline", value: helpline } as any,
         { onConflict: "key" }
       );
 
@@ -181,11 +180,12 @@ export default function AdminContentPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Description</label>
-                <Textarea
+                <textarea
                   value={helpline.description}
-                  onChange={(e) =>
+                  onChange={(e: any) =>
                     setHelpline({ ...helpline, description: e.target.value })
                   }
+                  className="min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                   rows={4}
                 />
               </div>

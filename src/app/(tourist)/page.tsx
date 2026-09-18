@@ -57,39 +57,42 @@ export default function TouristDiscoveryPage() {
 
   const { savedSet, toggleSave, count: savedCount } = useWishlist();
 
-  // Fetch current user and properties from Supabase
-  const fetchData = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
+  // Fetch current user
+  React.useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const supabase = createClient();
 
-      // 1. Check user session
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
+        // 1. Check user session
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
 
-      if (authUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, email, role")
-          .eq("id", authUser.id)
-          .maybeSingle();
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, email, role")
+            .eq("id", authUser.id)
+            .maybeSingle();
 
-        const role = ((profile as any)?.role || (authUser.user_metadata?.role as string) || "tourist") as UserRole;
+          const role = ((profile as any)?.role || (authUser.user_metadata?.role as string) || "tourist") as UserRole;
 
-        // If non-tourist visits root tourist discovery page, automatically redirect to their dashboard
-        if (role && role !== "tourist" && ROLE_HOME_ROUTES[role]) {
-          router.replace(ROLE_HOME_ROUTES[role]);
-          return;
+          // If non-tourist visits root tourist discovery page, automatically redirect to their dashboard
+          if (role && role !== "tourist" && ROLE_HOME_ROUTES[role]) {
+            router.replace(ROLE_HOME_ROUTES[role]);
+            return;
+          }
+
+          setUser({
+            email: authUser.email,
+            fullName: (profile as any)?.full_name || authUser.email?.split("@")[0],
+            role: role,
+          });
+        } else {
+          setUser(null);
         }
-
-        setUser({
-          email: authUser.email,
-          fullName: (profile as any)?.full_name || authUser.email?.split("@")[0],
-          role: role,
-        });
-      } else {
-        setUser(null);
+      } catch (err) {
+        console.error("Error fetching user:", err);
       }
     };
     checkUser();
@@ -118,7 +121,7 @@ export default function TouristDiscoveryPage() {
 
       if (error) {
         toast.error("Failed to load properties.");
-        setProperties([]);
+        return [];
       } else {
         // Map database records into UI PropertyCardData
         const mapped: PropertyCardData[] = (dbProperties || []).map((p: any) => {
