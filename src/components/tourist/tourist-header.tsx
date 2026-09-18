@@ -87,21 +87,17 @@ export function TouristHeader({
   }, [isUserMenuOpen]);
 
   async function handleSignOut() {
+    setIsUserMenuOpen(false);
+
+    const confirmed = window.confirm("Are you sure you want to sign out?");
+    if (!confirmed) return;
+
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     await supabase.auth.signOut();
     
-    setIsUserMenuOpen(false);
-
-    // If we're on the homepage, just update the state instantly
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    }
-    
-    // Redirect to home if on a protected route
-    if (pathname !== "/" && pathname !== "/explore") {
-      router.push("/");
-    }
+    // Hard refresh to completely clear application state
+    window.location.href = "/";
   }
 
   const roleLabel =

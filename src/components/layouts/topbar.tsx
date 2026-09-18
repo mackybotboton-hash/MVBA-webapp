@@ -50,9 +50,13 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 
   async function handleSignOut() {
     setIsUserMenuOpen(false);
+
+    const confirmed = window.confirm("Are you sure you want to sign out?");
+    if (!confirmed) return;
+
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/");
+    window.location.href = "/";
   }
 
   const role = profile?.role || "tourist";
