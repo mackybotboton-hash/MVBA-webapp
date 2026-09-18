@@ -21,7 +21,7 @@ export function AdminSidebar() {
     >
       {/* Logo */}
       <div className="h-14 flex items-center px-4 border-b border-gray-200">
-        {!collapsed && <Logo size="small" href="/admin" />}
+        <Logo size="small" href="/admin" iconOnly={collapsed} />
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
@@ -75,18 +75,26 @@ export function AdminSidebar() {
           }
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group",
-                isActive
-                  ? "bg-gray-100 text-black font-semibold"
-                  : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
+            <div key={item.href} className="relative group/tooltip">
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group",
+                  isActive
+                    ? "bg-gray-100 text-black font-semibold"
+                    : "text-gray-500 hover:text-gray-900 hover:bg-gray-50",
+                  collapsed && "justify-center px-0"
+                )}
+              >
+                {content}
+              </Link>
+              {collapsed && (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1.5 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-md">
+                  {item.label}
+                  <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+                </div>
               )}
-            >
-              {content}
-            </Link>
+            </div>
           );
         })}
       </nav>

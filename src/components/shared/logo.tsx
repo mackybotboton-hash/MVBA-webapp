@@ -4,9 +4,11 @@ import Image from "next/image";
 export function Logo({
   size = "default",
   href = "/",
+  iconOnly = false,
 }: {
   size?: "small" | "default" | "large";
   href?: string;
+  iconOnly?: boolean;
 }) {
   const sizeClasses = {
     small: "text-lg",
@@ -25,18 +27,20 @@ export function Logo({
           className="rounded-lg shadow-sm"
         />
       </div>
-      <div className="flex flex-col">
-        <span
-          className={`font-bold tracking-tight text-black ${sizeClasses[size]}`}
-        >
-          Britania
-        </span>
-        {size !== "small" && (
-          <span className="text-[10px] text-gray-400 leading-none -mt-0.5 tracking-widest uppercase">
-            Surigao del Sur
+      {!iconOnly && (
+        <div className="flex flex-col">
+          <span
+            className={`font-bold tracking-tight text-black ${sizeClasses[size]}`}
+          >
+            Britania
           </span>
-        )}
-      </div>
+          {size !== "small" && (
+            <span className="text-[10px] text-gray-400 leading-none -mt-0.5 tracking-widest uppercase">
+              Surigao del Sur
+            </span>
+          )}
+        </div>
+      )}
     </Link>
   );
 }

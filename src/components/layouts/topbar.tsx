@@ -95,14 +95,8 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
               <Menu className="h-5 w-5 text-gray-600" />
             </button>
           )}
-          <div className="hidden md:block">
-            <Logo size="small" href={portalHomeRoute} />
-          </div>
           {title && (
-            <>
-              <div className="hidden md:block w-px h-5 bg-gray-200" />
-              <h1 className="text-sm font-medium text-gray-900">{title}</h1>
-            </>
+            <h1 className="text-sm font-medium text-gray-900 ml-2 md:ml-0">{title}</h1>
           )}
         </div>
 
