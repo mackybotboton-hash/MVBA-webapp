@@ -1,0 +1,35 @@
+name: Production Release QA
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript Compilation Check
+        # Run tsc without emitting files to verify strict type safety across the entire codebase
+        run: npx tsc --noEmit
+
+      - name: ESLint Validation
+        run: npm run lint
+
+      # (Optional) You can add automated testing steps here later (e.g., Jest or Playwright)
+      # - name: Run Tests
+      #   run: npm test

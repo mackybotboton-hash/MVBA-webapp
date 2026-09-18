@@ -5,9 +5,8 @@ import { ROLE_HOME_ROUTES, type UserRole } from "@/lib/constants";
 // ----------------------------------------------------------------------------
 // STATIC PRE-ALLOCATED LOOKUP TABLES (Zero-GC allocations per request)
 // ----------------------------------------------------------------------------
-const PUBLIC_AUTH_ROUTES = new Set<string>([]);
+const PUBLIC_AUTH_ROUTES = new Set(["/login", "/register"]);
 const TOURIST_PUBLIC_EXACT = new Set(["/", "/explore", "/wishlist"]);
-// Removed "/profile" so owners and admins can access their account profile
 const TOURIST_ONLY_PREFIXES = ["/bookings", "/chat"] as const;
 
 // Static map for O(1) prefix validation without runtime array allocations
@@ -40,8 +39,8 @@ function createSafeRedirect(
       domain: c.domain,
       maxAge: c.maxAge,
       httpOnly: c.httpOnly,
-      secure: c.secure,
-      sameSite: c.sameSite,
+      secure: true, // ENFORCED for Zero-Trust Architecture
+      sameSite: "lax",
     });
   }
 
@@ -64,21 +63,22 @@ export async function proxy(request: NextRequest) {
   const { user, supabaseResponse, supabase } = await updateSession(request);
 
   // --------------------------------------------------------------------------
-  // 3. UNAUTHENTICATED USERS
+  // 3. UNAUTHENTICATED USERS (Edge Redirect to Prevent Hydration on Private Routes)
   // --------------------------------------------------------------------------
   if (!user) {
     if (isAuthRoute || isTouristPublic) {
       return supabaseResponse;
     }
-    console.log("[PROXY] No user. Redirecting from", pathname, "to /?redirect=", pathname);
-    const loginUrl = new URL("/", request.url);
+    
+    // Strict edge-level redirect for unauthenticated users accessing protected routes
+    const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return createSafeRedirect(loginUrl, request, supabaseResponse);
   }
 
   // --------------------------------------------------------------------------
-  // 4. AUTHENTICATED USERS: ACCURATE ROLE RESOLUTION
-  // Priority: 1. JWT User Metadata -> 2. PostgreSQL profiles query -> 3. Cookie cache -> 4. Fallback
+  // 4. AUTHENTICATED USERS: ZERO-TRUST ROLE RESOLUTION
+  // Priority: 1. JWT User Metadata -> 2. PostgreSQL profiles query -> 3. Cookie cache
   // --------------------------------------------------------------------------
   const cachedRoleCookie = request.cookies.get("mvba_user_role")?.value as UserRole | undefined;
 
@@ -86,7 +86,7 @@ export async function proxy(request: NextRequest) {
     (user.user_metadata?.role as UserRole) ||
     (user.app_metadata?.role as UserRole) ||
     cachedRoleCookie ||
-    "tourist";
+    "tourist"; // Default to lowest privilege
 
   if (!user.user_metadata?.role && !user.app_metadata?.role) {
     const { data: profile } = await supabase
@@ -100,37 +100,36 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Cache resolved role in lightweight cookie to avoid transient role-drops on DB latency
+  // Cache resolved role in lightweight cookie
   supabaseResponse.cookies.set("mvba_user_role", userRole, {
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
+    secure: true,
     sameSite: "lax",
   });
 
   const userDashboard = ROLE_HOME_ROUTES[userRole] || "/";
-  console.log(`[PROXY] Auth Check: User=${user.email} Role=${userRole} Path=${pathname}`);
 
   // If authenticated user visits /login or /register, redirect to their home
   if (isAuthRoute) {
     return createSafeRedirect(userDashboard, request, supabaseResponse);
   }
 
-  // Non-tourists (admin, homestay, resort) visiting root "/" must land on their dashboard
+  // --------------------------------------------------------------------------
+  // 5. BOUNDARY ISOLATION FOR ROLES
+  // --------------------------------------------------------------------------
   const isPrefetch =
     request.headers.get("x-next-router-prefetch") === "1" ||
     request.headers.get("purpose") === "prefetch" ||
     request.headers.get("sec-purpose") === "prefetch";
 
+  // Operators (Admin/Homestay/Resort) landing on tourist root should go to their dashboards
   if (pathname === "/" && userRole !== "tourist") {
-    // Avoid poisoning Next.js router prefetch cache with 307 redirects
-    if (isPrefetch) {
-      return supabaseResponse;
-    }
-    console.log(`[PROXY] Redirecting ${userRole} from / to ${userDashboard}`);
+    if (isPrefetch) return supabaseResponse; // Skip prefetch poisoning
     return createSafeRedirect(userDashboard, request, supabaseResponse);
   }
 
-  // Non-tourists visiting tourist-only pages (/bookings, /chat)
+  // Block operators from tourist-only routes (/bookings, /chat)
   if (userRole !== "tourist") {
     for (let i = 0; i < TOURIST_ONLY_PREFIXES.length; i++) {
       if (pathname.startsWith(TOURIST_ONLY_PREFIXES[i])) {
@@ -139,13 +138,13 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Operator route access control (/admin, /homestay, /resort)
+  // STRICT PATH BOUNDARY ENFORCEMENT
   for (let i = 0; i < OPERATOR_PREFIXES.length; i++) {
     const prefix = OPERATOR_PREFIXES[i];
     if (pathname.startsWith(prefix)) {
       const requiredRole = OPERATOR_PREFIX_TO_ROLE[prefix];
       if (userRole !== requiredRole) {
-        console.log(`[PROXY] Role mismatch! User is ${userRole}, but ${prefix} requires ${requiredRole}. Redirecting to ${userDashboard}`);
+        // Zero-Trust: Role escalation attempt caught at Edge.
         return createSafeRedirect(userDashboard, request, supabaseResponse);
       }
       break;
@@ -158,13 +157,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for:
-     * - _next/static (static chunks)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - static assets (.svg, .png, .jpg, .jpeg, .gif, .webp, .avif, .ico, .json, .js, .css, .woff, .woff2, .ttf, .map)
-     */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|json|js|css|woff|woff2|ttf|map|webmanifest)$).*)",
   ],
 };
