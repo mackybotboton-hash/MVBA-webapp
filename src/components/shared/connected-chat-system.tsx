@@ -18,6 +18,8 @@ import {
   Sparkles,
   Loader2,
   ShieldCheck,
+  Plus,
+  X,
   MessageCircleOff,
 } from "lucide-react";
 import { LoadingLogo } from "@/components/shared/loading-logo";
