@@ -363,7 +363,7 @@ export function TouristHeader({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search homestays, resorts, or islands in Bretania... (Press '/' to focus)"
+              placeholder="Search homestays, resorts, or islands in Bretania..."
               className="w-full h-10 pl-9 pr-9 rounded-xl border border-neutral-200 bg-white text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all"
             />
             {searchQuery && (
