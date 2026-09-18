@@ -23,10 +23,6 @@ export function PushInitializer({ userId }: { userId?: string }) {
         await OneSignal.init({
           appId,
           allowLocalhostAsSecureOrigin: process.env.NODE_ENV === "development",
-          notifyButton: {
-            enable: true,
-            displayPredicate: () => OneSignal.isPushNotificationsSupported(),
-          },
         });
 
         // If user is logged in, bind their OneSignal Player ID to their Supabase Profile
@@ -40,7 +36,7 @@ export function PushInitializer({ userId }: { userId?: string }) {
               const supabase = createClient();
               const { error } = await supabase
                 .from("profiles")
-                .update({ onesignal_id: subscription.current.id })
+                .update({ onesignal_id: subscription.current.id } as any)
                 .eq("id", userId);
 
               if (error) {

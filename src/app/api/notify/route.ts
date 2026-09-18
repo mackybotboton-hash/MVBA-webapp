@@ -20,11 +20,12 @@ export async function POST(request: Request) {
     const supabaseAdmin = createAdminClient();
 
     // 2. Lookup the target user's OneSignal Subscription ID
-    const { data: profile, error: profileError } = await supabaseAdmin
+    const { data, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("onesignal_id")
       .eq("id", targetUserId)
       .single();
+    const profile = data as any;
 
     if (profileError || !profile || !profile.onesignal_id) {
       return NextResponse.json({ error: "User has no active push subscription." }, { status: 404 });

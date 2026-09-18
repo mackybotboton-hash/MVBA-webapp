@@ -9,14 +9,14 @@ import { Label } from "@/components/ui/label";
 import { UploadCloud, Image as ImageIcon, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-interface ReceiptUploadDialogProps {
+interface GCashDepositModalProps {
   isOpen: boolean;
   onClose: () => void;
   bookingId: string;
   onUploadComplete: (payload: { receiptFile: File; referenceNumber: string }) => Promise<void>;
 }
 
-export function ReceiptUploadDialog({ isOpen, onClose, bookingId, onUploadComplete }: ReceiptUploadDialogProps) {
+export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete }: GCashDepositModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [referenceNumber, setReferenceNumber] = useState("");
