@@ -992,7 +992,7 @@ function ChatSystemContent({
           <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
             {portalTitle}
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5 font-medium">
+          <p className="text-sm sm:text-base text-neutral-600 mt-0.5 font-medium">
             {portalSubtitle}
           </p>
         </div>
@@ -1025,7 +1025,7 @@ function ChatSystemContent({
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-9 pr-3 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-black bg-neutral-50"
+                className="w-full h-9 pl-9 pr-3 rounded-xl border border-neutral-200 text-sm font-medium text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-black bg-neutral-50"
               />
             </div>
           </div>
@@ -1097,8 +1097,8 @@ function ChatSystemContent({
                 <div className="h-12 w-12 rounded-2xl bg-neutral-200/60 flex items-center justify-center mx-auto">
                   <MessageSquare className="h-6 w-6 text-neutral-500" />
                 </div>
-                <p className="font-bold text-neutral-700">No active conversations</p>
-                <p className="text-[11px] text-neutral-600 leading-relaxed max-w-[220px] mx-auto">
+                <p className="text-base font-bold text-neutral-700">No active conversations</p>
+                <p className="text-sm mt-1 text-neutral-500 leading-relaxed max-w-[200px] mx-auto">
                   {currentRole === "tourist"
                     ? "When you message a homestay or resort host, your conversations will appear here."
                     : currentRole === "admin"
@@ -1529,12 +1529,12 @@ function ChatSystemContent({
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-neutral-500 space-y-3">
-              <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center">
-                <MessageSquare className="h-8 w-8 text-neutral-500" />
+              <div className="h-20 w-20 rounded-2xl bg-neutral-100 flex items-center justify-center">
+                <MessageSquare className="h-10 w-10 text-neutral-500" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-neutral-800">No conversation selected</h3>
-                <p className="text-xs text-neutral-600 mt-1 max-w-sm leading-relaxed">
+                <h3 className="font-bold text-base text-neutral-800">No conversation selected</h3>
+                <p className="text-sm text-neutral-600 mt-2 max-w-sm leading-relaxed">
                   {currentRole === "tourist"
                     ? "Pick a conversation from the left, or visit a homestay/resort page to message a host directly."
                     : currentRole === "admin"
@@ -1544,7 +1544,7 @@ function ChatSystemContent({
               </div>
               {currentRole === "tourist" && (
                 <Link href="/explore" className="pt-2">
-                  <Button size="sm" className="text-xs bg-black text-white font-bold h-9 px-4 rounded-xl shadow-xs">
+                  <Button size="sm" className="text-sm bg-black text-white font-bold h-10 px-5 rounded-xl shadow-xs">
                     Explore Stays
                   </Button>
                 </Link>

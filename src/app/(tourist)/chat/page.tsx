@@ -14,7 +14,7 @@ export default function TouristChatPage() {
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-4">
             <Logo size="small" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+            <span className="text-sm font-semibold uppercase tracking-wider text-neutral-500">
               Host Messages
             </span>
           </div>
@@ -23,7 +23,7 @@ export default function TouristChatPage() {
             <Button
               variant="outline"
               size="sm"
-              className="text-xs h-8 px-3 border-neutral-200 font-semibold"
+              className="text-sm h-8 px-3 border-neutral-200 font-semibold"
             >
               Back to Stays
             </Button>

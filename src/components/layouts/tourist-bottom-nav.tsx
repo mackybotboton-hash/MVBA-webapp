@@ -31,16 +31,17 @@ export function TouristBottomNav() {
                 )}
               >
                 <div className="relative">
-                  <Icon className="h-5 w-5 transition-all" />
-                  {isActive && (
-                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-black" />
-                  )}
+                  <Icon
+                    className={`w-6 h-6 transition-all duration-300 ${
+                      isActive ? "scale-110 drop-shadow-md" : "opacity-80"
+                    }`}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
                 </div>
                 <span
-                  className={cn(
-                    "text-[10px] font-medium transition-all",
-                    isActive ? "text-black font-semibold" : "text-gray-400"
-                  )}
+                  className={`text-xs font-medium transition-colors duration-300 ${
+                    isActive ? "opacity-100" : "opacity-80"
+                  }`}
                 >
                   {item.label}
                 </span>
