@@ -300,6 +300,11 @@ When preparing a branch to push (`feat/*`, `fix/*`, `refactor/*`):
   - Resolved JSX unescaped entities in `property-client.tsx` and `property-reviews-manager.tsx`.
   - Configured `eslint.config.mjs` to ignore scratch scripts and warn on explicit `any`.
   - Both `npx tsc --noEmit` and `npm run lint` now pass cleanly with 0 errors.
+- **Main Branch Sync & Merge Validation**:
+  - Synced and merged 7 latest commits from `origin/main` (`d76f662..42c9f55`), bringing in the new Britania PWA branding, updated Apple touch icon, and `PushInitializer` root layout integration.
+  - Successfully resolved merge conflicts in `PushInitializer.tsx`, `booking-request-modal.tsx`, `use-realtime-messages.ts`, and `gcash-deposit-modal.tsx`.
+  - Removed duplicate and deprecated modal declarations in `gcash-deposit-modal.tsx` while preserving standard upload interface and backwards-compatible `ReceiptUploadDialog` export.
+  - Verified full test suite: `npx tsc --noEmit` (0 errors), `npm run lint` (0 errors), and full production build `npm run build` (36/36 static and dynamic routes compiled cleanly in Next.js 16 Turbopack).
 - **Git Hygiene**: Added `scratch*`, `debug*`, and `*.log` to `.gitignore` and untracked all test scripts with plaintext credentials from git tracking.
 
 ### [v0.1.0] - Foundation & Core Architecture (September 2026)
