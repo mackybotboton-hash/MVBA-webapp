@@ -2,13 +2,15 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { MapPin, Star, User, Info, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Button } from "@/components/ui/button";
 import { BookingRequestModal } from "./booking-request-modal";
 import { createClient } from "@/lib/supabase/client";
+import { createReservationAction } from "@/app/actions/booking-actions";
 
 export interface FeedProperty {
   id: string;
@@ -30,6 +32,7 @@ export function DiscoveryFeed() {
 
   const parentRef = useRef<HTMLDivElement>(null);
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const {
     data,
@@ -44,7 +47,7 @@ export function DiscoveryFeed() {
       const { data: dbProps, error } = await supabase
         .from("properties")
         .select(`
-          id, name, type, address, cover_image_url,
+          id, name, type, address, cover_image_url, rating, reviews_count,
           rooms (id, name, base_price, max_capacity)
         `)
         .eq("status", "active")
@@ -59,7 +62,8 @@ export function DiscoveryFeed() {
         address: p.address || "Bretania, San Agustin",
         cover_image_url: p.cover_image_url,
         rooms: p.rooms || [],
-        rating: 0,
+        rating: p.rating,
+        reviews_count: p.reviews_count,
       })) as FeedProperty[];
     },
     initialPageParam: 0,
@@ -114,10 +118,33 @@ export function DiscoveryFeed() {
     setBookingModalOpen(true);
   };
 
+  const bookingMutation = useMutation({
+    mutationFn: createReservationAction,
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success("Booking request sent successfully!", {
+          description: "The host will review your request shortly.",
+        });
+        queryClient.invalidateQueries({ queryKey: ["discovery-feed"] });
+        queryClient.invalidateQueries({ queryKey: ["properties"] });
+        setBookingModalOpen(false);
+      } else {
+        toast.error("Failed to request booking", { description: data.error });
+      }
+    },
+    onError: (error: any) => {
+      toast.error("Failed to request booking", { description: error.message });
+    }
+  });
+
   const handleBookingSubmit = async (payload: any) => {
-    // Booking submission handled here (calling server action or API)
-    console.log("Submitting booking:", payload);
-    setBookingModalOpen(false);
+    bookingMutation.mutate({
+      roomId: payload.roomId,
+      checkInDate: payload.checkInDate,
+      checkOutDate: payload.checkOutDate,
+      guestCount: payload.guestCount,
+      notes: payload.serviceIds?.length ? `Extra Services: ${payload.serviceIds.join(", ")}` : undefined,
+    });
   };
 
   return (
@@ -175,6 +202,7 @@ export function DiscoveryFeed() {
           propertyId={selectedProperty.id}
           rooms={selectedProperty.rooms}
           onSubmit={handleBookingSubmit}
+          isSubmitting={bookingMutation.isPending}
         />
       )}
       

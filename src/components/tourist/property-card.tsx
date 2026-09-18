@@ -160,10 +160,12 @@ export function PropertyCard({
 
               <div className="flex items-center gap-1 text-sm font-semibold text-neutral-900 shrink-0">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span>{property.rating ? property.rating.toFixed(1) : "4.8"}</span>
-                <span className="text-xs text-neutral-600 font-medium">
-                  ({property.reviews_count ?? 12})
-                </span>
+                <span>{!property.reviews_count ? "New" : property.rating ? property.rating.toFixed(1) : "0.0"}</span>
+                {!!property.reviews_count && (
+                  <span className="text-xs text-neutral-600 font-medium">
+                    ({property.reviews_count})
+                  </span>
+                )}
               </div>
             </div>
 
@@ -287,7 +289,12 @@ export function PropertyCard({
 
             <div className="flex items-center gap-0.5 text-sm font-semibold text-neutral-900 shrink-0">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              <span>{property.rating ? property.rating.toFixed(1) : "4.8"}</span>
+              <span>{!property.reviews_count ? "New" : property.rating ? property.rating.toFixed(1) : "0.0"}</span>
+              {!!property.reviews_count && (
+                <span className="text-[10px] text-neutral-600 font-medium ml-0.5">
+                  ({property.reviews_count})
+                </span>
+              )}
             </div>
           </div>
 

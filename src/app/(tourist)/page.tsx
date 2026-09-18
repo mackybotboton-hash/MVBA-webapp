@@ -112,6 +112,8 @@ export default function TouristDiscoveryPage() {
           address,
           cover_image_url,
           status,
+          rating,
+          reviews_count,
           rooms (
             base_price,
             max_capacity
@@ -136,8 +138,8 @@ export default function TouristDiscoveryPage() {
             address: p.address || "Bretania, San Agustin, Surigao del Sur",
             cover_image_url: p.cover_image_url,
             base_price: minPrice,
-            rating: 0,
-            reviews_count: 0,
+            rating: p.rating,
+            reviews_count: p.reviews_count,
             max_capacity: maxCap,
             is_verified: true,
             status: p.status,

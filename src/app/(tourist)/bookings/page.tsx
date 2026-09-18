@@ -312,7 +312,7 @@ export default function TouristBookingsPage() {
               .update({
                 payment_status: "deposit_uploaded",
                 receipt_url: uploadData.path
-              })
+              } as any)
               .eq("id", selectedDepositBooking.id);
 
             if (updateError) throw updateError;
