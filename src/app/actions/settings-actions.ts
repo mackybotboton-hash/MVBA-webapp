@@ -12,7 +12,7 @@ const GCashSchema = z.object({
 
 export async function updatePayoutMethod(formData: FormData) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -27,7 +27,7 @@ export async function updatePayoutMethod(formData: FormData) {
     if (!validatedData.success) {
       return { 
         success: false, 
-        error: validatedData.error.errors[0].message 
+        error: validatedData.error.flatten().fieldErrors.gcashNumber?.[0] || "Invalid GCash number"
       };
     }
 
@@ -52,7 +52,7 @@ export async function updatePayoutMethod(formData: FormData) {
 
 export async function updateNotificationPreferences(pushEnabled: boolean) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {

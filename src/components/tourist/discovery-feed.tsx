@@ -172,6 +172,7 @@ export function DiscoveryFeed() {
         <BookingRequestModal 
           isOpen={bookingModalOpen}
           onClose={() => setBookingModalOpen(false)}
+          propertyId={selectedProperty.id}
           rooms={selectedProperty.rooms}
           onSubmit={handleBookingSubmit}
         />

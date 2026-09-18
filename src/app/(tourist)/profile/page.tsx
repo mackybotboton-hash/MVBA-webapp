@@ -16,7 +16,7 @@ import { SignOutButton } from "./sign-out-button";
 import { ProfileActivityStats } from "./profile-activity-stats";
 
 export default async function TouristProfilePage() {
-  const supabase = await createClient();
+  const supabase = (await createClient()) as any;
   const {
     data: { user },
   } = await supabase.auth.getUser();

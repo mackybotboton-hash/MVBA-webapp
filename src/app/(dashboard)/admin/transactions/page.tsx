@@ -211,7 +211,7 @@ export default function AdminTransactionsPage() {
       <VerifyModal 
         transaction={previewTransaction} 
         onClose={() => setPreviewTransaction(null)} 
-        onVerify={async (id) => verifyMutation.mutateAsync(id)}
+        onVerify={async (id) => { await verifyMutation.mutateAsync(id); }}
         isVerifying={verifyMutation.isPending}
       />
     </div>

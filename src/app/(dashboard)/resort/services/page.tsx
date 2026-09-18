@@ -30,7 +30,7 @@ export default function ResortServicesPage() {
   const { data: services = [], isLoading, refetch } = useQuery({
     queryKey: ['resort-services'],
     queryFn: async () => {
-      const supabase = createClient();
+      const supabase = createClient() as any;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 

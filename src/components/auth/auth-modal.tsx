@@ -253,11 +253,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
               setMode("login");
               setError("");
             }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              mode === "login"
-                ? "bg-white text-black shadow-xs"
-                : "text-neutral-600 hover:text-black"
-            }`}
+            className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "login"
+              ? "bg-white text-black shadow-xs"
+              : "text-neutral-600 hover:text-black"
+              }`}
           >
             Sign In
           </button>
@@ -267,11 +266,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
               setMode("register");
               setError("");
             }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              mode === "register"
-                ? "bg-white text-black shadow-xs"
-                : "text-neutral-600 hover:text-black"
-            }`}
+            className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "register"
+              ? "bg-white text-black shadow-xs"
+              : "text-neutral-600 hover:text-black"
+              }`}
           >
             Create Account
           </button>
@@ -301,7 +299,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
                           <Input
                             id="login-email"
                             autoComplete="email"
-                            placeholder="admin@sarah.test"
+                            placeholder="email@gmail.com"
                             type="email"
                             className="h-10 pl-9 rounded-xl border-neutral-300 text-xs sm:text-sm focus-visible:ring-black"
                             {...field}

@@ -10,7 +10,7 @@ export async function upsertService(payload: {
   price: number;
 }) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
@@ -57,7 +57,7 @@ export async function upsertService(payload: {
 
 export async function toggleServiceStatus(serviceId: string, isActive: boolean) {
   try {
-    const supabase = await createClient();
+    const supabase = (await createClient()) as any;
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
