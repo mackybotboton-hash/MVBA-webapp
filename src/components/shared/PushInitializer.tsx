@@ -25,6 +25,9 @@ export function PushInitializer({ userId }: { userId?: string }) {
           allowLocalhostAsSecureOrigin: process.env.NODE_ENV === "development",
         });
 
+        // Actually show the prompt asking the user to subscribe
+        OneSignal.Slidedown.promptPush();
+
         // If user is logged in, bind their OneSignal Player ID to their Supabase Profile
         if (userId) {
           // In OneSignal web SDK v16+, you login users with their external ID
