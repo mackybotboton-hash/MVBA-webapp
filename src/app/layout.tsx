@@ -13,11 +13,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MVBA — San Agustin Resort & Homestay Association",
+  title: "Britania Travel — Resort & Homestay Bookings",
   description:
-    "Discover and book stays in Bretania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
+    "Discover and book stays in Britania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
   keywords: [
-    "Bretania",
+    "Britania",
     "San Agustin",
     "Surigao del Sur",
     "resort",
@@ -25,14 +25,18 @@ export const metadata: Metadata = {
     "booking",
     "Philippines",
     "island hopping",
-    "MVBA",
   ],
-  authors: [{ name: "MVBA Association" }],
+  authors: [{ name: "Britania Tourism" }],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "MVBA",
+    title: "Britania",
+  },
+  icons: {
+    apple: [
+      { url: '/icons/icon-192.png' },
+    ],
   },
 };
 
