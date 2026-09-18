@@ -48,6 +48,13 @@ export default function TouristDiscoveryPage() {
   const [viewMode, setViewMode] = React.useState<"grid" | "feed">("grid");
   const [isFilterDialogOpen, setIsFilterDialogOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<FilterState>(INITIAL_FILTERS);
+
+  // Default to feed view on mobile devices for better UX
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setViewMode("feed");
+    }
+  }, []);
   const [user, setUser] = React.useState<{ email?: string; fullName?: string; role?: string } | null>(null);
 
   const { savedSet, toggleSave, count: savedCount } = useWishlist();
