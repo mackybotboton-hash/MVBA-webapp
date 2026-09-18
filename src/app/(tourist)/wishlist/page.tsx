@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -244,9 +245,11 @@ export default function WishlistPage() {
 
         {/* Loading State */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white border border-neutral-200 rounded-2xl">
-            <Loader2 className="h-8 w-8 animate-spin text-neutral-500 mb-3" />
-            <p className="text-sm font-medium text-neutral-600">Loading your saved stays...</p>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <LoadingLogo size="large" className="mb-4" />
+            <h3 className="text-xl font-bold text-neutral-900 mb-2">
+              Loading your wishlist...
+            </h3>
           </div>
         ) : filteredProperties.length > 0 ? (
           /* Wishlist Grid */

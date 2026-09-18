@@ -18,9 +18,9 @@ import {
   Sparkles,
   Loader2,
   ShieldCheck,
-  Plus,
-  X,
+  MessageCircleOff,
 } from "lucide-react";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1648,9 +1648,9 @@ export function ConnectedChatSystem(props: ConnectedChatSystemProps) {
   return (
     <React.Suspense
       fallback={
-        <div className="p-8 text-center text-xs text-neutral-500 space-y-2">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto text-neutral-500" />
-          <span>Connecting to Bretania Chat Gateway...</span>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <LoadingLogo size="large" className="mb-4" />
+          <p className="text-sm font-medium text-neutral-500">Loading messages...</p>
         </div>
       }
     >

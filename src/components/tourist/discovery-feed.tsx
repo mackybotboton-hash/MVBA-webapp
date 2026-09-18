@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import Image from "next/image";
 import { MapPin, Star, User, Info, Loader2 } from "lucide-react";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Button } from "@/components/ui/button";
 import { BookingRequestModal } from "./booking-request-modal";
 
@@ -120,7 +121,7 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
               >
                 {isLoaderRow ? (
                   <div className="flex flex-col items-center justify-center text-white/50">
-                    <Loader2 className="w-8 h-8 animate-spin mb-4" />
+                    <div className="flex justify-center mb-4"><LoadingLogo size="large" /></div>
                     <p className="text-sm font-medium tracking-wide">Loading more places...</p>
                   </div>
                 ) : (
