@@ -41,6 +41,7 @@ import { addDays } from "date-fns";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { cn } from "@/lib/utils";
 import { ShareButton } from "@/components/tourist/share-button";
+import { AuthModal } from "@/components/auth/auth-modal";
 
 interface RoomItem {
   id: string;
@@ -68,6 +69,9 @@ export default function PropertyStorefrontPage() {
   const [activeTab, setActiveTab] = React.useState<"overview" | "rooms" | "services" | "reviews">("overview");
 
   // Booking Modal State
+  const [user, setUser] = React.useState<any>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [pendingRoomToBook, setPendingRoomToBook] = React.useState<RoomItem | null>(null);
   const [selectedRoom, setSelectedRoom] = React.useState<RoomItem | null>(null);
   const [gallery, setGallery] = React.useState<{
     isOpen: boolean;
@@ -101,6 +105,16 @@ export default function PropertyStorefrontPage() {
     status: string;
   }[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = React.useState(false);
+
+  // Load User Data
+  React.useEffect(() => {
+    async function fetchUser() {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    }
+    fetchUser();
+  }, []);
 
   // Fetch active booked dates for selected room to block conflicting dates
   React.useEffect(() => {
@@ -750,7 +764,14 @@ export default function PropertyStorefrontPage() {
                       </div>
 
                       <Button
-                        onClick={() => setSelectedRoom(room)}
+                        onClick={() => {
+                          if (!user) {
+                            setPendingRoomToBook(room);
+                            setIsAuthModalOpen(true);
+                          } else {
+                            setSelectedRoom(room);
+                          }
+                        }}
                         className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-4 font-bold shadow-xs"
                       >
                         Book Room
@@ -1125,6 +1146,26 @@ export default function PropertyStorefrontPage() {
           </div>
         </div>
       )}
+
+      {/* Auth Gate Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setPendingRoomToBook(null);
+        }}
+        redirectOnSuccess={false}
+        onLoginSuccess={async () => {
+          const supabase = createClient();
+          const { data } = await supabase.auth.getUser();
+          setUser(data.user);
+          setIsAuthModalOpen(false);
+          if (pendingRoomToBook) {
+            setSelectedRoom(pendingRoomToBook);
+            setPendingRoomToBook(null);
+          }
+        }}
+      />
     </div>
   );
 }

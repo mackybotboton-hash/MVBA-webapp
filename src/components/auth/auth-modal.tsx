@@ -28,9 +28,10 @@ interface AuthModalProps {
   onClose: () => void;
   initialMode?: "login" | "register";
   onLoginSuccess?: () => void;
+  redirectOnSuccess?: boolean;
 }
 
-export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSuccess }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSuccess, redirectOnSuccess = true }: AuthModalProps) {
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [showPassword, setShowPassword] = useState(false);
@@ -137,9 +138,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
           onLoginSuccess();
         }
 
-        const currentPath = window.location.pathname;
-        if (currentPath !== homeRoute) {
-          router.push(homeRoute);
+        if (redirectOnSuccess) {
+          const currentPath = window.location.pathname;
+          if (currentPath !== homeRoute) {
+            router.push(homeRoute);
+          }
         }
         onClose();
       }
@@ -180,9 +183,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
           onLoginSuccess();
         }
 
-        const currentPath = window.location.pathname;
-        if (currentPath !== homeRoute) {
-          router.push(homeRoute);
+        if (redirectOnSuccess) {
+          const currentPath = window.location.pathname;
+          if (currentPath !== homeRoute) {
+            router.push(homeRoute);
+          }
         }
         onClose();
       } else {
