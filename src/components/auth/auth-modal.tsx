@@ -123,15 +123,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
           .maybeSingle<{ role: string }>();
 
         const dbRole = profile?.role;
-        const jwtRole = authData.user.user_metadata?.role;
+        const appRole = authData.user.app_metadata?.role;
 
-        // 🚀 SELF-HEALING MECHANISM: Sync JWT metadata if it's outdated
-        if (dbRole && dbRole !== jwtRole) {
-          await supabase.auth.updateUser({ data: { role: dbRole } });
-        }
-
-        const role = (dbRole || jwtRole || "admin") as UserRole;
-        const homeRoute = ROLE_HOME_ROUTES[role] || "/admin";
+        // Strict least-privilege default fallback to 'tourist'
+        const role = (dbRole || appRole || "tourist") as UserRole;
+        const homeRoute = ROLE_HOME_ROUTES[role] || "/";
 
         if (onLoginSuccess) {
           onLoginSuccess();

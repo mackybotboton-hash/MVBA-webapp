@@ -1,14 +1,32 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: Request) {
   try {
-    // 1. Verify Authentication & Secrets
+    // 1. Enforce Authorization: Either valid Bearer token matching INTERNAL_API_SECRET
+    // or an authenticated session from an active user
     const authHeader = request.headers.get("authorization");
-    // Ensure this route is either called by an internal authenticated context or a webhook secret
-    if (authHeader !== `Bearer ${process.env.INTERNAL_API_SECRET}`) {
-      // In production, enforce secret validation. For this MVP, we will rely on Supabase Service Role below.
-      console.warn("No strict internal API secret provided. Proceeding with caution.");
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    let isAuthorized = false;
+
+    if (internalSecret && authHeader === `Bearer ${internalSecret}`) {
+      isAuthorized = true;
+    } else {
+      const supabaseUser = await createClient();
+      const {
+        data: { user },
+      } = await supabaseUser.auth.getUser();
+      if (user) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid or missing authorization credentials." },
+        { status: 401 }
+      );
     }
 
     const { targetUserId, title, message, url } = await request.json();
@@ -49,7 +67,7 @@ export async function POST(request: Request) {
         include_subscription_ids: [profile.onesignal_id],
         headings: { en: title },
         contents: { en: message },
-        url: url || "/", // Deep link to specific page
+        url: url || "/",
       }),
     });
 
@@ -61,6 +79,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: responseData });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to process notification" }, { status: 500 });
   }
 }

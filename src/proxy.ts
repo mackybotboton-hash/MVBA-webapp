@@ -69,7 +69,7 @@ export async function proxy(request: NextRequest) {
     if (isAuthRoute || isTouristPublic) {
       return supabaseResponse;
     }
-    
+
     // Strict edge-level redirect for unauthenticated users accessing protected routes
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
@@ -78,32 +78,33 @@ export async function proxy(request: NextRequest) {
 
   // --------------------------------------------------------------------------
   // 4. AUTHENTICATED USERS: ZERO-TRUST ROLE RESOLUTION
-  // Priority: 1. JWT User Metadata -> 2. PostgreSQL profiles query -> 3. Cookie cache
+  // Disallow trusting client-writable user_metadata.
+  // Priority: 1. DB profiles table -> 2. Server-managed app_metadata -> 3. Fallback ('tourist')
   // --------------------------------------------------------------------------
-  const cachedRoleCookie = request.cookies.get("mvba_user_role")?.value as UserRole | undefined;
+  let userRole: UserRole = "tourist";
 
-  let userRole: UserRole =
-    (user.user_metadata?.role as UserRole) ||
-    (user.app_metadata?.role as UserRole) ||
-    cachedRoleCookie ||
-    "tourist"; // Default to lowest privilege
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, is_approved")
+    .eq("id", user.id)
+    .maybeSingle<{ role: string; is_approved: boolean }>();
 
-  if (!user.user_metadata?.role && !user.app_metadata?.role) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle<{ role: string }>();
-
-    if (profile?.role) {
+  if (profile?.role) {
+    // Unapproved operator accounts cannot access operator dashboards
+    if (["admin", "homestay", "resort"].includes(profile.role) && !profile.is_approved) {
+      userRole = "tourist";
+    } else {
       userRole = profile.role as UserRole;
     }
+  } else if (user.app_metadata?.role) {
+    userRole = user.app_metadata.role as UserRole;
   }
 
-  // Cache resolved role in lightweight cookie
+  // Cache resolved verified role in secure httpOnly cookie
   supabaseResponse.cookies.set("mvba_user_role", userRole, {
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
+    httpOnly: true, // Mitigate client-side XSS / script forgery
     secure: true,
     sameSite: "lax",
   });

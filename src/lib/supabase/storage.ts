@@ -3,9 +3,14 @@ import { STORAGE_BUCKETS } from "@/lib/constants";
 
 type BucketName = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
 
+const PRIVATE_BUCKETS = new Set<string>([
+  STORAGE_BUCKETS.PAYMENT_RECEIPTS,
+]);
+
 /**
  * Upload a file to a Supabase Storage bucket.
- * Returns the public URL on success.
+ * For public buckets, returns the public URL.
+ * For private buckets (e.g. payment-receipts), returns a temporary signed URL (or data.path).
  */
 export async function uploadFile(
   bucket: BucketName,
@@ -23,6 +28,19 @@ export async function uploadFile(
 
   if (error) {
     throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  // Handle private buckets securely via signed URLs
+  if (PRIVATE_BUCKETS.has(bucket)) {
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(data.path, 60 * 60 * 24); // 24-hour signed link
+
+    if (signedError || !signedData?.signedUrl) {
+      // Fallback to storing relative storage path for subsequent signed URL retrieval
+      return data.path;
+    }
+    return signedData.signedUrl;
   }
 
   const { data: urlData } = supabase.storage
@@ -49,7 +67,28 @@ export async function deleteFile(
 }
 
 /**
- * Get the public URL for a file in a Supabase Storage bucket.
+ * Get a secure signed URL for a file in a private Supabase Storage bucket.
+ */
+export async function getSignedUrl(
+  bucket: BucketName,
+  path: string,
+  expiresInSeconds: number = 3600
+): Promise<string | null> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrl(path, expiresInSeconds);
+
+  if (error || !data?.signedUrl) {
+    return null;
+  }
+
+  return data.signedUrl;
+}
+
+/**
+ * Get the public URL for a file in a public Supabase Storage bucket.
  */
 export function getPublicUrl(bucket: BucketName, path: string): string {
   const supabase = createClient();

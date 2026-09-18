@@ -16,11 +16,18 @@ export async function POST(request: NextRequest) {
     const path = searchParams.get("path");
     const secret = searchParams.get("secret");
 
-    const expectedSecret = process.env.REVALIDATION_SECRET || "sarah-pwa-revalidate-key";
+    const expectedSecret = process.env.REVALIDATION_SECRET;
 
-    if (secret !== expectedSecret) {
+    if (!expectedSecret) {
       return NextResponse.json(
-        { success: false, message: "Invalid revalidation secret token" },
+        { success: false, message: "Server misconfiguration: REVALIDATION_SECRET is not configured." },
+        { status: 500 }
+      );
+    }
+
+    if (!secret || secret !== expectedSecret) {
+      return NextResponse.json(
+        { success: false, message: "Invalid or missing revalidation secret token." },
         { status: 401 }
       );
     }

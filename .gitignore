@@ -24,11 +24,15 @@
 .DS_Store
 *.pem
 
-# debug
+# debug & local scratch
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.log
+tsc-errors.txt
+scratch*
+debug*
 
 # env files (can opt-in for committing if needed)
 .env*
