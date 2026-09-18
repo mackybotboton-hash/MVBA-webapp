@@ -25,7 +25,7 @@ interface BookingRequestModalProps {
 
 export function BookingRequestModal({ isOpen, onClose, rooms, onSubmit, isSubmitting = false }: BookingRequestModalProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<any>({});
   const [guestCount, setGuestCount] = useState<number>(1);
 
   const selectedRoom = useMemo(() => rooms.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);

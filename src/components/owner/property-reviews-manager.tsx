@@ -137,7 +137,7 @@ export function PropertyReviewsManager({ propertyType }: { propertyType: "homest
                   </div>
                   {review.comment && (
                     <p className="text-sm text-neutral-700 leading-relaxed bg-white p-3 rounded-lg border border-neutral-100">
-                      "{review.comment}"
+                      &ldquo;{review.comment}&rdquo;
                     </p>
                   )}
                   {review.status === "hidden" && (

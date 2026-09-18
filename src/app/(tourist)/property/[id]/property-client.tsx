@@ -607,7 +607,7 @@ export default function PropertyStorefrontPage() {
                         )}
                         {pol.customRules && (
                           <div className="col-span-1 sm:col-span-2 p-4 bg-amber-50/50 rounded-xl border border-amber-100 mt-2">
-                            <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Host's Custom Rules</h4>
+                            <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">Host&apos;s Custom Rules</h4>
                             <p className="text-sm text-amber-900/80 whitespace-pre-wrap">{pol.customRules}</p>
                           </div>
                         )}
