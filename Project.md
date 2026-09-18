@@ -270,13 +270,22 @@ When merging `feat/security-hardening` to `main`, the project leader must review
 - 📖 **[`SECURITY_HANDOFF.md`](file:///c:/Users/nemsu/Downloads/Private/code/MVBA-webapp/SECURITY_HANDOFF.md)** (Full step-by-step master account guide)
 - 🗄️ **[`supabase/migrations/security-hardening.sql`](file:///c:/Users/nemsu/Downloads/Private/code/MVBA-webapp/supabase/migrations/security-hardening.sql)** (SQL Editor execution script)
 
-### Pre-Push Verification Checklist
+### Development Cycle Protocol
+
+#### Step 0: Mandatory Remote Repository Sync (Before Starting Any Task)
+Before writing any code for a new feature, bug fix, or refactor:
+1. Run `git fetch origin` to check for updates from collaborators and the project leader.
+2. Inspect if `origin/main` or the working branch has new commits (`git status`, `git log ..origin/main`).
+3. If new commits exist, merge or pull them first and resolve any merge conflicts before proceeding with new work.
+
+#### Pre-Push Verification Checklist
 When preparing a branch to push (`feat/*`, `fix/*`, `refactor/*`):
-1. [ ] **TypeScript Check**: Execute `npx tsc --noEmit` to ensure 0 type errors.
-2. [ ] **ESLint Verification**: Run `npm run lint` and resolve any warnings or deprecations.
-3. [ ] **Database Alignment**: Ensure all new columns or tables are reflected in `src/lib/types/database.ts` and `supabase/schema.sql`.
-4. [ ] **Security Review**: Check that all new routes are appropriately protected in `src/proxy.ts` and RLS policies exist.
-5. [ ] **Update `Project.md`**:
+1. [ ] **Remote Sync Check**: Ensure working branch incorporates the latest commits from `origin/main`.
+2. [ ] **TypeScript Check**: Execute `npx tsc --noEmit` to ensure 0 type errors.
+3. [ ] **ESLint Verification**: Run `npm run lint` and resolve any warnings or deprecations.
+4. [ ] **Database Alignment**: Ensure all new columns or tables are reflected in `src/lib/types/database.ts` and `supabase/schema.sql`.
+5. [ ] **Security Review**: Check that all new routes are appropriately protected in `src/proxy.ts` and RLS policies exist.
+6. [ ] **Update `Project.md`**:
    - Document any new components, routes, or server actions.
    - Update the Changelog section below.
    - Verify that directory trees and role flows remain accurate.
