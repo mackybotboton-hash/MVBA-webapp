@@ -235,7 +235,8 @@ export function TouristHeader({
           </Link>
 
           {/* User Profile or Login */}
-          {user ? (
+          <div className="hidden md:block">
+            {user ? (
             <div className="relative" ref={userMenuRef}>
               <button
                 type="button"
@@ -348,6 +349,7 @@ export function TouristHeader({
               Sign In
             </button>
           )}
+          </div>
         </div>
       </div>
 
