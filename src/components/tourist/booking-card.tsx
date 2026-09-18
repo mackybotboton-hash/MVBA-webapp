@@ -192,12 +192,12 @@ export function BookingCard({
       </div>
 
       {/* Actions footer */}
-      <div className="pt-4 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2">
+      <div className="pt-4 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-[11px] text-neutral-500">
           Booking ID: #{booking.id.slice(0, 8)}
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {onViewBoardingPass && (
             <Button
               variant="outline"

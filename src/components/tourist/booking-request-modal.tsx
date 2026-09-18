@@ -6,7 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import { differenceInDays } from "date-fns";
-import { User, CalendarIcon, CheckCircle2 } from "lucide-react";
+import { User, CalendarIcon, CheckCircle2, Palmtree, Sailboat, Utensils } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 
 interface Room {
   id: string;
@@ -15,18 +17,44 @@ interface Room {
   max_capacity: number;
 }
 
+interface ExtraService {
+  id: string;
+  name: string;
+  price: number;
+  service_type: string;
+}
+
 interface BookingRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
+  propertyId: string;
   rooms: Room[];
-  onSubmit: (payload: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number }) => void;
+  onSubmit: (payload: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number; serviceIds: string[] }) => void;
   isSubmitting?: boolean;
 }
 
-export function BookingRequestModal({ isOpen, onClose, rooms, onSubmit, isSubmitting = false }: BookingRequestModalProps) {
+export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubmit, isSubmitting = false }: BookingRequestModalProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to?: Date }>({ from: undefined });
   const [guestCount, setGuestCount] = useState<number>(1);
+  const [selectedAddonIds, setSelectedAddonIds] = useState<Set<string>>(new Set());
+
+  // Fetch active extra services for the property
+  const { data: addons = [] } = useQuery({
+    queryKey: ['extra-services', propertyId],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("extra_services")
+        .select("id, name, price, service_type")
+        .eq("property_id", propertyId)
+        .eq("is_active", true);
+      
+      if (error) throw error;
+      return data as ExtraService[];
+    },
+    enabled: !!propertyId && isOpen
+  });
 
   const selectedRoom = useMemo(() => rooms.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
 
@@ -39,12 +67,21 @@ export function BookingRequestModal({ isOpen, onClose, rooms, onSubmit, isSubmit
 
   const pricing = useMemo(() => {
     if (!selectedRoom || nights === 0) return null;
-    const total = selectedRoom.base_price * nights;
+    
+    const roomTotal = selectedRoom.base_price * nights;
+    
+    // Calculate sum of selected addons (flat fee)
+    const addonsTotal = addons
+      .filter(addon => selectedAddonIds.has(addon.id))
+      .reduce((sum, addon) => sum + Number(addon.price), 0);
+
+    const total = roomTotal + addonsTotal;
+    
     return {
       total,
-      downpayment: total * 0.20 // 20% downpayment required
+      downpayment: total * 0.20 // 20% downpayment required on the TOTAL (rooms + addons)
     };
-  }, [selectedRoom, nights]);
+  }, [selectedRoom, nights, selectedAddonIds, addons]);
 
   // Adjust guest count if room changes
   if (selectedRoom && guestCount > selectedRoom.max_capacity) {
@@ -56,13 +93,34 @@ export function BookingRequestModal({ isOpen, onClose, rooms, onSubmit, isSubmit
   const handleSubmit = () => {
     if (!isFormValid || !dateRange.from || !dateRange.to || !selectedRoomId) return;
     
-    // Convert to ISO string (local date handling might be needed depending on DB setup)
     onSubmit({
       roomId: selectedRoomId,
       checkInDate: dateRange.from.toISOString().split("T")[0],
       checkOutDate: dateRange.to.toISOString().split("T")[0],
-      guestCount
+      guestCount,
+      serviceIds: Array.from(selectedAddonIds)
     });
+  };
+
+  const toggleAddon = (id: string) => {
+    setSelectedAddonIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const getAddonIcon = (type: string) => {
+    switch(type) {
+      case 'Boat': return <Sailboat className="w-4 h-4 text-blue-500" />;
+      case 'Food': return <Utensils className="w-4 h-4 text-orange-500" />;
+      case 'Tour': return <Palmtree className="w-4 h-4 text-emerald-500" />;
+      default: return null;
+    }
   };
 
   return (
@@ -91,7 +149,7 @@ export function BookingRequestModal({ isOpen, onClose, rooms, onSubmit, isSubmit
                       transition={{ delay: idx * 0.05, duration: 0.2 }}
                     >
                       <button
-                        onClick={() => setSelectedRoomId(room.id)}
+                         onClick={() => setSelectedRoomId(room.id)}
                         className={`w-full flex items-center justify-between p-4 rounded-2xl border text-left transition-all ${
                           isSelected 
                             ? "border-black bg-zinc-50 shadow-sm ring-1 ring-black/5" 
@@ -167,6 +225,48 @@ export function BookingRequestModal({ isOpen, onClose, rooms, onSubmit, isSubmit
               </div>
             </motion.div>
           )}
+
+          {/* Optional Add-ons */}
+          {selectedRoomId && dateRange.from && dateRange.to && addons.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }} 
+              animate={{ opacity: 1, height: "auto" }}
+              className="flex flex-col gap-3 pt-4 border-t border-zinc-100"
+            >
+              <h3 className="text-sm font-medium text-zinc-900">Optional Add-ons</h3>
+              <div className="grid gap-2">
+                {addons.map(addon => {
+                  const isSelected = selectedAddonIds.has(addon.id);
+                  return (
+                    <button
+                      key={addon.id}
+                      onClick={() => toggleAddon(addon.id)}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
+                        isSelected 
+                          ? "border-black bg-zinc-50 ring-1 ring-black/5" 
+                          : "border-zinc-200 hover:border-zinc-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`flex items-center justify-center w-5 h-5 rounded-full border ${isSelected ? 'bg-black border-black text-white' : 'border-zinc-300'}`}>
+                          {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-zinc-900 flex items-center gap-1.5">
+                            {getAddonIcon(addon.service_type)}
+                            {addon.name}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-sm text-zinc-900">+₱{Number(addon.price).toLocaleString()}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
         </div>
 
         {/* Sticky Pricing Footer */}
@@ -180,7 +280,10 @@ export function BookingRequestModal({ isOpen, onClose, rooms, onSubmit, isSubmit
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1">Total • {nights} {nights === 1 ? 'night' : 'nights'}</p>
+                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1">
+                    Total • {nights} {nights === 1 ? 'night' : 'nights'} 
+                    {selectedAddonIds.size > 0 && ` + ${selectedAddonIds.size} add-on${selectedAddonIds.size > 1 ? 's' : ''}`}
+                  </p>
                   <p className="text-lg font-semibold text-zinc-900">₱{pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div className="text-right">

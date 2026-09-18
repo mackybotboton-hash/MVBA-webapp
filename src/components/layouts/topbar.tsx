@@ -168,14 +168,16 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 
                 {/* Quick actions */}
                 <div className="py-1 space-y-0.5 text-xs">
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium transition-colors"
-                  >
-                    <User className="h-4 w-4 text-gray-400" />
-                    <span>My Account & Profile</span>
-                  </Link>
+                  {role !== "admin" && (
+                    <Link
+                      href={role === "tourist" ? "/profile" : `/${role}/settings`}
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium transition-colors"
+                    >
+                      <User className="h-4 w-4 text-gray-400" />
+                      <span>{role === "tourist" ? "My Account & Profile" : "Host Settings"}</span>
+                    </Link>
+                  )}
 
                   <Link
                     href={portalHomeRoute}
