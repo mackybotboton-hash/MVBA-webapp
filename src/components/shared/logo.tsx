@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Logo({
   size = "default",
@@ -16,9 +17,13 @@ export function Logo({
   return (
     <Link href={href} className="flex items-center gap-2 group">
       <div className="relative">
-        <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
-          <span className="text-white font-bold text-sm">B</span>
-        </div>
+        <Image
+          src="/icons/icon-192.png"
+          alt="Britania Logo"
+          width={32}
+          height={32}
+          className="rounded-lg shadow-sm"
+        />
       </div>
       <div className="flex flex-col">
         <span
