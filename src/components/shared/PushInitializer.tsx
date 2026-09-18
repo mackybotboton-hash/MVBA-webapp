@@ -31,8 +31,9 @@ export function PushInitializer({ userId }: { userId?: string }) {
           OneSignal.User.PushSubscription.addEventListener("change", async (subscription) => {
             if (subscription.current.optedIn && subscription.current.id) {
               const supabase = createClient();
-              const { error } = await (supabase.from("profiles") as any)
-                .update({ onesignal_id: subscription.current.id })
+              const { error } = await supabase
+                .from("profiles")
+                .update({ onesignal_id: subscription.current.id } as never)
                 .eq("id", userId);
 
               if (error) {

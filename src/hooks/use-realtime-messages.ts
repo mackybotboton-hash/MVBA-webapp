@@ -85,25 +85,26 @@ export function useRealtimeMessages(userId: string | undefined, initialMessages:
   const sendMessage = useCallback(async (receiverId: string, content: string, bookingId?: string) => {
     if (!userId) throw new Error("Not authenticated");
 
-    const { data, error } = await (supabase
-      .from("messages") as any)
+    const { data: rawData, error } = await supabase
+      .from("messages")
       .insert({
         sender_id: userId,
         receiver_id: receiverId,
         content,
         booking_id: bookingId || null
-      })
+      } as any)
       .select()
       .single();
+    const data = rawData as any;
 
     if (error) throw error;
     return data;
   }, [userId, supabase]);
 
   const markAsRead = useCallback(async (messageId: string) => {
-    const { error } = await (supabase
-      .from("messages") as any)
-      .update({ is_read: true })
+    const { error } = await supabase
+      .from("messages")
+      .update({ is_read: true } as never)
       .eq("id", messageId);
 
     if (error) throw error;

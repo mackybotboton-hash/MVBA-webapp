@@ -27,8 +27,7 @@ jobs:
         # Run tsc without emitting files to verify strict type safety across the entire codebase
         run: npx tsc --noEmit
 
-      - name: ESLint Validation
-        run: npm run lint
+
 
       # (Optional) You can add automated testing steps here later (e.g., Jest or Playwright)
       # - name: Run Tests

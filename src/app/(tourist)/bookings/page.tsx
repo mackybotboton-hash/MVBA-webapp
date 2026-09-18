@@ -307,8 +307,11 @@ export default function TouristBookingsPage() {
       <GCashDepositModal
         isOpen={!!selectedDepositBooking}
         onClose={() => setSelectedDepositBooking(null)}
-        booking={selectedDepositBooking}
-        onSuccess={fetchBookings}
+        bookingId={selectedDepositBooking?.id || ""}
+        onUploadComplete={async (payload) => {
+          console.log("Uploaded receipt for", selectedDepositBooking?.id, payload);
+          await fetchBookings();
+        }}
       />
 
       {/* Rate Stay Modal */}

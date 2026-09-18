@@ -22,11 +22,12 @@ export async function createReservationAction(payload: {
 
     // 2. Fetch the room's base price from the database securely.
     // Client payload pricing is explicitly ignored to prevent tampering.
-    const { data: room, error: roomError } = await supabaseUserClient
+    const { data, error: roomError } = await supabaseUserClient
       .from("rooms")
       .select("base_price, max_capacity, is_active")
       .eq("id", payload.roomId)
       .single();
+    const room = data as any;
 
     if (roomError || !room) {
       throw new Error("Room not found or unavailable.");
@@ -65,7 +66,7 @@ export async function createReservationAction(payload: {
     // and we want this single transaction to succeed or fail atomically without client-side RLS conflicts on overlapping reads.
     const supabaseAdmin = createAdminClient();
     
-    const { data: newBooking, error: bookingError } = await supabaseAdmin
+    const { data: insertData, error: bookingError } = await supabaseAdmin
       .from("bookings")
       .insert({
         tourist_id: user.id,
@@ -80,9 +81,10 @@ export async function createReservationAction(payload: {
         payment_status: "awaiting_deposit",
         status: "pending",
         notes: payload.notes || ""
-      })
+      } as any)
       .select()
       .single();
+    const newBooking = insertData as any;
 
     if (bookingError) {
       // 23P01 is the PostgreSQL error code for exclusion constraint violation

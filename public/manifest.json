@@ -1,7 +1,7 @@
 {
-  "name": "MVBA",
-  "short_name": "MVBA",
-  "description": "MVBA — Bretania, Philippines",
+  "name": "Britania Travel",
+  "short_name": "Britania",
+  "description": "Britania Stays and Tours",
 
   "start_url": "/",
   "display": "standalone",

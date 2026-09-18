@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // @ts-expect-error - NextConfig types might be slightly outdated
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { PushInitializer } from "@/components/shared/PushInitializer";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -12,11 +13,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MVBA — San Agustin Resort & Homestay Association",
+  title: "Britania Travel — Resort & Homestay Bookings",
   description:
-    "Discover and book stays in Bretania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
+    "Discover and book stays in Britania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
   keywords: [
-    "Bretania",
+    "Britania",
     "San Agustin",
     "Surigao del Sur",
     "resort",
@@ -24,14 +25,18 @@ export const metadata: Metadata = {
     "booking",
     "Philippines",
     "island hopping",
-    "MVBA",
   ],
-  authors: [{ name: "MVBA Association" }],
+  authors: [{ name: "Britania Tourism" }],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "MVBA",
+    title: "Britania",
+  },
+  icons: {
+    apple: [
+      { url: '/icons/icon-192.png' },
+    ],
   },
 };
 
@@ -54,6 +59,7 @@ export default function RootLayout({
     <html lang="en" className={cn("font-sans", geist.variable)} data-scroll-behavior="smooth">
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground tracking-tight min-h-screen selection:bg-neutral-200 selection:text-black`}>
         {children}
+        <PushInitializer />
       </body>
     </html>
   );
