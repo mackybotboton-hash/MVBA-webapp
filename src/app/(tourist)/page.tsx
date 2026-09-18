@@ -492,42 +492,6 @@ export default function TouristDiscoveryPage() {
           </div>
         )}
 
-        {/* 6. Footer Information Banner for Tourists */}
-        <section className="mt-12 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 sm:p-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="space-y-1.5 max-w-xl">
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <Badge variant="default" size="sm">
-                Official Association
-              </Badge>
-              <span className="text-xs text-neutral-600 font-medium">
-                San Agustin, Surigao del Sur
-              </span>
-            </div>
-            <h2 className="text-lg font-bold text-neutral-900">
-              Booking Directly with MVBA Property Members
-            </h2>
-            <p className="text-xs text-neutral-600 leading-relaxed">
-              Every homestay and resort on this platform is inspected and certified by the San Agustin local tourism office. Directly chat with owners, enjoy transparent member rates, and ensure legitimate island hopping boat transfers.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => setIsFilterDialogOpen(true)}
-              className="border-neutral-300 bg-white text-xs h-10 px-4"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
-              Filter Stays
-            </Button>
-            <Button
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="bg-black text-white hover:bg-neutral-800 text-xs h-10 px-5"
-            >
-              Explore Stays
-            </Button>
-          </div>
-        </section>
       </main>
 
       {/* 7. Modal Filter Dialog */}
