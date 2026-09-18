@@ -235,9 +235,8 @@ export function TouristHeader({
           </Link>
 
           {/* User Profile or Login */}
-          <div className="hidden md:block">
-            {user ? (
-            <div className="relative" ref={userMenuRef}>
+          {user ? (
+            <div className="relative hidden md:block" ref={userMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -349,7 +348,6 @@ export function TouristHeader({
               Sign In
             </button>
           )}
-          </div>
         </div>
       </div>
 
