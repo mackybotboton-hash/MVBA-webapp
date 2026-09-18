@@ -11,7 +11,6 @@ import {
   Dog,
   type LucideIcon,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export interface CategoryOption {
@@ -102,18 +101,10 @@ export function CategoryFilterBar({
             className={cn(
               "relative flex flex-shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 select-none border",
               isSelected
-                ? "border-transparent text-white"
+                ? "border-transparent bg-black text-white shadow-sm"
                 : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:text-neutral-900 active:bg-neutral-50"
             )}
           >
-            {isSelected && (
-              <motion.div
-                layoutId="activeCategoryIndicator"
-                className="absolute inset-0 rounded-full bg-black shadow-sm"
-                transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
-                style={{ zIndex: -1 }}
-              />
-            )}
             <Icon
               className={cn(
                 "h-3.5 w-3.5 stroke-[2] relative z-10",
