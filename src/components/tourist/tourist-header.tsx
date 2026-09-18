@@ -236,7 +236,7 @@ export function TouristHeader({
 
           {/* User Profile or Login */}
           {user ? (
-            <div className="relative hidden md:block" ref={userMenuRef}>
+            <div className="relative" ref={userMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}

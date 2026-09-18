@@ -114,7 +114,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       }
 
       if (authData.user) {
-        toast.success("Signed in successfully!");
+        toast.success("Welcome back! You are now signed in.");
 
         // Determine target dashboard
         const { data: profile } = await supabase
