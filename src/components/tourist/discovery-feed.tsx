@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { MapPin, Star, User, Info, Loader2 } from "lucide-react";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Button } from "@/components/ui/button";
 import { BookingRequestModal } from "./booking-request-modal";
+import { createClient } from "@/lib/supabase/client";
 
 export interface FeedProperty {
   id: string;
@@ -19,15 +21,7 @@ export interface FeedProperty {
   rooms: { id: string; name: string; base_price: number; max_capacity: number }[];
 }
 
-interface DiscoveryFeedProps {
-  initialData: FeedProperty[];
-  fetchMore: (offset: number) => Promise<FeedProperty[]>;
-  totalCount: number;
-}
-
-export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryFeedProps) {
-  const [properties, setProperties] = useState<FeedProperty[]>(initialData);
-  const [isFetching, setIsFetching] = useState(false);
+export function DiscoveryFeed() {
   const [activePropertyIndex, setActivePropertyIndex] = useState(0);
   
   // Booking Modal State
@@ -35,9 +29,49 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
   const [selectedProperty, setSelectedProperty] = useState<FeedProperty | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ["discovery-feed"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const limit = 10;
+      const { data: dbProps, error } = await supabase
+        .from("properties")
+        .select(`
+          id, name, type, address, cover_image_url,
+          rooms (id, name, base_price, max_capacity)
+        `)
+        .eq("status", "active")
+        .range(pageParam, pageParam + limit - 1);
+
+      if (error) throw error;
+
+      return (dbProps || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        address: p.address || "Bretania, San Agustin",
+        cover_image_url: p.cover_image_url,
+        rooms: p.rooms || [],
+        rating: 0,
+      })) as FeedProperty[];
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 10 ? allPages.length * 10 : undefined;
+    },
+  });
+
+  const properties = data?.pages.flat() || [];
 
   const rowVirtualizer = useVirtualizer({
-    count: properties.length + (properties.length < totalCount ? 1 : 0),
+    count: hasNextPage ? properties.length + 1 : properties.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => window.innerHeight, // Each item takes exactly 100vh
     overscan: 1, // Only render 1 item off-screen to preserve memory on mobile
@@ -52,16 +86,12 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
 
     if (
       lastItem.index >= properties.length - 1 &&
-      !isFetching &&
-      properties.length < totalCount
+      hasNextPage &&
+      !isFetchingNextPage
     ) {
-      setIsFetching(true);
-      fetchMore(properties.length).then((newData) => {
-        setProperties((prev) => [...prev, ...newData]);
-        setIsFetching(false);
-      });
+      fetchNextPage();
     }
-  }, [virtualItems, isFetching, properties.length, totalCount, fetchMore]);
+  }, [virtualItems, hasNextPage, isFetchingNextPage, properties.length, fetchNextPage]);
 
   // Track the currently active video based on scroll position
   useEffect(() => {

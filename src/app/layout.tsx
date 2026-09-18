@@ -3,6 +3,7 @@ import { Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { PushInitializer } from "@/components/shared/PushInitializer";
+import { QueryProvider } from "@/providers/query-provider";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -58,8 +59,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable)} data-scroll-behavior="smooth">
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground tracking-tight min-h-screen selection:bg-neutral-200 selection:text-black`}>
-        {children}
-        <PushInitializer />
+        <QueryProvider>
+          {children}
+          <PushInitializer />
+        </QueryProvider>
       </body>
     </html>
   );

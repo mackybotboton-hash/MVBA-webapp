@@ -12,6 +12,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   TouristHeader,
 } from "@/components/tourist/tourist-header";
@@ -39,8 +40,7 @@ import { ROLE_HOME_ROUTES, type UserRole } from "@/lib/constants";
 
 export default function TouristDiscoveryPage() {
   const router = useRouter();
-  const [properties, setProperties] = React.useState<PropertyCardData[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("all");
   const [viewMode, setViewMode] = React.useState<"grid" | "feed">("grid");
@@ -91,9 +91,14 @@ export default function TouristDiscoveryPage() {
       } else {
         setUser(null);
       }
+    };
+    checkUser();
+  }, [router]);
 
-
-      // 2. Fetch properties from Supabase
+  const { data: properties = [], isLoading } = useQuery({
+    queryKey: ["properties"],
+    queryFn: async () => {
+      const supabase = createClient();
       const { data: dbProperties, error } = await supabase
         .from("properties")
         .select(`
@@ -136,16 +141,14 @@ export default function TouristDiscoveryPage() {
             amenities: [],
           };
         });
-        setProperties(mapped);
+        return mapped;
       }
-    } catch (err) {
-      console.error("DEBUG: fetchData failed with error:", err);
-      toast.error("An unexpected error occurred while loading properties.");
-      setProperties([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+  });
+
+  const fetchData = React.useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["properties"] });
+  }, [queryClient]);
 
   React.useEffect(() => {
     fetchData();

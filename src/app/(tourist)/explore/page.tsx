@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 
 import { WeatherAlertBanner } from "@/components/shared/weather-alert-banner";
 import { createClient } from "@/lib/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface IslandAttraction {
   name: string;
@@ -61,11 +62,11 @@ const BRETANIA_ISLANDS: IslandAttraction[] = [
 ];
 
 export default function TouristExplorePage() {
-  const [islands, setIslands] = React.useState<IslandAttraction[]>(BRETANIA_ISLANDS);
   const [activeIsland, setActiveIsland] = React.useState<string>(BRETANIA_ISLANDS[0].name);
 
-  React.useEffect(() => {
-    async function fetchIslands() {
+  const { data: islands = BRETANIA_ISLANDS, isLoading } = useQuery({
+    queryKey: ["explore-islands"],
+    queryFn: async () => {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("explore_islands")
@@ -74,19 +75,24 @@ export default function TouristExplorePage() {
         .order("display_order", { ascending: true });
 
       if (data && data.length > 0) {
-        const mapped = data.map((d: any) => ({
+        return data.map((d: any) => ({
           name: d.name,
           tagline: d.tagline,
           description: d.description,
           features: d.features,
           imageUrl: d.image_url,
         }));
-        setIslands(mapped);
-        setActiveIsland(mapped[0].name);
       }
+      return BRETANIA_ISLANDS;
     }
-    fetchIslands();
-  }, []);
+  });
+
+  // Ensure active island is valid when islands load
+  React.useEffect(() => {
+    if (islands && islands.length > 0 && !islands.find(i => i.name === activeIsland)) {
+      setActiveIsland(islands[0].name);
+    }
+  }, [islands, activeIsland]);
 
   const selectedIsland =
     islands.find((i) => i.name === activeIsland) ||
