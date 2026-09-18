@@ -253,6 +253,17 @@ export function BookingCard({
             </Button>
           )}
 
+          {booking.status === "accepted" && booking.payment_status === "deposit_uploaded" && (
+            <Button
+              size="sm"
+              disabled
+              className="text-xs h-8 px-3 bg-neutral-100 text-neutral-500 border border-neutral-200 opacity-100"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+              Submitted
+            </Button>
+          )}
+
           {booking.status === "completed" && onRateStay && (
             <Button
               size="sm"

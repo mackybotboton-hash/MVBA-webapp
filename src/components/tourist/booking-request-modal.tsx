@@ -125,18 +125,18 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-zinc-200">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white/95 backdrop-blur-xl border-zinc-200 flex flex-col max-h-[90dvh]">
+        <DialogHeader className="p-6 pb-2 shrink-0">
           <DialogTitle className="text-xl font-medium tracking-tight">Request to Book</DialogTitle>
-          <DialogDescription className="text-zinc-500">
+          <DialogDescription className="text-zinc-500 text-base">
             Select a room tier and your travel dates.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-6 p-6 overflow-y-auto max-h-[70vh]">
+        <div className="flex flex-col gap-6 p-6 overflow-y-auto flex-1 min-h-0">
           {/* Room Selection */}
           <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-medium text-zinc-900">Select Room Tier</h3>
+            <h3 className="text-base font-medium text-zinc-900">Select Room Tier</h3>
             <div className="grid gap-3">
               <AnimatePresence>
                 {rooms.map((room, idx) => {
@@ -157,14 +157,14 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                         }`}
                       >
                         <div>
-                          <p className="font-medium text-zinc-900">{room.name}</p>
+                          <p className="font-medium text-base text-zinc-900">{room.name}</p>
                           <p className="text-sm text-zinc-500 flex items-center gap-1 mt-1">
                             <User className="w-3.5 h-3.5" /> Max {room.max_capacity} guests
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-zinc-900">₱{room.base_price.toLocaleString()}</p>
-                          <p className="text-xs text-zinc-500">per night</p>
+                          <p className="font-medium text-base text-zinc-900">₱{room.base_price.toLocaleString()}</p>
+                          <p className="text-sm text-zinc-500">per night</p>
                         </div>
                       </button>
                     </motion.div>
@@ -181,7 +181,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
               animate={{ opacity: 1, height: "auto" }}
               className="flex flex-col gap-3 overflow-hidden"
             >
-              <h3 className="text-sm font-medium text-zinc-900">Travel Dates</h3>
+              <h3 className="text-base font-medium text-zinc-900">Travel Dates</h3>
               <div className="border border-zinc-200 rounded-2xl p-2 bg-white flex justify-center">
                 <Calendar
                   mode="range"
@@ -203,8 +203,8 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
               className="flex items-center justify-between py-2 border-t border-zinc-100"
             >
               <div>
-                <p className="text-sm font-medium text-zinc-900">Guests</p>
-                <p className="text-xs text-zinc-500">This room allows up to {selectedRoom?.max_capacity}</p>
+                <p className="text-base font-medium text-zinc-900">Guests</p>
+                <p className="text-sm text-zinc-500">This room allows up to {selectedRoom?.max_capacity}</p>
               </div>
               <div className="flex items-center gap-4 bg-zinc-50 p-1 rounded-full border border-zinc-200">
                 <button 
@@ -233,7 +233,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
               animate={{ opacity: 1, height: "auto" }}
               className="flex flex-col gap-3 pt-4 border-t border-zinc-100"
             >
-              <h3 className="text-sm font-medium text-zinc-900">Optional Add-ons</h3>
+              <h3 className="text-base font-medium text-zinc-900">Optional Add-ons</h3>
               <div className="grid gap-2">
                 {addons.map(addon => {
                   const isSelected = selectedAddonIds.has(addon.id);
@@ -252,14 +252,14 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                           {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
                         </div>
                         <div>
-                          <p className="font-medium text-sm text-zinc-900 flex items-center gap-1.5">
+                          <p className="font-medium text-base text-zinc-900 flex items-center gap-1.5">
                             {getAddonIcon(addon.service_type)}
                             {addon.name}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-sm text-zinc-900">+₱{Number(addon.price).toLocaleString()}</p>
+                        <p className="font-medium text-base text-zinc-900">+₱{Number(addon.price).toLocaleString()}</p>
                       </div>
                     </button>
                   );
@@ -276,7 +276,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              className="border-t border-zinc-200 bg-zinc-50 p-4 sm:p-6 pb-6 sm:pb-6"
+              className="shrink-0 border-t border-zinc-200 bg-zinc-50 p-4 sm:p-6 pb-safe"
             >
               <div className="flex items-center justify-between mb-4">
                 <div>

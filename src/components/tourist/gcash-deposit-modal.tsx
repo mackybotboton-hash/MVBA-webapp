@@ -8,18 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UploadCloud, Image as ImageIcon, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface GCashDepositModalProps {
   isOpen: boolean;
   onClose: () => void;
   bookingId: string;
+  amount?: number;
   onUploadComplete: (payload: { receiptFile: File; referenceNumber: string }) => Promise<void>;
 }
 
-export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete }: GCashDepositModalProps) {
+export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUploadComplete }: GCashDepositModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [referenceNumber, setReferenceNumber] = useState("");
+  const [refError, setRefError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -77,10 +80,10 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
       return;
     }
     
-    // Strict GCash Ref Number formatting (13 digits typically)
+    // Strict GCash Ref Number formatting (at least 10 digits)
     const sanitizedRef = referenceNumber.replace(/\D/g, '');
     if (sanitizedRef.length < 10) {
-      toast.error("Please enter a valid GCash reference number.");
+      toast.error("Please enter a valid GCash reference number (at least 10 digits).");
       return;
     }
 
@@ -93,6 +96,7 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
         setIsSuccess(false);
         handleRemoveFile();
         setReferenceNumber("");
+        setRefError("");
       }, 2000);
     } catch (error) {
       toast.error("Failed to upload receipt. Please try again.");
@@ -110,6 +114,19 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
             Upload your GCash payment screenshot to secure your booking.
           </DialogDescription>
         </DialogHeader>
+
+        {amount && (
+          <div className="px-6 py-4 bg-blue-50 border-y border-blue-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Send Payment To</p>
+              <p className="text-sm font-medium text-blue-900">GCash: 0917-000-0000</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Required Deposit</p>
+              <p className="text-lg font-bold text-blue-700">₱{amount.toLocaleString()}</p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
           {/* Animated Dropzone */}
@@ -187,11 +204,20 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
             <Input
               id="refNumber"
               placeholder="e.g. 1002394829103"
-              className="rounded-xl bg-zinc-50 border-zinc-200 focus-visible:ring-black"
+              className={cn("rounded-xl bg-zinc-50 border-zinc-200 focus-visible:ring-black", refError && "border-red-500 focus-visible:ring-red-500")}
               value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setReferenceNumber(val);
+                if (val && /\D/.test(val)) {
+                  setRefError("GCash reference numbers must only contain digits.");
+                } else {
+                  setRefError("");
+                }
+              }}
               disabled={isUploading || isSuccess}
             />
+            {refError && <p className="text-xs text-red-500 mt-1">{refError}</p>}
           </div>
 
           <Button 

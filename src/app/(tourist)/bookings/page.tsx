@@ -198,7 +198,7 @@ export default function TouristBookingsPage() {
           {[
             { id: "all", label: "All Bookings", count: counts.all },
             { id: "pending", label: "Pending", count: counts.pending },
-            { id: "accepted", label: "Confirmed", count: counts.accepted },
+            { id: "accepted", label: "Awaiting Deposit", count: counts.accepted },
             { id: "completed", label: "Completed", count: counts.completed },
             { id: "cancelled", label: "Cancelled", count: counts.cancelled },
           ].map((tab) => {
@@ -292,9 +292,37 @@ export default function TouristBookingsPage() {
         isOpen={!!selectedDepositBooking}
         onClose={() => setSelectedDepositBooking(null)}
         bookingId={selectedDepositBooking?.id || ""}
+        amount={selectedDepositBooking?.downpayment_amount}
         onUploadComplete={async (payload) => {
-          console.log("Uploaded receipt for", selectedDepositBooking?.id, payload);
-          await fetchBookings();
+          if (!selectedDepositBooking) return;
+          const supabase = createClient();
+          
+          try {
+            const fileExt = payload.receiptFile.name.split('.').pop();
+            const filePath = `${selectedDepositBooking.id}-${Date.now()}.${fileExt}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from("payment-receipts")
+              .upload(filePath, payload.receiptFile);
+
+            if (uploadError) throw uploadError;
+
+            const { error: updateError } = await supabase
+              .from("bookings")
+              .update({
+                payment_status: "deposit_uploaded",
+                receipt_url: uploadData.path
+              })
+              .eq("id", selectedDepositBooking.id);
+
+            if (updateError) throw updateError;
+
+            toast.success("Payment submitted successfully!");
+            await fetchBookings();
+          } catch (error) {
+            console.error("Failed to upload deposit:", error);
+            throw error; // Let the modal's catch block handle the error toast
+          }
         }}
       />
 
