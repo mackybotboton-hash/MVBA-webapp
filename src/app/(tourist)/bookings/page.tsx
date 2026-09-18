@@ -309,10 +309,11 @@ export default function TouristBookingsPage() {
 
             const { error: updateError } = await supabase
               .from("bookings")
+              // @ts-expect-error: Supabase type inference assigns 'never' to update parameters
               .update({
                 payment_status: "deposit_uploaded",
                 receipt_url: uploadData.path
-              } as any)
+              })
               .eq("id", selectedDepositBooking.id);
 
             if (updateError) throw updateError;
