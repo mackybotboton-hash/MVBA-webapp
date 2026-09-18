@@ -36,7 +36,7 @@ export function PushInitializer({ userId }: { userId?: string }) {
               const supabase = createClient();
               const { error } = await supabase
                 .from("profiles")
-                .update({ onesignal_id: subscription.current.id } as any)
+                .update({ onesignal_id: subscription.current.id } as never)
                 .eq("id", userId);
 
               if (error) {

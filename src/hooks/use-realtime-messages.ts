@@ -104,7 +104,7 @@ export function useRealtimeMessages(userId: string | undefined, initialMessages:
   const markAsRead = useCallback(async (messageId: string) => {
     const { error } = await supabase
       .from("messages")
-      .update({ is_read: true } as any)
+      .update({ is_read: true } as never)
       .eq("id", messageId);
 
     if (error) throw error;
