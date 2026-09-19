@@ -21,7 +21,9 @@ import {
   Plus,
   X,
   MessageCircleOff,
+  ChevronLeft,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -1015,7 +1017,10 @@ function ChatSystemContent({
       {/* Main Chat Grid (Sidebar + Message Thread) */}
       <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-13.5rem)] min-h-[520px] max-h-[850px]">
         {/* Left: Conversations List (md:col-span-5 lg:col-span-4) */}
-        <div className="md:col-span-5 lg:col-span-4 border-r border-neutral-200 flex flex-col bg-neutral-50/50 h-full min-h-0 overflow-hidden">
+        <div className={cn(
+          "md:col-span-5 lg:col-span-4 border-r border-neutral-200 flex-col bg-neutral-50/50 h-full min-h-0 overflow-hidden",
+          activeContact ? "hidden md:flex" : "flex"
+        )}>
           {/* Search Contacts Bar */}
           <div className="p-3.5 border-b border-neutral-200 bg-white shrink-0">
             <div className="relative">
@@ -1337,14 +1342,24 @@ function ChatSystemContent({
         </div>
 
         {/* Right: Active Message Thread Window (md:col-span-7 lg:col-span-8) */}
-        <div className="md:col-span-7 lg:col-span-8 flex flex-col bg-white h-full min-h-0 overflow-hidden">
+        <div className={cn(
+          "md:col-span-7 lg:col-span-8 flex-col bg-white h-full min-h-0 overflow-hidden",
+          activeContact ? "flex" : "hidden md:flex"
+        )}>
           {activeContact ? (
             <>
               {/* Thread Header */}
               <div className="px-5 py-3.5 border-b border-neutral-200 bg-neutral-50/70 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button 
+                    onClick={() => setActiveContact(null)}
+                    className="md:hidden p-1.5 -ml-2 text-neutral-600 hover:text-black hover:bg-neutral-200/50 rounded-lg transition-colors"
+                    aria-label="Back to conversations"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-xs shadow-2xs ${
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold text-xs shadow-2xs ${
                       activeContact.role === "admin"
                         ? "bg-amber-500 text-white"
                         : "bg-black text-white"

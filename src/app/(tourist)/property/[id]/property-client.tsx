@@ -486,16 +486,32 @@ export default function PropertyStorefrontPage() {
 
       <main className="mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-8">
         {/* Visual Hero Gallery */}
-        <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200">
+        <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 group cursor-pointer">
           {property.cover_image_url ? (
-            <Image
-              src={property.cover_image_url}
-              alt={property.name}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
-              priority
-              className="object-cover"
-            />
+            <div 
+              className="absolute inset-0"
+              onClick={() => {
+                setGallery({
+                  isOpen: true,
+                  roomName: property.name,
+                  images: [property.cover_image_url],
+                  currentIndex: 0,
+                });
+              }}
+            >
+              <Image
+                src={property.cover_image_url}
+                alt={property.name}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
+                priority
+                className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-bold gap-2 backdrop-blur-[2px]">
+                <Eye className="h-5 w-5" />
+                <span>View Full Screen</span>
+              </div>
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-500">
               <span className="text-xl font-bold">{property.name}</span>

@@ -38,11 +38,10 @@ export function TouristViewPaymentModal({ isOpen, onClose, booking }: TouristVie
           storagePath = storagePath.replace("payment-receipts/", "");
         }
 
-        const supabase = createClient();
-        const { data } = await supabase.storage.from("payment-receipts").createSignedUrl(storagePath, 3600);
+        const url = await getSignedReceiptUrl(storagePath);
         
-        if (data?.signedUrl) {
-          setSignedUrl(data.signedUrl);
+        if (url) {
+          setSignedUrl(url);
         } else {
           setSignedUrl(receiptPath);
         }
