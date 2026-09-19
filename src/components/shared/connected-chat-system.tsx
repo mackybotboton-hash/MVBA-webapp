@@ -152,6 +152,10 @@ function ChatSystemContent({
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const isNearBottomRef = React.useRef(true);
   const shouldScrollToBottomRef = React.useRef(true);
+  
+  // Swipe to go back tracking
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchEndXRef = React.useRef<number | null>(null);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -417,12 +421,20 @@ function ChatSystemContent({
         if (found) {
           setActiveContact(found);
         } else if (list.length > 0) {
-          setActiveContact(list[0]);
+          if (window.innerWidth >= 768) {
+            setActiveContact(list[0]);
+          } else {
+            setActiveContact(null);
+          }
         } else {
           setActiveContact(null);
         }
       } else if (list.length > 0) {
-        setActiveContact(list[0]);
+        if (window.innerWidth >= 768) {
+          setActiveContact(list[0]);
+        } else {
+          setActiveContact(null);
+        }
       } else {
         setActiveContact(null);
       }
@@ -1342,10 +1354,28 @@ function ChatSystemContent({
         </div>
 
         {/* Right: Active Message Thread Window (md:col-span-7 lg:col-span-8) */}
-        <div className={cn(
-          "md:col-span-7 lg:col-span-8 flex-col bg-white h-full min-h-0 overflow-hidden",
-          activeContact ? "flex" : "hidden md:flex"
-        )}>
+        <div 
+          className={cn(
+            "md:col-span-7 lg:col-span-8 flex-col bg-white h-full min-h-0 overflow-hidden",
+            activeContact ? "flex" : "hidden md:flex"
+          )}
+          onTouchStart={(e) => {
+            touchEndXRef.current = null;
+            touchStartXRef.current = e.targetTouches[0].clientX;
+          }}
+          onTouchMove={(e) => {
+            touchEndXRef.current = e.targetTouches[0].clientX;
+          }}
+          onTouchEnd={() => {
+            if (!touchStartXRef.current || !touchEndXRef.current) return;
+            const distance = touchStartXRef.current - touchEndXRef.current;
+            // A swipe from left edge to the right is negative distance.
+            // Let's require a minimum swipe distance of 75px to trigger "back".
+            if (distance < -75) {
+              setActiveContact(null);
+            }
+          }}
+        >
           {activeContact ? (
             <>
               {/* Thread Header */}
