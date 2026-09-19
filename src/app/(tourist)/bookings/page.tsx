@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { DigitalBoardingPassModal } from "@/components/tourist/digital-boarding-pass-modal";
 import { GCashDepositModal } from "@/components/tourist/gcash-deposit-modal";
 import { TouristReviewModal } from "@/components/tourist/tourist-review-modal";
+import { TouristViewPaymentModal } from "@/components/tourist/tourist-view-payment-modal";
 
 
 type BookingFilterTab = "all" | "pending" | "accepted" | "completed" | "cancelled";
@@ -36,6 +37,7 @@ export default function TouristBookingsPage() {
   const [activeTab, setActiveTab] = React.useState<BookingFilterTab>("all");
   const [selectedPassBooking, setSelectedPassBooking] = React.useState<any | null>(null);
   const [selectedDepositBooking, setSelectedDepositBooking] = React.useState<BookingData | null>(null);
+  const [selectedPaymentBooking, setSelectedPaymentBooking] = React.useState<BookingData | null>(null);
   const [selectedReviewBooking, setSelectedReviewBooking] = React.useState<BookingData | null>(null);
 
   const fetchBookings = React.useCallback(async () => {
@@ -64,6 +66,7 @@ export default function TouristBookingsPage() {
           status,
           payment_status,
           downpayment_amount,
+          receipt_url,
           created_at,
           rooms (
             id,
@@ -95,6 +98,7 @@ export default function TouristBookingsPage() {
           total_price: Number(b.total_price),
           downpayment_amount: Number(b.downpayment_amount),
           payment_status: b.payment_status,
+          receipt_url: b.receipt_url,
           status: b.status,
           owner_id: b.rooms?.properties?.owner_id,
         }));
@@ -272,6 +276,7 @@ export default function TouristBookingsPage() {
                     status: b.status,
                   })
                 }
+                onViewPayment={(b) => setSelectedPaymentBooking(b)}
                 onPayDeposit={(b) => setSelectedDepositBooking(b)}
                 onRateStay={(b) => setSelectedReviewBooking(b)}
               />
@@ -312,7 +317,7 @@ export default function TouristBookingsPage() {
               // @ts-expect-error: Supabase type inference assigns 'never' to update parameters
               .update({
                 payment_status: "deposit_uploaded",
-                receipt_url: uploadData.path
+                receipt_url: `${uploadData.path}|${payload.referenceNumber}`
               })
               .eq("id", selectedDepositBooking.id);
 
@@ -332,6 +337,13 @@ export default function TouristBookingsPage() {
         isOpen={!!selectedReviewBooking}
         onClose={() => setSelectedReviewBooking(null)}
         booking={selectedReviewBooking}
+      />
+
+      {/* View Payment Modal */}
+      <TouristViewPaymentModal
+        isOpen={!!selectedPaymentBooking}
+        onClose={() => setSelectedPaymentBooking(null)}
+        booking={selectedPaymentBooking}
       />
     </div>
   );

@@ -43,6 +43,7 @@ export interface BookingCardProps {
   onCancelBooking?: (bookingId: string) => void;
   onViewBoardingPass?: (booking: BookingData) => void;
   onPayDeposit?: (booking: BookingData) => void;
+  onViewPayment?: (booking: BookingData) => void;
   onRateStay?: (booking: BookingData) => void;
   className?: string;
 }
@@ -52,6 +53,7 @@ export function BookingCard({
   onCancelBooking,
   onViewBoardingPass,
   onPayDeposit,
+  onViewPayment,
   onRateStay,
   className,
 }: BookingCardProps) {
@@ -253,14 +255,15 @@ export function BookingCard({
             </Button>
           )}
 
-          {booking.status === "accepted" && booking.payment_status === "deposit_uploaded" && (
+          {booking.status === "accepted" && booking.payment_status === "deposit_uploaded" && onViewPayment && (
             <Button
               size="sm"
-              disabled
-              className="text-xs h-8 px-3 bg-neutral-100 text-neutral-500 border border-neutral-200 opacity-100"
+              variant="outline"
+              className="text-xs h-8 px-3 border-blue-200 text-blue-600 hover:bg-blue-50"
+              onClick={() => onViewPayment(booking)}
             >
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-              Submitted
+              <Receipt className="h-3.5 w-3.5 mr-1" />
+              View Payment
             </Button>
           )}
 
