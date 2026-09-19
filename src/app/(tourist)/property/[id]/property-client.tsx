@@ -900,13 +900,13 @@ export default function PropertyStorefrontPage() {
             onClick={() => setSelectedRoom(null)}
           />
 
-          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 sticky top-0 bg-white z-10 pt-2">
+          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-4 sm:p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 sticky top-0 bg-white z-10 -mt-1 pt-1">
               <div>
-                <h3 className="font-bold text-base text-neutral-900">
+                <h3 className="font-bold text-lg text-neutral-900">
                   Request Reservation
                 </h3>
-                <p className="text-xs font-medium text-neutral-700">{selectedRoom.name}</p>
+                <p className="text-sm font-medium text-neutral-700">{selectedRoom.name}</p>
               </div>
               <button
                 onClick={() => setSelectedRoom(null)}
@@ -916,9 +916,9 @@ export default function PropertyStorefrontPage() {
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-4 text-sm">
               {/* Custom Inline Calendar */}
-              <div className="rounded-xl border border-neutral-200 overflow-hidden flex justify-center bg-white p-2">
+              <div className="rounded-xl border border-neutral-200 overflow-hidden flex justify-center bg-white p-1">
                 <CalendarComponent
                   mode="range"
                   defaultMonth={dateRange?.from}
@@ -937,7 +937,7 @@ export default function PropertyStorefrontPage() {
               )}
 
               <div>
-                <label className="font-medium text-neutral-700 block mb-1">
+                <label className="font-medium text-neutral-700 block mb-1.5">
                   Number of Guests
                 </label>
                 <input
@@ -946,28 +946,28 @@ export default function PropertyStorefrontPage() {
                   max={selectedRoom.max_capacity}
                   value={guestCount}
                   onChange={(e) => setGuestCount(Number(e.target.value))}
-                  className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black font-medium"
+                  className="w-full h-11 px-3 rounded-lg border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium"
                 />
-                <span className="text-[11px] font-medium text-neutral-700 mt-1 block">
+                <span className="text-xs font-medium text-neutral-700 mt-1 block">
                   Maximum capacity: {selectedRoom.max_capacity} guests
                 </span>
               </div>
 
               <div>
-                <label className="font-medium text-neutral-700 block mb-1">
+                <label className="font-medium text-neutral-700 block mb-1.5">
                   Estimated Arrival Time <span className="text-neutral-600 font-normal">(Optional)</span>
                 </label>
                 <select
                   value={arrivalTime}
                   onChange={(e) => setArrivalTime(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
+                  className="w-full h-11 px-3 rounded-lg border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
                 >
                   <option value="">Not Sure Yet</option>
                   <option value="2:00 PM - 4:00 PM">2:00 PM - 4:00 PM</option>
                   <option value="4:00 PM - 6:00 PM">4:00 PM - 6:00 PM</option>
                   <option value="After 6:00 PM">Late Arrival (After 6:00 PM)</option>
                 </select>
-                <span className="text-[11px] font-medium text-neutral-700 mt-1 block">
+                <span className="text-xs font-medium text-neutral-700 mt-1 block">
                   Standard Check-in: 2:00 PM | Check-out: 12:00 PM
                 </span>
               </div>
@@ -994,11 +994,11 @@ export default function PropertyStorefrontPage() {
                         />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-neutral-900 text-[11px]">{service.name}</span>
-                            <span className="font-bold text-neutral-900 text-[11px]">₱{Number(service.price).toLocaleString()}</span>
+                            <span className="font-semibold text-neutral-900 text-sm">{service.name}</span>
+                            <span className="font-bold text-neutral-900 text-sm">₱{Number(service.price).toLocaleString()}</span>
                           </div>
                           {service.description && (
-                            <p className="text-[10px] text-neutral-600 mt-0.5 line-clamp-2">{service.description}</p>
+                            <p className="text-xs text-neutral-600 mt-1 line-clamp-2">{service.description}</p>
                           )}
                         </div>
                       </label>
@@ -1009,12 +1009,12 @@ export default function PropertyStorefrontPage() {
             </div>
 
             {/* Summary */}
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs space-y-1.5">
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
               <div className="flex justify-between text-neutral-600">
                 <span className="font-medium text-neutral-700">
                   ₱{selectedRoom.base_price.toLocaleString()} &times; {calculateTotalNights()} {calculateTotalNights() === 1 ? "night" : "nights"}
                 </span>
-                <span className="font-bold text-neutral-900">
+                <span className="font-bold text-neutral-900 text-base">
                   ₱{(selectedRoom.base_price * calculateTotalNights()).toLocaleString()}
                 </span>
               </div>
@@ -1029,7 +1029,7 @@ export default function PropertyStorefrontPage() {
             <Button
               onClick={handleCreateBooking}
               disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
-              className="w-full h-11 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-xs font-semibold rounded-xl transition-all"
+              className="w-full h-12 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-xl transition-all"
             >
               {isSubmittingBooking ? (
                 "Verifying & Sending Request..."
