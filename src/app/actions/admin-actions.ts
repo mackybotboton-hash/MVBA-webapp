@@ -116,7 +116,14 @@ export async function approveBookingDeposit(bookingId: string) {
     }
 
     // 3. Atomically update the booking with audit trail
-    const { error: updateError } = await supabase
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      serviceKey!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const { error: updateError } = await supabaseAdmin
       .from("bookings")
       .update({ 
         payment_status: "verified",
