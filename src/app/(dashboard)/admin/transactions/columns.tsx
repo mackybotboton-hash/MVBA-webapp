@@ -48,6 +48,8 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
         storagePath = storagePath.split("/public/payment-receipts/")[1];
       } else if (storagePath.includes("/payment-receipts/")) {
         storagePath = storagePath.split("/payment-receipts/")[1];
+      } else if (storagePath.startsWith("payment-receipts/")) {
+        storagePath = storagePath.replace("payment-receipts/", "");
       }
       
       try {

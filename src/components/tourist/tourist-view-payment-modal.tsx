@@ -29,15 +29,17 @@ export function TouristViewPaymentModal({ isOpen, onClose, booking }: TouristVie
       if (!receiptPath || !isOpen) return;
       setIsLoading(true);
       try {
-        let path = receiptPath;
-        if (path.includes("/public/payment-receipts/")) {
-          path = path.split("/public/payment-receipts/")[1];
-        } else if (path.includes("/payment-receipts/")) {
-          path = path.split("/payment-receipts/")[1];
+        let storagePath = receiptPath;
+        if (storagePath.includes("/public/payment-receipts/")) {
+          storagePath = storagePath.split("/public/payment-receipts/")[1];
+        } else if (storagePath.includes("/payment-receipts/")) {
+          storagePath = storagePath.split("/payment-receipts/")[1];
+        } else if (storagePath.startsWith("payment-receipts/")) {
+          storagePath = storagePath.replace("payment-receipts/", "");
         }
 
         const supabase = createClient();
-        const { data } = await supabase.storage.from("payment-receipts").createSignedUrl(path, 3600);
+        const { data } = await supabase.storage.from("payment-receipts").createSignedUrl(storagePath, 3600);
         
         if (data?.signedUrl) {
           setSignedUrl(data.signedUrl);
