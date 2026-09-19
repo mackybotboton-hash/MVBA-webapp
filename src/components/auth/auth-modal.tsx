@@ -114,7 +114,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       }
 
       if (authData.user) {
-        toast.success("Welcome back! You are now signed in.");
+        const name = authData.user.user_metadata?.full_name?.split(" ")[0] || "User";
+        toast.success(`Welcome ${name}! You are completely logged in.`);
 
         // Determine target dashboard
         const { data: profile } = await supabase
@@ -177,7 +178,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       }
 
       if (authData.session) {
-        toast.success("Account created successfully!");
+        const name = data.fullName.split(" ")[0] || "User";
+        toast.success(`Welcome ${name}! Account created and you are completely logged in.`);
         const homeRoute = ROLE_HOME_ROUTES["tourist" as UserRole] || "/";
         if (onLoginSuccess) {
           onLoginSuccess();
