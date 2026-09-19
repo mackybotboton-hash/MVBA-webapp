@@ -1043,6 +1043,7 @@ export default function PropertyStorefrontPage() {
                 )}
               </Button>
             </div>
+          </div>
         </div>
       )}
 
