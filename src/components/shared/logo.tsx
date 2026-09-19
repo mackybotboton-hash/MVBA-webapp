@@ -21,7 +21,7 @@ export function Logo({
       <div className="relative">
         <Image
           src="/icons/icon-192.png"
-          alt="Britania Logo"
+          alt="Bretania Logo"
           width={32}
           height={32}
           className="rounded-lg shadow-sm"
@@ -32,7 +32,7 @@ export function Logo({
           <span
             className={`font-bold tracking-tight text-black ${sizeClasses[size]}`}
           >
-            Britania
+            Bretania
           </span>
           {size !== "small" && (
             <span className="text-[10px] text-gray-400 leading-none -mt-0.5 tracking-widest uppercase">

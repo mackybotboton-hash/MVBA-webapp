@@ -14,11 +14,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Britania Travel — Resort & Homestay Bookings",
+  title: "Bretania Travel — Resort & Homestay Bookings",
   description:
-    "Discover and book stays in Britania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
+    "Discover and book stays in Bretania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
   keywords: [
-    "Britania",
+    "Bretania",
     "San Agustin",
     "Surigao del Sur",
     "resort",
@@ -27,12 +27,12 @@ export const metadata: Metadata = {
     "Philippines",
     "island hopping",
   ],
-  authors: [{ name: "Britania Tourism" }],
+  authors: [{ name: "Bretania Tourism" }],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Britania",
+    title: "Bretania",
   },
   icons: {
     apple: [

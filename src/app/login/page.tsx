@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { AuthClientPage } from "./client-page";
 
 export const metadata = {
-  title: "Sign In - Britania",
+  title: "Sign In - Bretania",
   description: "Sign in to access your bookings and operator portal.",
 };
 
