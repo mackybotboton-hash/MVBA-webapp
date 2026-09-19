@@ -32,9 +32,6 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Badge } from "@/components/ui/badge";
-import { StarRating } from "@/components/ui/star-rating";
-import { formatDistanceToNow } from "date-fns";
-
 const formatTime12Hour = (timeStr?: string) => {
   if (!timeStr) return "";
   const [hourStr, minStr] = timeStr.split(":");
