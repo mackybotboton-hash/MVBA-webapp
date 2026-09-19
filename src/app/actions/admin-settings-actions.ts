@@ -5,7 +5,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 const SystemSettingsSchema = z.object({
-  commissionPercentage: z.coerce.number().min(0).max(100, "Percentage must be between 0 and 100"),
+  commissionPercentage: z.number().min(0).max(100, "Percentage must be between 0 and 100"),
   adminGcashNumber: z.string().regex(/^09\d{9}$/, {
     message: "GCash number must be exactly 11 digits and start with 09.",
   }),
@@ -17,7 +17,7 @@ export async function getSystemSettings() {
     const supabase = await createClient();
     
     // Select the singleton row (id = 1)
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("system_settings")
       .select("*")
       .eq("id", 1)
@@ -45,7 +45,7 @@ export async function updateSystemSettings(payload: z.infer<typeof SystemSetting
     }
 
     // Verify admin role explicitly
-    const { data: profile } = await supabase
+    const { data: profile } = await (supabase as any)
       .from("profiles")
       .select("role")
       .eq("id", user.id)
@@ -66,7 +66,7 @@ export async function updateSystemSettings(payload: z.infer<typeof SystemSetting
     }
 
     // Update the singleton row (id = 1)
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from("system_settings")
       .update({
         commission_percentage: validatedData.data.commissionPercentage,

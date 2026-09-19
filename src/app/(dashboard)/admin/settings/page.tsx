@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 const systemSettingsSchema = z.object({
-  commissionPercentage: z.coerce
+  commissionPercentage: z
     .number()
     .min(0, "Must be at least 0%")
     .max(100, "Cannot exceed 100%"),
@@ -156,6 +156,7 @@ export default function AdminSettingsPage() {
                                 placeholder="8.0" 
                                 className="pl-9 h-11 bg-neutral-50 focus-visible:ring-emerald-500"
                                 {...field} 
+                                onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
                               />
                               <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
                             </div>

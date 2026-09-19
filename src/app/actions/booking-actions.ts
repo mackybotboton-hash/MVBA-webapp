@@ -42,7 +42,7 @@ export async function createReservationAction(payload: {
     }
 
     // Fetch the system settings to get the dynamic commission percentage
-    const { data: systemSettings, error: settingsError } = await supabaseUserClient
+    const { data: systemSettings, error: settingsError } = await (supabaseUserClient as any)
       .from("system_settings")
       .select("commission_percentage")
       .eq("id", 1)

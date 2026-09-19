@@ -35,7 +35,7 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
   const { data: adminSettings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['system-settings'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('system_settings')
         .select('admin_gcash_number, admin_gcash_name')
         .eq('id', 1)
