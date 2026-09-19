@@ -34,6 +34,8 @@ export interface Property {
   address: string;
   cover_image_url: string;
   status: PropertyStatus;
+  facebook_url: string | null;
+  messenger_url: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -194,6 +194,8 @@ export default function PropertyStorefrontPage() {
             policies,
             check_in_time,
             check_out_time,
+            facebook_url,
+            messenger_url,
             rooms (*, room_images(id, image_url, display_order)),
             extra_services (*),
             reviews (
@@ -601,6 +603,40 @@ export default function PropertyStorefrontPage() {
                 {property.description}
               </p>
             </div>
+
+            {(property.facebook_url || property.messenger_url) && (
+              <div className="space-y-3 pt-4 border-t border-neutral-100">
+                <h3 className="text-base font-bold text-neutral-900">Connect with the Host</h3>
+                <div className="flex flex-wrap gap-3">
+                  {property.facebook_url && (
+                    <a
+                      href={property.facebook_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2]/10 text-[#1877F2] font-semibold text-sm rounded-xl hover:bg-[#1877F2]/20 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      Facebook Page
+                    </a>
+                  )}
+                  {property.messenger_url && (
+                    <a
+                      href={property.messenger_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#00B2FF]/10 text-[#00B2FF] font-semibold text-sm rounded-xl hover:bg-[#00B2FF]/20 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M128,24C68.9,24,21,68.6,21,123.6c0,31.7,16,61.4,43.2,80.7v27.7c0,3.6,3.6,6,7,4.7l30.9-12.2c8.2,2.3,16.8,3.5,25.8,3.5,59.1,0,107-44.6,107-99.6S187.1,24,128,24Zm9.3,131.6-26.6-28.5c-2.3-2.5-6.2-2.7-8.8-.5l-33.8,28.5c-4,3.4-9.3-1.6-6.3-5.9l29.7-42c2.3-3.2,6.7-4,9.8-1.7l26.6,28.5c2.3,2.5,6.2,2.7,8.8.5l33.8-28.5c4-3.4,9.3,1.6,6.3,5.9l-29.7,42C144.9,159,140.4,159.8,137.3,155.6Z"/>
+                      </svg>
+                      Chat on Messenger
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Property Policies (Dynamic) */}
             {property.policies && (
