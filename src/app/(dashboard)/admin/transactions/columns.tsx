@@ -40,23 +40,26 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
     async function loadReceipt() {
       if (!transaction?.receipt_url) return;
       
-      let path = transaction.receipt_url;
-      if (path.includes("/public/payment-receipts/")) {
-        path = path.split("/public/payment-receipts/")[1];
-      } else if (path.includes("/payment-receipts/")) {
-        path = path.split("/payment-receipts/")[1];
+      const rawUrl = transaction.receipt_url;
+      let path = rawUrl.includes("|") ? rawUrl.split("|")[0] : rawUrl;
+      
+      let storagePath = path;
+      if (storagePath.includes("/public/payment-receipts/")) {
+        storagePath = storagePath.split("/public/payment-receipts/")[1];
+      } else if (storagePath.includes("/payment-receipts/")) {
+        storagePath = storagePath.split("/payment-receipts/")[1];
       }
       
       try {
         const supabase = createClient();
-        const { data } = await supabase.storage.from("payment-receipts").createSignedUrl(path, 3600);
+        const { data } = await supabase.storage.from("payment-receipts").createSignedUrl(storagePath, 3600);
         if (data?.signedUrl) {
           setSignedReceiptUrl(data.signedUrl);
         } else {
-          setSignedReceiptUrl(transaction.receipt_url);
+          setSignedReceiptUrl(path);
         }
       } catch {
-        setSignedReceiptUrl(transaction.receipt_url);
+        setSignedReceiptUrl(path);
       }
     }
     
