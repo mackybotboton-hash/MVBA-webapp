@@ -893,15 +893,15 @@ export default function PropertyStorefrontPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
         >
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs min-h-[100vh]"
             onClick={() => setSelectedRoom(null)}
           />
 
-          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between border-b border-neutral-100 p-4 sm:p-5 pb-3 bg-white z-10 shrink-0">
+          <div className="relative z-10 w-full max-w-md my-auto rounded-2xl bg-white border border-neutral-200 shadow-2xl p-4 sm:p-5">
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 mb-4">
               <div>
                 <h3 className="font-bold text-lg text-neutral-900">
                   Request Reservation
@@ -916,9 +916,9 @@ export default function PropertyStorefrontPage() {
               </button>
             </div>
 
-            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-sm">
+            <div className="space-y-4 text-sm">
               {/* Custom Inline Calendar */}
-              <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white p-2">
+              <div className="rounded-xl border border-neutral-200 bg-white p-1 flex justify-center overflow-hidden">
                 <CalendarComponent
                   mode="range"
                   defaultMonth={dateRange?.from}
@@ -926,7 +926,7 @@ export default function PropertyStorefrontPage() {
                   onSelect={setDateRange}
                   numberOfMonths={1}
                   disabled={[{ before: new Date() }, ...disabledDates]}
-                  className="w-full flex justify-center"
+                  className="w-full max-w-[280px] sm:max-w-none flex justify-center"
                 />
               </div>
 
@@ -1026,11 +1026,11 @@ export default function PropertyStorefrontPage() {
               </div>
             </div>
 
-            <div className="p-4 sm:p-5 border-t border-neutral-100 bg-white shrink-0">
+            <div className="mt-5 border-t border-neutral-100 pt-4">
               <Button
                 onClick={handleCreateBooking}
                 disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
-                className="w-full h-12 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-xl transition-all"
+                className="w-full h-12 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-xl transition-all shadow-md"
               >
                 {isSubmittingBooking ? (
                   "Verifying & Sending Request..."
