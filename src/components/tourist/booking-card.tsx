@@ -256,7 +256,7 @@ export function BookingCard({
             </Button>
           )}
 
-          {booking.status === "accepted" && booking.payment_status === "deposit_uploaded" && onViewPayment && (
+          {booking.receipt_url && onViewPayment && (
             <Button
               size="sm"
               variant="outline"
