@@ -33,6 +33,7 @@ export interface BookingData {
   total_price: number;
   downpayment_amount?: number;
   payment_status?: "awaiting_deposit" | "deposit_uploaded" | "verified" | "completed" | "refunded";
+  receipt_url?: string;
   status: "pending" | "accepted" | "declined" | "cancelled" | "completed";
   created_at?: string;
   owner_id?: string;
