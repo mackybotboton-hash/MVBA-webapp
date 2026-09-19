@@ -900,8 +900,8 @@ export default function PropertyStorefrontPage() {
             onClick={() => setSelectedRoom(null)}
           />
 
-          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-4 sm:p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 sticky top-0 bg-white z-10 -mt-1 pt-1">
+          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between border-b border-neutral-100 p-4 sm:p-5 pb-3 bg-white z-10 shrink-0">
               <div>
                 <h3 className="font-bold text-lg text-neutral-900">
                   Request Reservation
@@ -910,13 +910,13 @@ export default function PropertyStorefrontPage() {
               </div>
               <button
                 onClick={() => setSelectedRoom(null)}
-                className="p-1 rounded-full text-neutral-600 hover:text-black"
+                className="p-1.5 rounded-full text-neutral-600 hover:text-black bg-neutral-100 hover:bg-neutral-200 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-4 text-sm">
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-sm">
               {/* Custom Inline Calendar */}
               <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white p-2">
                 <CalendarComponent
@@ -1026,22 +1026,23 @@ export default function PropertyStorefrontPage() {
               </div>
             </div>
 
-            <Button
-              onClick={handleCreateBooking}
-              disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
-              className="w-full h-12 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-xl transition-all"
-            >
-              {isSubmittingBooking ? (
-                "Verifying & Sending Request..."
-              ) : conflictingBooking ? (
-                "Dates Unavailable (Already Booked)"
-              ) : checkInDate >= checkOutDate ? (
-                "Select Valid Dates"
-              ) : (
-                "Confirm & Send Request"
-              )}
-            </Button>
-          </div>
+            <div className="p-4 sm:p-5 border-t border-neutral-100 bg-white shrink-0">
+              <Button
+                onClick={handleCreateBooking}
+                disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
+                className="w-full h-12 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-xl transition-all"
+              >
+                {isSubmittingBooking ? (
+                  "Verifying & Sending Request..."
+                ) : conflictingBooking ? (
+                  "Dates Unavailable (Already Booked)"
+                ) : checkInDate >= checkOutDate ? (
+                  "Select Valid Dates"
+                ) : (
+                  "Confirm & Send Request"
+                )}
+              </Button>
+            </div>
         </div>
       )}
 
