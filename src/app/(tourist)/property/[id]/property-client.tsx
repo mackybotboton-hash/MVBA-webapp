@@ -32,6 +32,19 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Badge } from "@/components/ui/badge";
+import { StarRating } from "@/components/ui/star-rating";
+import { formatDistanceToNow } from "date-fns";
+
+const formatTime12Hour = (timeStr?: string) => {
+  if (!timeStr) return "";
+  const [hourStr, minStr] = timeStr.split(":");
+  const hour = parseInt(hourStr, 10);
+  if (isNaN(hour)) return timeStr;
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minStr || "00"} ${ampm}`;
+};
+
 import { Button } from "@/components/ui/button";
 import { SocialVideoEmbed } from "@/components/ui/social-video-embed";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -581,15 +594,15 @@ export default function PropertyStorefrontPage() {
               <div className="space-y-3 pt-4 border-t border-neutral-100">
                 <h3 className="text-base font-bold text-neutral-900">House Rules</h3>
                 
-                <div className="flex items-center gap-4 text-sm font-medium text-neutral-700 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-sm font-medium text-neutral-700 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-neutral-500" />
-                    <span>Check-in: {property.check_in_time || "14:00"}</span>
+                    <span>Check-in: {formatTime12Hour(property.check_in_time || "14:00")}</span>
                   </div>
-                  <div className="w-px h-4 bg-neutral-300"></div>
+                  <div className="hidden sm:block w-px h-4 bg-neutral-300"></div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-neutral-500" />
-                    <span>Check-out: {property.check_out_time || "12:00"}</span>
+                    <span>Check-out: {formatTime12Hour(property.check_out_time || "12:00")}</span>
                   </div>
                 </div>
 
