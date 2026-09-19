@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { X, Receipt, Hash, RefreshCw } from "lucide-react";
 import Image from "next/image";
 import { BookingData } from "@/components/tourist/booking-card";
-import { createClient } from "@/lib/supabase/client";
+import { getSignedReceiptUrl } from "@/lib/actions/get-receipt-url";
 
 interface TouristViewPaymentModalProps {
   isOpen: boolean;
