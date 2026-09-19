@@ -1055,11 +1055,11 @@ export default function PropertyStorefrontPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
           onClick={() => setGallery((prev) => ({ ...prev, isOpen: false }))}
         >
           <div
-            className="relative max-w-4xl w-full rounded-2xl overflow-hidden shadow-2xl bg-neutral-950 border border-white/10 flex flex-col max-h-[92vh]"
+            className="relative w-full h-[100dvh] flex flex-col bg-black"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Gallery Top Bar */}
@@ -1083,7 +1083,7 @@ export default function PropertyStorefrontPage() {
             </div>
 
             {/* Main Active Image Stage with Left & Right Arrows */}
-            <div className="relative flex-1 aspect-[16/10] sm:aspect-[16/9] w-full bg-black flex items-center justify-center overflow-hidden">
+            <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
               <Image
                 src={gallery.images[gallery.currentIndex]}
                 alt={`${gallery.roomName} angle ${gallery.currentIndex + 1}`}
@@ -1130,7 +1130,7 @@ export default function PropertyStorefrontPage() {
             </div>
 
             {/* Bottom Thumbnail Strip for all angles */}
-            <div className="p-3 bg-neutral-900 border-t border-white/10 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
+            <div className="p-4 bg-black border-t border-white/10 flex items-center gap-3 overflow-x-auto shrink-0 scrollbar-hide">
               {gallery.images.map((img, idx) => (
                 <button
                   key={idx}
