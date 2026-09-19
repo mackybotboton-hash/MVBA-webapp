@@ -112,8 +112,6 @@ export default function TouristDiscoveryPage() {
           address,
           cover_image_url,
           status,
-          rating,
-          reviews_count,
           rooms (
             base_price,
             max_capacity

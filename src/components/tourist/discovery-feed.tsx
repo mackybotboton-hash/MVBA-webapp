@@ -47,7 +47,7 @@ export function DiscoveryFeed() {
       const { data: dbProps, error } = await supabase
         .from("properties")
         .select(`
-          id, name, type, address, cover_image_url, rating, reviews_count,
+          id, name, type, address, cover_image_url,
           rooms (id, name, base_price, max_capacity)
         `)
         .eq("status", "active")
