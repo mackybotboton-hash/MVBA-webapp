@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   User,
@@ -118,6 +119,14 @@ function ChatSystemContent({
   const [isLoadingContacts, setIsLoadingContacts] = React.useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = React.useState(false);
   const [isSending, setIsSending] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile(); // Check initially
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Admin & Host inter-communication state
   const [availableHosts, setAvailableHosts] = React.useState<any[]>([
@@ -1353,30 +1362,9 @@ function ChatSystemContent({
           </div>
         </div>
 
-        {/* Right: Active Message Thread Window (md:col-span-7 lg:col-span-8) */}
-        <div 
-          className={cn(
-            "md:col-span-7 lg:col-span-8 flex-col bg-white h-full min-h-0 overflow-hidden",
-            activeContact ? "flex" : "hidden md:flex"
-          )}
-          onTouchStart={(e) => {
-            touchEndXRef.current = null;
-            touchStartXRef.current = e.targetTouches[0].clientX;
-          }}
-          onTouchMove={(e) => {
-            touchEndXRef.current = e.targetTouches[0].clientX;
-          }}
-          onTouchEnd={() => {
-            if (!touchStartXRef.current || !touchEndXRef.current) return;
-            const distance = touchStartXRef.current - touchEndXRef.current;
-            // A swipe from left edge to the right is negative distance.
-            // Let's require a minimum swipe distance of 75px to trigger "back".
-            if (distance < -75) {
-              setActiveContact(null);
-            }
-          }}
-        >
-          {activeContact ? (
+        {/* Right: Active Message Thread Window */}
+        {(() => {
+          const threadContent = activeContact ? (
             <>
               {/* Thread Header */}
               <div className="px-5 py-3.5 border-b border-neutral-200 bg-neutral-50/70 flex items-center justify-between shrink-0">
@@ -1547,7 +1535,7 @@ function ChatSystemContent({
               {/* Bottom Input Bar */}
               <form
                 onSubmit={handleSendMessage}
-                className="p-3.5 border-t border-neutral-200 bg-neutral-50/50 flex items-center gap-2 shrink-0"
+                className="p-3.5 pb-[max(env(safe-area-inset-bottom),0.875rem)] border-t border-neutral-200 bg-neutral-50/50 flex items-center gap-2 shrink-0"
               >
                 <input
                   type="text"
@@ -1572,7 +1560,9 @@ function ChatSystemContent({
                 </Button>
               </form>
             </>
-          ) : (
+          ) : null;
+
+          const emptyState = (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-neutral-500 space-y-3">
               <div className="h-20 w-20 rounded-2xl bg-neutral-100 flex items-center justify-center">
                 <MessageSquare className="h-10 w-10 text-neutral-500" />
@@ -1608,8 +1598,40 @@ function ChatSystemContent({
                 </div>
               )}
             </div>
-          )}
-        </div>
+          );
+
+          if (isMobile) {
+            return (
+              <AnimatePresence>
+                {activeContact && (
+                  <motion.div
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", bounce: 0, duration: 0.35 }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={{ left: 0, right: 1 }}
+                    onDragEnd={(e, info) => {
+                      if (info.offset.x > 75 && info.velocity.x > 20) {
+                        setActiveContact(null);
+                      }
+                    }}
+                    className="fixed inset-0 z-[100] h-[100dvh] w-screen bg-white flex flex-col"
+                  >
+                    {threadContent}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            );
+          }
+
+          return (
+            <div className="hidden md:flex md:col-span-7 lg:col-span-8 flex-col bg-white h-full min-h-0 overflow-hidden border-l border-neutral-200">
+              {activeContact ? threadContent : emptyState}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Admin Host Directory Modal */}
