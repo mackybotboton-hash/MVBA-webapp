@@ -1366,18 +1366,18 @@ function ChatSystemContent({
         {(() => {
           const threadContent = activeContact ? (
             <>
-              {/* Thread Header */}
-              <div className="px-5 py-3.5 border-b border-neutral-200 bg-neutral-50/70 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3 min-w-0">
+              {/* Thread Header (Messenger Style) */}
+              <div className="pt-[max(env(safe-area-inset-top),0.5rem)] px-3 pb-3 border-b border-neutral-100 bg-white/95 backdrop-blur-md flex items-center justify-between shrink-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <button 
                     onClick={() => setActiveContact(null)}
-                    className="md:hidden p-1.5 -ml-2 text-neutral-600 hover:text-black hover:bg-neutral-200/50 rounded-lg transition-colors"
+                    className="md:hidden p-2 -ml-1 text-neutral-500 hover:text-black rounded-full active:bg-neutral-100 transition-colors"
                     aria-label="Back to conversations"
                   >
-                    <ChevronLeft className="h-6 w-6" />
+                    <ChevronLeft className="h-7 w-7" />
                   </button>
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold text-xs shadow-2xs ${
+                    className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm shadow-sm border border-neutral-100 ${
                       activeContact.role === "admin"
                         ? "bg-amber-500 text-white"
                         : "bg-black text-white"
@@ -1388,60 +1388,46 @@ function ChatSystemContent({
                     ) : (
                       activeContact.name.slice(0, 2).toUpperCase()
                     )}
+                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-black/5" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-neutral-900 leading-snug">
-                        {activeContact.name}
-                      </h3>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="text-[15px] font-bold text-neutral-900 leading-tight truncate">
+                      {activeContact.name}
+                    </h3>
+                    <p className="text-[11px] text-neutral-500 flex items-center gap-1.5 mt-0.5 truncate">
                       {activeContact.role === "admin" ? (
-                        <Badge
-                          variant="default"
-                          size="sm"
-                          className="bg-amber-500 hover:bg-amber-600 text-white font-bold flex items-center gap-1 text-[10px]"
-                        >
-                          <ShieldCheck className="h-3 w-3" />
-                          <span>MVBA Admin</span>
-                        </Badge>
+                        <span className="font-semibold text-amber-600">Official Admin</span>
+                      ) : activeContact.role === "tourist" ? (
+                        <span>Tourist</span>
                       ) : (
-                        <Badge
-                          variant="subtle"
-                          size="sm"
-                          className="capitalize font-semibold"
-                        >
-                          {activeContact.role === "tourist" ? "Guest" : `${activeContact.role} Owner`}
-                        </Badge>
+                        <span className="capitalize">{activeContact.role} Owner</span>
                       )}
-                    </div>
-                    <p className="text-[11px] text-neutral-600 flex items-center gap-2 mt-0.5">
                       {activeContact.propertyName && (
-                        <span className="font-semibold text-neutral-700">
-                          {activeContact.propertyName} •
-                        </span>
+                        <>
+                          <span className="text-neutral-300">•</span>
+                          <span className="truncate">{activeContact.propertyName}</span>
+                        </>
                       )}
-                      {activeContact.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-neutral-500" />
-                          <span>{activeContact.phone}</span>
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Realtime Active
-                      </span>
                     </p>
                   </div>
                 </div>
 
-                {activeContact.roomName && (
-                  <Badge
-                    variant="secondary"
-                    size="sm"
-                    className="hidden sm:inline-flex"
-                  >
-                    {activeContact.roomName}
-                  </Badge>
-                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  {activeContact.phone && (
+                    <a href={`tel:${activeContact.phone}`} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors">
+                      <Phone className="h-5 w-5 fill-current" />
+                    </a>
+                  )}
+                  {activeContact.roomName && (
+                    <Badge
+                      variant="secondary"
+                      size="sm"
+                      className="hidden sm:inline-flex"
+                    >
+                      {activeContact.roomName}
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               {/* Messages Container */}
@@ -1481,46 +1467,38 @@ function ChatSystemContent({
                     return (
                       <div
                         key={msg.id}
-                        className={`flex items-end gap-2 ${
-                          isSelf ? "justify-end" : "justify-start"
+                        className={`flex items-end gap-2 mb-1 ${
+                          isSelf ? "justify-end pl-12" : "justify-start pr-12"
                         }`}
                       >
                         {!isSelf && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-200 text-neutral-800 text-[10px] font-bold shrink-0 mb-1">
-                            {activeContact.name.slice(0, 1)}
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-neutral-600 text-[10px] font-bold shrink-0 mb-1">
+                            {activeContact.name.slice(0, 2).toUpperCase()}
                           </div>
                         )}
 
                         <div
-                          className={`max-w-md rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed ${
+                          className={`max-w-md px-4 py-2.5 text-[15px] shadow-sm leading-relaxed ${
                             isSelf
-                              ? "bg-black text-white rounded-br-xs"
-                              : "bg-neutral-100 text-neutral-900 border border-neutral-200 rounded-bl-xs font-medium"
+                              ? "bg-blue-600 text-white rounded-[20px] rounded-br-[4px]"
+                              : "bg-[#E4E6EB] text-black rounded-[20px] rounded-bl-[4px]"
                           }`}
                         >
                           <p>{msg.content}</p>
                           <div
-                            className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${
-                              isSelf ? "text-neutral-500" : "text-neutral-500"
+                            className={`flex items-center justify-end gap-1 text-[9px] mt-0.5 ${
+                              isSelf ? "text-blue-100" : "text-neutral-500"
                             }`}
                           >
                             <span>{time}</span>
                             {isSelf && (
                               msg.is_read ? (
-                                <span
-                                  className="flex items-center gap-0.5 text-emerald-400 font-semibold"
-                                  title="Seen by recipient"
-                                >
-                                  <CheckCheck className="h-3 w-3 text-emerald-400" />
-                                  <span>Seen</span>
+                                <span className="flex items-center" title="Seen by recipient">
+                                  <CheckCheck className="h-3 w-3" />
                                 </span>
                               ) : (
-                                <span
-                                  className="flex items-center gap-0.5 text-neutral-500"
-                                  title="Delivered • Not read yet"
-                                >
-                                  <Check className="h-3 w-3 text-neutral-500" />
-                                  <span>Delivered</span>
+                                <span className="flex items-center opacity-70" title="Delivered • Not read yet">
+                                  <Check className="h-3 w-3" />
                                 </span>
                               )
                             )}
@@ -1535,29 +1513,48 @@ function ChatSystemContent({
               {/* Bottom Input Bar */}
               <form
                 onSubmit={handleSendMessage}
-                className="p-3.5 pb-[max(env(safe-area-inset-bottom),0.875rem)] border-t border-neutral-200 bg-neutral-50/50 flex items-center gap-2 shrink-0"
+                className="p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-neutral-100 bg-white flex items-center gap-2 shrink-0 z-10"
               >
-                <input
-                  type="text"
-                  placeholder={`Type a message to ${activeContact.name}...`}
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  className="flex-1 h-11 px-4 rounded-xl border border-neutral-300 bg-white text-xs font-medium text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-black"
-                />
-                <Button
+                <button
+                  type="button"
+                  onClick={() => toast.info("Image upload coming soon!")}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors shrink-0"
+                  aria-label="Add attachment"
+                >
+                  <Plus className="h-6 w-6" />
+                </button>
+                <div className="flex-1 relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Aa"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    className="w-full h-10 pl-4 pr-10 rounded-full border-none bg-neutral-100 text-[15px] text-black placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Stickers coming soon!")}
+                    className="absolute right-2 p-1.5 text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                  </button>
+                </div>
+                <button
                   type="submit"
                   disabled={!inputText.trim() || isSending}
-                  className="h-11 px-5 bg-black text-white hover:bg-neutral-800 text-xs font-bold rounded-xl shadow-xs"
+                  className={`p-2 rounded-full transition-all shrink-0 ${
+                    inputText.trim() && !isSending
+                      ? "text-blue-600 hover:bg-blue-50"
+                      : "text-neutral-300"
+                  }`}
+                  aria-label="Send message"
                 >
                   {isSending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   ) : (
-                    <>
-                      <Send className="h-3.5 w-3.5 mr-1.5" />
-                      <span>Send</span>
-                    </>
+                    <Send className="h-6 w-6" />
                   )}
-                </Button>
+                </button>
               </form>
             </>
           ) : null;
