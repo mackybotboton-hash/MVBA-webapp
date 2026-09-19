@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { UploadCloud, Image as ImageIcon, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 
 interface GCashDepositModalProps {
   isOpen: boolean;
@@ -28,6 +30,21 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
   const [isSuccess, setIsSuccess] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const supabase = createClient();
+  const { data: adminSettings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('admin_gcash_number, admin_gcash_name')
+        .eq('id', 1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 mins
+  });
 
   const handleFile = (selectedFile: File) => {
     // Strict restriction to images only
@@ -118,8 +135,21 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
         {amount && (
           <div className="px-6 py-4 bg-blue-50 border-y border-blue-100 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Send Payment To</p>
-              <p className="text-sm font-medium text-blue-900">GCash: 0917-000-0000</p>
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
+                Send Payment To
+              </p>
+              {isLoadingSettings ? (
+                <div className="h-5 w-32 bg-blue-200/50 animate-pulse rounded" />
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-bold text-blue-900">
+                    GCash: {adminSettings?.admin_gcash_number || "0917-000-0000"}
+                  </p>
+                  <p className="text-xs font-medium text-blue-700/80">
+                    Account Name: {adminSettings?.admin_gcash_name || "MVBA Admin"}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="text-right">
               <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Required Deposit</p>

@@ -41,6 +41,19 @@ export async function createReservationAction(payload: {
       throw new Error(`Exceeds maximum capacity of ${room.max_capacity} guests.`);
     }
 
+    // Fetch the system settings to get the dynamic commission percentage
+    const { data: systemSettings, error: settingsError } = await supabaseUserClient
+      .from("system_settings")
+      .select("commission_percentage")
+      .eq("id", 1)
+      .single();
+      
+    if (settingsError || !systemSettings) {
+      throw new Error("Could not retrieve system settings.");
+    }
+    
+    const commissionRate = Number(systemSettings.commission_percentage) / 100;
+
     // 3. Calculate total price and derivatives server-side
     const checkIn = new Date(payload.checkInDate);
     const checkOut = new Date(payload.checkOutDate);
@@ -56,8 +69,8 @@ export async function createReservationAction(payload: {
     const totalPrice = room.base_price * nights;
     // Downpayment is 20%
     const downpaymentAmount = totalPrice * 0.20;
-    // Association Commission is 8% of total price
-    const commissionAmount = totalPrice * 0.08;
+    // Association Commission is dynamically calculated
+    const commissionAmount = totalPrice * commissionRate;
     // Host payout is total minus commission
     const hostPayoutAmount = totalPrice - commissionAmount;
 
