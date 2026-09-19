@@ -946,7 +946,7 @@ export default function PropertyStorefrontPage() {
                   max={selectedRoom.max_capacity}
                   value={guestCount}
                   onChange={(e) => setGuestCount(Number(e.target.value))}
-                  className="w-full h-11 px-3 rounded-lg border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium"
+                  className="w-full h-10 px-3 rounded-md border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium"
                 />
                 <span className="text-xs font-medium text-neutral-700 mt-1 block">
                   Maximum capacity: {selectedRoom.max_capacity} guests
@@ -960,7 +960,7 @@ export default function PropertyStorefrontPage() {
                 <select
                   value={arrivalTime}
                   onChange={(e) => setArrivalTime(e.target.value)}
-                  className="w-full h-11 px-3 rounded-lg border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
+                  className="w-full h-10 px-3 rounded-md border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
                 >
                   <option value="">Not Sure Yet</option>
                   <option value="2:00 PM - 4:00 PM">2:00 PM - 4:00 PM</option>
@@ -1026,11 +1026,11 @@ export default function PropertyStorefrontPage() {
               </div>
             </div>
 
-            <div className="mt-5 border-t border-neutral-100 pt-4">
+            <div className="mt-4 border-t border-neutral-100 pt-3">
               <Button
                 onClick={handleCreateBooking}
                 disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
-                className="w-full h-12 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-xl transition-all shadow-md"
+                className="w-full h-10 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-lg transition-all shadow-md"
               >
                 {isSubmittingBooking ? (
                   "Verifying & Sending Request..."
