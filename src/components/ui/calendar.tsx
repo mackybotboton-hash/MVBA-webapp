@@ -17,25 +17,25 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-2", className)}
+      className={cn("p-2 relative w-full", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-3 sm:space-x-4 sm:space-y-0",
-        month: "space-y-3",
-        month_caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
+        month: "space-y-3 w-full",
+        month_caption: "flex justify-center pt-1 relative items-center mb-2",
+        caption_label: "text-sm font-bold",
         nav: "space-x-1 flex items-center",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
+          "h-10 w-10 bg-white p-0 opacity-90 hover:opacity-100 absolute left-0 top-[55%] -translate-y-1/2 rounded-full shadow-md z-10 border border-neutral-200 text-black hover:bg-neutral-50"
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
+          "h-10 w-10 bg-white p-0 opacity-90 hover:opacity-100 absolute right-0 top-[55%] -translate-y-1/2 rounded-full shadow-md z-10 border border-neutral-200 text-black hover:bg-neutral-50"
         ),
         month_grid: "w-full border-collapse space-y-1",
-        weekdays: "flex",
-        weekday: "text-neutral-600 rounded-md w-8 font-medium text-xs",
-        week: "flex w-full mt-2",
+        weekdays: "flex justify-between w-full px-4 sm:px-6",
+        weekday: "text-neutral-600 rounded-md w-9 font-medium text-xs",
+        week: "flex justify-between w-full mt-2 px-4 sm:px-6",
         day: cn(
           "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-neutral-100 [&:has([aria-selected].outside)]:bg-neutral-100/50 [&:has([aria-selected].range_end)]:rounded-r-md",
           props.mode === "range"

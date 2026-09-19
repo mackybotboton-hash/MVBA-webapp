@@ -918,7 +918,7 @@ export default function PropertyStorefrontPage() {
 
             <div className="space-y-4 text-sm">
               {/* Custom Inline Calendar */}
-              <div className="rounded-xl border border-neutral-200 overflow-hidden flex justify-center bg-white p-1">
+              <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white p-2">
                 <CalendarComponent
                   mode="range"
                   defaultMonth={dateRange?.from}
@@ -926,7 +926,7 @@ export default function PropertyStorefrontPage() {
                   onSelect={setDateRange}
                   numberOfMonths={1}
                   disabled={[{ before: new Date() }, ...disabledDates]}
-                  className="w-full max-w-[280px] sm:max-w-none flex justify-center"
+                  className="w-full flex justify-center"
                 />
               </div>
 
