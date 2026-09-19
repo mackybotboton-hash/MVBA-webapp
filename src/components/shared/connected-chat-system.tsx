@@ -120,12 +120,32 @@ function ChatSystemContent({
   const [isLoadingMessages, setIsLoadingMessages] = React.useState(false);
   const [isSending, setIsSending] = React.useState(false);
   const [isMobile, setIsMobile] = React.useState(false);
+  const [viewportHeight, setViewportHeight] = React.useState("100dvh");
 
   React.useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile(); // Check initially
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Update viewport height dynamically for iOS keyboard handling
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.visualViewport) {
+      const updateHeight = () => {
+        setViewportHeight(`${window.visualViewport!.height}px`);
+        window.scrollTo(0, 0); // Prevent body from scrolling up
+      };
+      
+      window.visualViewport.addEventListener("resize", updateHeight);
+      window.visualViewport.addEventListener("scroll", updateHeight);
+      updateHeight(); // initial
+      
+      return () => {
+        window.visualViewport!.removeEventListener("resize", updateHeight);
+        window.visualViewport!.removeEventListener("scroll", updateHeight);
+      };
+    }
   }, []);
 
   // Admin & Host inter-communication state
@@ -1637,7 +1657,8 @@ function ChatSystemContent({
                         setActiveContact(null);
                       }
                     }}
-                    className="fixed inset-0 z-[100] h-[100dvh] w-screen bg-white flex flex-col"
+                    style={{ height: viewportHeight }}
+                    className="fixed top-0 left-0 w-screen z-[100] bg-white flex flex-col overflow-hidden"
                   >
                     {threadContent}
                   </motion.div>

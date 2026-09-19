@@ -19,6 +19,7 @@ import {
   Anchor,
   Star,
   Wallet,
+  Cog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,6 +68,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
   { label: "Chat", href: "/admin/chat", icon: MessageSquare },
   { label: "Content", href: "/admin/content", icon: Settings },
+  { label: "Settings", href: "/admin/settings", icon: Cog },
 ];
 
 export const HOMESTAY_NAV_ITEMS: NavItem[] = [
