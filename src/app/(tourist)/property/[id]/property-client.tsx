@@ -893,20 +893,21 @@ export default function PropertyStorefrontPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
         >
           <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs min-h-[100vh]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs"
             onClick={() => setSelectedRoom(null)}
           />
 
-          <div className="relative z-10 w-full max-w-md my-auto rounded-2xl bg-white border border-neutral-200 shadow-2xl p-4 sm:p-5">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 mb-4">
+          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85dvh] overflow-hidden">
+            {/* Header - Fixed */}
+            <div className="shrink-0 flex items-center justify-between border-b border-neutral-100 p-4 bg-white">
               <div>
-                <h3 className="font-bold text-lg text-neutral-900">
+                <h3 className="font-bold text-lg text-neutral-900 leading-tight">
                   Request Reservation
                 </h3>
-                <p className="text-sm font-medium text-neutral-700">{selectedRoom.name}</p>
+                <p className="text-xs font-medium text-neutral-700">{selectedRoom.name}</p>
               </div>
               <button
                 onClick={() => setSelectedRoom(null)}
@@ -916,7 +917,8 @@ export default function PropertyStorefrontPage() {
               </button>
             </div>
 
-            <div className="space-y-4 text-sm">
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
               {/* Custom Inline Calendar */}
               <div className="rounded-xl border border-neutral-200 bg-white p-1 flex justify-center overflow-hidden">
                 <CalendarComponent
@@ -1026,7 +1028,8 @@ export default function PropertyStorefrontPage() {
               </div>
             </div>
 
-            <div className="mt-4 border-t border-neutral-100 pt-3">
+            {/* Footer - Fixed */}
+            <div className="shrink-0 p-4 border-t border-neutral-100 bg-white">
               <Button
                 onClick={handleCreateBooking}
                 disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
