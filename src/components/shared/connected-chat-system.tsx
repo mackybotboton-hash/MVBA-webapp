@@ -162,6 +162,25 @@ function ChatSystemContent({
   const isNearBottomRef = React.useRef(true);
   const shouldScrollToBottomRef = React.useRef(true);
   
+  // Prevent body scroll and iOS viewport pan when thread is open on mobile
+  React.useEffect(() => {
+    if (isMobile && activeContact) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+      // prevent layout shift
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [isMobile, activeContact]);
+
   // Swipe to go back tracking
   const touchStartXRef = React.useRef<number | null>(null);
   const touchEndXRef = React.useRef<number | null>(null);
@@ -1529,6 +1548,10 @@ function ChatSystemContent({
                     placeholder="Aa"
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
+                    onFocus={() => {
+                      // Small delay to let keyboard animate in
+                      setTimeout(() => scrollToBottom("smooth"), 300);
+                    }}
                     className="w-full h-10 pl-4 pr-10 rounded-full border-none bg-neutral-100 text-[15px] text-black placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all"
                   />
                   <button
