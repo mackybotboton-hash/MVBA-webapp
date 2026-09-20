@@ -83,14 +83,20 @@ export function PushInitializer() {
       }
     };
 
-    const bindUser = async (userId: string) => {
+    const bindUser = async (userId: string, attempt = 0): Promise<void> => {
       if (boundUserId.current === userId) return; // already bound, avoid redundant calls
       try {
         await OneSignal.login(userId);
         boundUserId.current = userId;
         console.log("[OneSignal] Bound external ID:", userId);
       } catch (error) {
-        console.error("[OneSignal] login() failed:", error);
+        if (attempt < 3) {
+          // OneSignal SDK internals can still be settling right after init()
+          // resolves; back off briefly and retry rather than failing silently.
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          return bindUser(userId, attempt + 1);
+        }
+        console.error("[OneSignal] login() failed after retries:", error);
       }
     };
 

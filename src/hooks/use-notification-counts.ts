@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -111,18 +111,44 @@ export function useNotificationCounts(
     }
   }, [userId, role, supabase]);
 
+  // Keep a stable ref to fetchInitialCounts so the realtime effect below can
+  // call the latest version without taking it as a dependency (which would
+  // cause the effect — and its channel subscriptions — to tear down and
+  // re-create on every render cycle, triggering the double-subscribe crash).
+  const fetchRef = useRef(fetchInitialCounts);
+  useEffect(() => {
+    fetchRef.current = fetchInitialCounts;
+  });
+
   // ── Realtime subscriptions ─────────────────────────────────────────────────
   useEffect(() => {
     if (!userId || !role) return;
 
-    fetchInitialCounts();
+    fetchRef.current();
+
+    // Channel names used by this effect instance.
+    const MSG_CHANNEL = `badge_messages_${userId}`;
+    const BKG_CHANNEL = `badge_bookings_${userId}`;
+    const TX_CHANNEL  = "badge_admin_transactions";
+
+    // ── Pre-cleanup: remove any stale channels with these names ──────────────
+    // In React 18 Strict Mode (dev), effects are intentionally mounted →
+    // unmounted → re-mounted. supabase.removeChannel() is async, so a channel
+    // can still be marked "subscribed" in Supabase's registry by the time the
+    // second mount runs. Removing any survivors before re-subscribing prevents
+    // the "cannot add postgres_changes callbacks after subscribe()" error.
+    const staleNames = new Set([MSG_CHANNEL, BKG_CHANNEL, TX_CHANNEL]);
+    supabase
+      .getChannels()
+      .filter((ch) => staleNames.has(ch.topic))
+      .forEach((ch) => supabase.removeChannel(ch));
 
     const channels: RealtimeChannel[] = [];
 
     // ─ Messages channel (all non-admin roles with chat) ──────────────────
     if (role !== "admin") {
       const msgChannel = supabase
-        .channel(`badge_messages_${userId}`)
+        .channel(MSG_CHANNEL)
         .on(
           "postgres_changes",
           {
@@ -164,7 +190,7 @@ export function useNotificationCounts(
     // ─ Unseen bookings channel (host roles) ──────────────────────────────
     if (role === "homestay" || role === "resort") {
       const bookingChannel = supabase
-        .channel(`badge_bookings_${userId}`)
+        .channel(BKG_CHANNEL)
         .on(
           "postgres_changes",
           {
@@ -194,7 +220,7 @@ export function useNotificationCounts(
             if (payload.new?.seen_by_host_at && !payload.old?.seen_by_host_at) {
               // A single row was marked seen — re-fetch to get accurate count
               // (multiple rows may be marked at once by markBookingsAsSeen)
-              fetchInitialCounts();
+              fetchRef.current();
             }
           }
         )
@@ -206,7 +232,7 @@ export function useNotificationCounts(
     // ─ Pending transactions channel (admin only) ─────────────────────────
     if (role === "admin") {
       const txChannel = supabase
-        .channel("badge_admin_transactions")
+        .channel(TX_CHANNEL)
         .on(
           "postgres_changes",
           {
@@ -217,7 +243,7 @@ export function useNotificationCounts(
           () => {
             // Re-fetch the exact count rather than doing arithmetic,
             // because multiple statuses may change simultaneously
-            fetchInitialCounts();
+            fetchRef.current();
           }
         )
         .on(
@@ -228,7 +254,7 @@ export function useNotificationCounts(
             table: "bookings",
           },
           () => {
-            fetchInitialCounts();
+            fetchRef.current();
           }
         )
         .subscribe();
@@ -239,7 +265,11 @@ export function useNotificationCounts(
     return () => {
       channels.forEach((ch) => supabase.removeChannel(ch));
     };
-  }, [userId, role, supabase, fetchInitialCounts]);
+    // fetchRef is intentionally excluded — it's a ref that always holds the
+    // latest fetchInitialCounts, so the effect doesn't need to re-run (and
+    // re-subscribe channels) whenever fetchInitialCounts updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, role, supabase]);
 
   return counts;
 }
