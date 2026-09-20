@@ -132,15 +132,17 @@ export function useNotificationCounts(
     const TX_CHANNEL  = "badge_admin_transactions";
 
     // ── Pre-cleanup: remove any stale channels with these names ──────────────
-    // In React 18 Strict Mode (dev), effects are intentionally mounted →
-    // unmounted → re-mounted. supabase.removeChannel() is async, so a channel
-    // can still be marked "subscribed" in Supabase's registry by the time the
-    // second mount runs. Removing any survivors before re-subscribing prevents
-    // the "cannot add postgres_changes callbacks after subscribe()" error.
-    const staleNames = new Set([MSG_CHANNEL, BKG_CHANNEL, TX_CHANNEL]);
+    // Supabase stores channel topics as "realtime:<name>" internally, so
+    // ch.topic will be e.g. "realtime:badge_messages_..." — we must match
+    // against the prefixed form or the filter is always a no-op.
+    const staleTopics = new Set([
+      `realtime:${MSG_CHANNEL}`,
+      `realtime:${BKG_CHANNEL}`,
+      `realtime:${TX_CHANNEL}`,
+    ]);
     supabase
       .getChannels()
-      .filter((ch) => staleNames.has(ch.topic))
+      .filter((ch) => staleTopics.has(ch.topic))
       .forEach((ch) => supabase.removeChannel(ch));
 
     const channels: RealtimeChannel[] = [];
