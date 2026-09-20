@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   createContext,
@@ -83,46 +83,91 @@ export function NotificationCountsProvider({ children }: { children: ReactNode }
   const [counts, setCounts] = useState<NotificationCounts>(DEFAULT_COUNTS);
   const supabase = useMemo(() => createClient(), []);
 
-  // ── In-app notification sound ────────────────────────────────────────────
-  // Source: Mixkit "correct answer tone" (mixkit-correct-answer-tone-2870)
-  // License: Mixkit Free License — royalty-free, no attribution required.
-  // Initialized lazily on first use; kept in a ref to avoid re-renders.
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // -- In-app notification sound --
+  // Uses Web Audio API to synthesize a two-tone chime directly — no file
+  // dependency, guaranteed audible at any system volume.
+  // The MP3 file in /public/sounds/notification.mp3 is kept as a fallback
+  // but was confirmed near-silent on the Mixkit preview download.
+  const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    // Create Audio instance once on mount
-    if (typeof window !== "undefined") {
-      audioRef.current = new Audio("/sounds/notification.mp3");
-      audioRef.current.volume = 0.5;
+    if (typeof window === "undefined") return;
 
-      // Unlock audio playback on first user interaction (iOS/Safari autoplay policy).
-      // A silent .play().pause() primes the AudioContext so subsequent calls succeed.
-      const unlock = () => {
-        const a = audioRef.current;
-        if (!a) return;
-        const p = a.play();
-        if (p !== undefined) {
-          p.then(() => a.pause()).catch(() => {});
-        }
-        document.removeEventListener("click", unlock);
-        document.removeEventListener("touchstart", unlock);
-      };
-      document.addEventListener("click", unlock, { once: true });
-      document.addEventListener("touchstart", unlock, { once: true });
-    }
+    // Unlock Web Audio on first user gesture (iOS/Safari autoplay policy).
+    // Creating and immediately suspending an AudioContext primes it so
+    // subsequent calls to ctx.resume() inside playSound() succeed.
+    const unlock = () => {
+      try {
+        const AudioCtx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        audioCtxRef.current = ctx;
+        // Immediately suspend — we just needed to create it during a user gesture
+        ctx.resume().then(() => ctx.suspend()).catch(() => {});
+      } catch {
+        // Not supported
+      }
+    };
+    document.addEventListener("click", unlock, { once: true });
+    document.addEventListener("touchstart", unlock, { once: true });
+
     return () => {
-      audioRef.current = null;
+      audioCtxRef.current?.close().catch(() => {});
+      audioCtxRef.current = null;
     };
   }, []);
 
   const playSound = useCallback(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    // Reset to start so rapid events each play from the beginning
-    a.currentTime = 0;
-    a.play().catch(() => {
-      // Browser autoplay policy may block before first user interaction — silent fail
-    });
+    try {
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      if (!AudioCtx) return;
+
+      // Reuse the unlocked context if available, otherwise create a new one
+      const ctx = audioCtxRef.current ?? new AudioCtx();
+      if (!audioCtxRef.current) audioCtxRef.current = ctx;
+
+      // Resume in case it was suspended (required after user interaction unlock)
+      ctx.resume().then(() => {
+        const now = ctx.currentTime;
+
+        // Tone 1: 880 Hz (A5) — attack then decay
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(880, now);
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.5, now + 0.02);   // fast attack
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // decay
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.35);
+
+        // Tone 2: 1318 Hz (E6) — starts slightly after, gives "ding-dong" feel
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "sine";
+        osc2.frequency.setValueAtTime(1318, now + 0.18);
+        gain2.gain.setValueAtTime(0, now + 0.18);
+        gain2.gain.linearRampToValueAtTime(0.4, now + 0.20);   // fast attack
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55); // decay
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.18);
+        osc2.stop(now + 0.55);
+      }).catch(() => {});
+    } catch {
+      // Fallback to MP3 file if Web Audio API is unavailable
+      const a = new Audio("/sounds/notification.mp3");
+      a.volume = 1.0;
+      a.play().catch(() => {});
+    }
   }, []);
 
   // ── Initial fetch ───────────────────────────────────────────────────────
