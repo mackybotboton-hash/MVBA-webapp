@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useNotificationCounts } from "@/hooks/use-notification-counts";
 import { Logo } from "@/components/shared/logo";
 import {
   Bell,
@@ -25,10 +26,23 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuToggle, title }: TopbarProps) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const router = useRouter();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Live badge counts — role-aware
+  const role = profile?.role;
+  const { unreadMessages, unseenBookings, pendingTransactions } =
+    useNotificationCounts(user?.id, role);
+
+  // Total bell count: sum up all relevant counts for this role
+  const bellCount =
+    role === "admin"
+      ? pendingTransactions
+      : role === "homestay" || role === "resort"
+      ? unseenBookings + unreadMessages
+      : unreadMessages;
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -59,7 +73,6 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
     window.location.href = "/";
   }
 
-  const role = profile?.role || "tourist";
   const portalHomeRoute =
     role === "homestay"
       ? "/homestay"
@@ -105,12 +118,17 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Live Bell Notification Button */}
           <button
             className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Notifications"
+            aria-label={`Notifications${bellCount > 0 ? ` (${bellCount} unread)` : ""}`}
           >
             <Bell className="h-5 w-5 text-gray-500" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+            {bellCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm animate-in zoom-in-75 duration-200">
+                {bellCount > 99 ? "99+" : bellCount}
+              </span>
+            )}
           </button>
 
           <div className="w-px h-5 bg-gray-200 mx-1" />

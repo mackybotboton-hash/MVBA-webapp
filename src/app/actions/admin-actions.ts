@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { notifyDepositVerified } from "@/app/actions/notify-actions";
 
 export async function createOwnerAccount(formData: FormData) {
   try {
@@ -94,12 +95,12 @@ export async function approveBookingDeposit(bookingId: string) {
       .from("bookings")
       .select(`
         id,
+        tourist_id,
+        owner_id,
         payment_status,
         rooms (
           properties (
-            profiles!owner_id (
-              onesignal_id
-            )
+            name
           )
         )
       `)
@@ -138,32 +139,17 @@ export async function approveBookingDeposit(bookingId: string) {
       return { success: false, error: "Failed to update booking status." };
     }
 
-    // 4. Trigger OneSignal Push Notification
-    const hostProfile = (booking as any).rooms?.properties?.profiles;
-    if (hostProfile && hostProfile.onesignal_id) {
-      try {
-        const payload = {
-          app_id: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID,
-          include_player_ids: [hostProfile.onesignal_id],
-          headings: { en: "Booking Verified!" },
-          contents: { en: "Your 12% deposit payout is on the way." },
-        };
+    // 4. Fire-and-forget notifications to host + tourist
+    const propertyName = (booking as any).rooms?.properties?.name || "the property";
+    const touristId = (booking as any).tourist_id;
+    const ownerId = (booking as any).owner_id;
 
-        const response = await fetch("https://onesignal.com/api/v1/notifications", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
-          },
-          body: JSON.stringify(payload),
-        });
-
-        if (!response.ok) {
-          console.error("OneSignal Notification failed:", await response.text());
-        }
-      } catch (notifyError) {
-        console.error("Error triggering notification:", notifyError);
-      }
+    if (touristId || ownerId) {
+      notifyDepositVerified({
+        touristId: touristId || "",
+        ownerId: ownerId || "",
+        propertyName,
+      }).catch((err) => console.error("[Notify] notifyDepositVerified failed:", err));
     }
 
     return { success: true };

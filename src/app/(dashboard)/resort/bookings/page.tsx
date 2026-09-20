@@ -4,9 +4,6 @@ import * as React from "react";
 import { toast } from "sonner";
 import {
   Ticket,
-  Clock,
-  CheckCircle2,
-  XCircle,
   RefreshCw,
   QrCode,
 } from "lucide-react";
@@ -19,128 +16,126 @@ import { EmptyState } from "@/components/tourist/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { QRCheckinScannerModal } from "@/components/owner/qr-checkin-scanner-modal";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useRealtimeBookings } from "@/hooks/use-realtime-bookings";
+import { markBookingsAsSeen } from "@/hooks/use-notification-counts";
+import { notifyBookingStatusChange } from "@/app/actions/notify-actions";
 
 type BookingTab = "all" | "pending" | "accepted" | "declined" | "completed";
 
+async function fetchResortBookings(userId: string): Promise<OwnerBookingItem[]> {
+  const supabase = createClient();
+
+  // 1. Get owner's resort properties
+  const { data: propData } = await supabase
+    .from("properties")
+    .select("id, name")
+    .eq("owner_id", userId)
+    .eq("type", "resort");
+
+  const propIds = ((propData as any[]) || []).map((p) => p.id);
+  if (propIds.length === 0) return [];
+
+  // 2. Get rooms for these properties
+  const { data: roomsData } = await supabase
+    .from("rooms")
+    .select("id, name")
+    .in("property_id", propIds);
+
+  const roomIds = ((roomsData as any[]) || []).map((r) => r.id);
+  if (roomIds.length === 0) return [];
+
+  // 3. Get bookings for these rooms
+  const { data: bookingsData, error } = await supabase
+    .from("bookings")
+    .select(`
+      id,
+      tourist_id,
+      room_id,
+      check_in_date,
+      check_out_date,
+      guest_count,
+      total_price,
+      downpayment_amount,
+      host_payout_amount,
+      status,
+      payout_status,
+      created_at,
+      notes,
+      profiles!tourist_id(full_name, phone_number, email),
+      rooms!room_id(name)
+    `)
+    .in("room_id", roomIds)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return ((bookingsData || []) as any[]).map((b) => ({
+    id: b.id,
+    tourist_id: b.tourist_id,
+    tourist_name: b.profiles?.full_name || "Tourist Guest",
+    tourist_phone: b.profiles?.phone_number || "",
+    tourist_email: b.profiles?.email || "",
+    room_id: b.room_id,
+    room_name: b.rooms?.name || "Resort Suite / Villa",
+    check_in_date: b.check_in_date,
+    check_out_date: b.check_out_date,
+    guest_count: b.guest_count,
+    total_price: Number(b.total_price),
+    downpayment_amount: b.downpayment_amount ? Number(b.downpayment_amount) : undefined,
+    host_payout_amount: b.host_payout_amount ? Number(b.host_payout_amount) : undefined,
+    status: b.status,
+    payout_status: b.payout_status,
+    created_at: b.created_at,
+    notes: b.notes,
+  }));
+}
+
 export default function ResortBookingsPage() {
-  const [bookings, setBookings] = React.useState<OwnerBookingItem[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState<BookingTab>("pending");
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
 
-  const fetchBookings = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  // React Query — data fetching with cache
+  const { data: bookings = [], isLoading, refetch } = useQuery({
+    queryKey: ["resort-bookings", user?.id],
+    queryFn: () => fetchResortBookings(user!.id),
+    enabled: !!user?.id,
+  });
 
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
+  // Supabase Realtime — invalidate on INSERT/UPDATE to owner's bookings
+  useRealtimeBookings(user?.id, "host", ["resort-bookings"]);
 
-      // 1. Get owner's resort properties
-      const { data: propData } = await supabase
-        .from("properties")
-        .select("id")
-        .eq("owner_id", user.id)
-        .eq("type", "resort");
-
-      const propIds = ((propData as any[]) || []).map((p) => p.id);
-
-      if (propIds.length === 0) {
-        setBookings([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // 2. Get rooms for these properties
-      const { data: roomsData } = await supabase
-        .from("rooms")
-        .select("id, name")
-        .in("property_id", propIds);
-
-      const roomIds = ((roomsData as any[]) || []).map((r) => r.id);
-
-      if (roomIds.length === 0) {
-        setBookings([]);
-        setIsLoading(false);
-        return;
-      }
-
-      // 3. Get bookings for these rooms
-      const { data: bookingsData, error } = await supabase
-        .from("bookings")
-        .select(`
-          id,
-          tourist_id,
-          room_id,
-          check_in_date,
-          check_out_date,
-          guest_count,
-          total_price,
-          downpayment_amount,
-          host_payout_amount,
-          status,
-          payout_status,
-          created_at,
-          notes,
-          profiles!tourist_id(full_name, phone_number, email),
-          rooms!room_id(name)
-        `)
-        .in("room_id", roomIds)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      const mapped: OwnerBookingItem[] = (bookingsData || []).map((b: any) => ({
-        id: b.id,
-        tourist_id: b.tourist_id,
-        tourist_name: b.profiles?.full_name || "Tourist Guest",
-        tourist_phone: b.profiles?.phone_number || "",
-        tourist_email: b.profiles?.email || "",
-        room_id: b.room_id,
-        room_name: b.rooms?.name || "Resort Suite / Villa",
-        check_in_date: b.check_in_date,
-        check_out_date: b.check_out_date,
-        guest_count: b.guest_count,
-        total_price: Number(b.total_price),
-        downpayment_amount: b.downpayment_amount ? Number(b.downpayment_amount) : undefined,
-        host_payout_amount: b.host_payout_amount ? Number(b.host_payout_amount) : undefined,
-        status: b.status,
-        payout_status: b.payout_status,
-        created_at: b.created_at,
-        notes: b.notes,
-      }));
-
-      setBookings(mapped);
-    } catch {
-      // Ignored
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
+  // Mark all unseen bookings as seen when the host opens this page
   React.useEffect(() => {
-    fetchBookings();
-  }, [fetchBookings]);
+    if (user?.id) {
+      markBookingsAsSeen(user.id);
+    }
+  }, [user?.id]);
 
-  const handleUpdateStatus = async (
+  const handleUpdateStatus = React.useCallback(async (
     bookingId: string,
     newStatus: "accepted" | "declined"
   ) => {
     try {
       const supabase = createClient();
+
+      // Fetch booking details before updating (for notification)
+      const booking = bookings.find((b) => b.id === bookingId);
+
       const { error } = await (supabase.from("bookings") as any)
         .update({ status: newStatus })
         .eq("id", bookingId);
 
       if (error) throw error;
 
-      setBookings((prev) =>
-        prev.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
+      // Optimistic UI update
+      queryClient.setQueryData(
+        ["resort-bookings", user?.id],
+        (old: OwnerBookingItem[] | undefined) =>
+          (old || []).map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b))
       );
 
       toast.success(
@@ -148,26 +143,34 @@ export default function ResortBookingsPage() {
           ? "Resort reservation confirmed!"
           : "Reservation declined."
       );
+
+      // Fire-and-forget: notify the tourist
+      if (booking) {
+        notifyBookingStatusChange({
+          touristId: booking.tourist_id,
+          newStatus,
+          propertyName: booking.room_name,
+          checkIn: booking.check_in_date,
+        }).catch((err) => console.error("[Notify] status change notify failed:", err));
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to update reservation");
     }
-  };
+  }, [bookings, queryClient, user?.id]);
 
   const filteredBookings = React.useMemo(() => {
     if (activeTab === "all") return bookings;
     return bookings.filter((b) => b.status === activeTab);
   }, [bookings, activeTab]);
 
-  const counts = React.useMemo(() => {
-    return {
-      all: bookings.length,
-      pending: bookings.filter((b) => b.status === "pending").length,
-      accepted: bookings.filter((b) => b.status === "accepted").length,
-      declined: bookings.filter((b) => b.status === "declined").length,
-      cancelled: bookings.filter((b) => b.status === "cancelled").length,
-      completed: bookings.filter((b) => b.status === "completed").length,
-    };
-  }, [bookings]);
+  const counts = React.useMemo(() => ({
+    all: bookings.length,
+    pending: bookings.filter((b) => b.status === "pending").length,
+    accepted: bookings.filter((b) => b.status === "accepted").length,
+    declined: bookings.filter((b) => b.status === "declined").length,
+    cancelled: bookings.filter((b) => b.status === "cancelled").length,
+    completed: bookings.filter((b) => b.status === "completed").length,
+  }), [bookings]);
 
   return (
     <div className="space-y-6">
@@ -192,7 +195,7 @@ export default function ResortBookingsPage() {
           </Button>
 
           <button
-            onClick={fetchBookings}
+            onClick={() => refetch()}
             disabled={isLoading}
             className="flex items-center gap-1.5 text-xs font-semibold text-neutral-600 hover:text-black self-start sm:self-auto px-2 py-1"
           >
@@ -269,7 +272,7 @@ export default function ResortBookingsPage() {
               : `You do not have any reservations marked as ${activeTab}.`
           }
           actionLabel="Refresh List"
-          onAction={fetchBookings}
+          onAction={() => refetch()}
         />
       ) : (
         <div className="space-y-4">
@@ -288,7 +291,7 @@ export default function ResortBookingsPage() {
       <QRCheckinScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
-        onCheckinSuccess={() => fetchBookings()}
+        onCheckinSuccess={() => refetch()}
         bookings={bookings}
       />
     </div>

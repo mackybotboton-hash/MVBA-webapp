@@ -9,11 +9,15 @@ import { markPayoutPaidAction } from "@/app/actions/admin-transactions";
 import { DataTable } from "./data-table";
 import { getColumns, TransactionItem, VerifyModal } from "./columns";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRealtimeTransactions } from "@/hooks/use-realtime-transactions";
 
 export default function AdminTransactionsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState<"all" | "verifying" | "verified" | "paid" | "cancelled">("all");
   const [previewTransaction, setPreviewTransaction] = React.useState<TransactionItem | null>(null);
+
+  // Supabase Realtime — auto-refresh when deposits are uploaded or statuses change
+  useRealtimeTransactions();
 
   // Fetch Transactions using React Query
   const { data: transactions = [], isLoading, refetch } = useQuery({

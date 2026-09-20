@@ -6,26 +6,45 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { TOURIST_NAV_ITEMS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
+import { useNotificationCounts } from "@/hooks/use-notification-counts";
+
+/** Renders a red badge dot or count bubble above an icon */
+function NavBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  return (
+    <span className="absolute -top-0.5 -right-1 min-w-[16px] h-4 px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 export function TouristBottomNav() {
   const pathname = usePathname();
+  const [userId, setUserId] = useState<string | undefined>(undefined);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
-    
+
     // Check initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session);
+      setUserId(session?.user?.id);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
+      setUserId(session?.user?.id);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Live badge counts — only active when userId is known
+  const { unreadMessages } = useNotificationCounts(userId, "tourist");
 
   // Do not render anything if still loading or if user is not logged in
   if (isLoggedIn === null || isLoggedIn === false) {
@@ -42,6 +61,10 @@ export function TouristBottomNav() {
               pathname === item.href ||
               (item.href !== "/" && pathname.startsWith(item.href));
             const Icon = item.icon;
+
+            // Determine badge count for this nav item
+            const badgeCount =
+              item.href === "/chat" ? unreadMessages : 0;
 
             return (
               <Link
@@ -61,6 +84,7 @@ export function TouristBottomNav() {
                     }`}
                     strokeWidth={isActive ? 2.5 : 2}
                   />
+                  <NavBadge count={badgeCount} />
                 </div>
                 <span
                   className={`text-xs font-medium transition-colors duration-300 ${

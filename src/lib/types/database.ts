@@ -1,7 +1,6 @@
 // ============================================================
 // MVBA PWA — TypeScript Database Types
 // These types mirror the Supabase SQL schema.
-
 // ============================================================
 
 export type UserRole = "admin" | "homestay" | "resort" | "tourist";
@@ -10,6 +9,12 @@ export type PropertyStatus = "active" | "renovating" | "full" | "closed";
 export type BookingStatus = "pending" | "accepted" | "declined" | "cancelled" | "completed";
 export type ServiceType = "boat" | "food" | "tour" | "spa";
 export type DuesStatus = "paid" | "unpaid" | "overdue";
+export type NotificationType =
+  | "new_booking"
+  | "booking_status"
+  | "new_message"
+  | "deposit_verified"
+  | "booking_cancelled";
 
 // ---- Core Table Types ----
 
@@ -64,6 +69,10 @@ export interface Booking {
   id: string;
   tourist_id: string;
   room_id: string;
+  /** Denormalized from rooms→properties.owner_id for Supabase Realtime filtering */
+  owner_id: string | null;
+  /** Set when the host opens the Bookings page; NULL drives the unseen badge count */
+  seen_by_host_at: string | null;
   check_in_date: string;
   check_out_date: string;
   guest_count: number;
@@ -72,6 +81,17 @@ export interface Booking {
   notes: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  url: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface ExtraService {
@@ -172,6 +192,11 @@ export interface Database {
         Row: Booking;
         Insert: Omit<Booking, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<Booking, "id" | "created_at">>;
+      };
+      notifications: {
+        Row: Notification;
+        Insert: Omit<Notification, "id" | "created_at">;
+        Update: Partial<Omit<Notification, "id" | "created_at">>;
       };
       extra_services: {
         Row: ExtraService;

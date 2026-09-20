@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { notifyNewBooking } from "@/app/actions/notify-actions";
 
 export async function createReservationAction(payload: {
   roomId: string;
@@ -20,11 +21,10 @@ export async function createReservationAction(payload: {
       throw new Error("Unauthorized: You must be logged in to create a booking.");
     }
 
-    // 2. Fetch the room's base price from the database securely.
-    // Client payload pricing is explicitly ignored to prevent tampering.
+    // Fetch the room and its property (owner) for pricing + denormalization
     const { data, error: roomError } = await supabaseUserClient
       .from("rooms")
-      .select("base_price, max_capacity, is_active")
+      .select("base_price, max_capacity, is_active, property_id, properties!property_id(owner_id, name)")
       .eq("id", payload.roomId)
       .single();
     const room = data as any;
@@ -32,6 +32,9 @@ export async function createReservationAction(payload: {
     if (roomError || !room) {
       throw new Error("Room not found or unavailable.");
     }
+
+    const ownerId: string = room.properties?.owner_id;
+    const propertyName: string = room.properties?.name || "the property";
 
     if (!room.is_active) {
       throw new Error("This room is currently not active for bookings.");
@@ -84,6 +87,8 @@ export async function createReservationAction(payload: {
       .insert({
         tourist_id: user.id,
         room_id: payload.roomId,
+        // Denormalize owner_id so Supabase Realtime can filter without joins
+        owner_id: ownerId || null,
         check_in_date: payload.checkInDate,
         check_out_date: payload.checkOutDate,
         guest_count: payload.guestCount,
@@ -108,7 +113,27 @@ export async function createReservationAction(payload: {
     }
 
     revalidatePath("/bookings");
-    revalidatePath(`/property/${payload.roomId}`); // Replace with actual path struct if different
+    revalidatePath(`/property/${payload.roomId}`);
+
+    // Fire-and-forget: notify host + admin about new booking
+    // This is intentionally NOT awaited at the top level — we do not want
+    // any notification failure to affect the booking response.
+    if (ownerId) {
+      const touristProfile = await supabaseUserClient
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user.id)
+        .single();
+      const touristName = (touristProfile.data as any)?.full_name || "A tourist";
+
+      notifyNewBooking({
+        bookingId: newBooking.id,
+        ownerId,
+        touristName,
+        propertyName,
+        checkIn: payload.checkInDate,
+      }).catch((err) => console.error("[Notify] notifyNewBooking failed:", err));
+    }
 
     return { success: true, booking: newBooking };
   } catch (error: any) {

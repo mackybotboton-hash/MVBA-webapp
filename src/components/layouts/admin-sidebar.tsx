@@ -7,10 +7,41 @@ import { Logo } from "@/components/shared/logo";
 import { ADMIN_NAV_ITEMS } from "@/lib/constants";
 import { ChevronLeft } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { useNotificationCounts } from "@/hooks/use-notification-counts";
+
+/** Renders a compact count badge beside a nav label */
+function NavBadge({ count, collapsed }: { count: number; collapsed: boolean }) {
+  if (count === 0) return null;
+  if (collapsed) {
+    // When collapsed, show as a dot on the icon instead
+    return (
+      <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 shadow-sm" />
+    );
+  }
+  return (
+    <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth();
+
+  // Live badge counts from Supabase Realtime
+  const { pendingTransactions, unreadMessages } = useNotificationCounts(
+    user?.id,
+    "admin"
+  );
+
+  // Map href → badge count
+  const badgeMap: Record<string, number> = {
+    "/admin/transactions": pendingTransactions,
+    "/admin/chat": unreadMessages,
+  };
 
   return (
     <aside
@@ -46,18 +77,27 @@ export function AdminSidebar() {
             pathname === item.href ||
             (item.href !== "/admin" && pathname.startsWith(item.href));
           const Icon = item.icon;
+          const badge = badgeMap[item.href] ?? 0;
 
           const content = (
             <>
-              <Icon
-                className={cn(
-                  "h-5 w-5 flex-shrink-0 transition-colors",
-                  isActive && !item.disabled
-                    ? "text-black"
-                    : "text-gray-400 group-hover:text-gray-600"
-                )}
-              />
-              {!collapsed && <span>{item.label}</span>}
+              <div className="relative flex-shrink-0">
+                <Icon
+                  className={cn(
+                    "h-5 w-5 transition-colors",
+                    isActive && !item.disabled
+                      ? "text-black"
+                      : "text-gray-400 group-hover:text-gray-600"
+                  )}
+                />
+                {collapsed && <NavBadge count={badge} collapsed={true} />}
+              </div>
+              {!collapsed && (
+                <>
+                  <span>{item.label}</span>
+                  <NavBadge count={badge} collapsed={false} />
+                </>
+              )}
             </>
           );
 
@@ -91,6 +131,11 @@ export function AdminSidebar() {
               {collapsed && (
                 <div className="absolute left-full top-1/2 -translate-y-1/2 ml-4 px-2 py-1.5 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-md">
                   {item.label}
+                  {badge > 0 && (
+                    <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-red-500 text-[10px] font-bold">
+                      {badge}
+                    </span>
+                  )}
                   <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
                 </div>
               )}
