@@ -30,6 +30,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { notifyNewMessage } from "@/app/actions/notify-actions";
 
 export interface ChatContact {
   id: string; // User/Profile ID
@@ -1073,6 +1074,27 @@ function ChatSystemContent({
           content: text,
           is_read: false,
         });
+
+        // Bug D fix: notifyNewMessage was defined but never called anywhere.
+        // Fire-and-forget push notification so the recipient gets alerted when
+        // their device is backgrounded or off. Never awaited at this level —
+        // push failures must not block or revert the message send.
+        const senderName =
+          currentUser.user_metadata?.full_name ||
+          currentUser.email?.split("@")[0] ||
+          "Someone";
+        const chatUrl =
+          currentRole === "tourist"
+            ? "/chat"
+            : `/${currentRole}/chat`;
+        notifyNewMessage({
+          recipientId: activeContact.id,
+          senderName,
+          messagePreview: text,
+          chatUrl,
+        }).catch((err) =>
+          console.error("[Notify] notifyNewMessage failed:", err)
+        );
       }
     } catch {
       // Local optimistic fallback
