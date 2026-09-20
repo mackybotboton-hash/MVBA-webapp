@@ -14,21 +14,34 @@ import { toast } from "sonner";
  * without making the full layout dynamic.
  *
  * Mount this component once inside the root QueryProvider. It will:
- *   1. Initialize the OneSignal SDK
- *   2. Prompt the user to subscribe to push notifications
- *   3. When the user subscribes (or is already subscribed), bind their
- *      OneSignal subscription ID to their Supabase profile row via
- *      OneSignal.login(userId) — this is what makes targeted push work.
- *   4. Listen for subscription changes and sync the subscription ID to the DB.
+ *   1. Initialize the OneSignal SDK (once).
+ *   2. Prompt the user to subscribe to push notifications.
+ *   3. Subscribe to Supabase auth state changes and, whenever a real
+ *      session is present, bind the OneSignal subscription to that user
+ *      via OneSignal.login(userId) — this is what makes targeted push work.
+ *   4. On logout, call OneSignal.logout() to unbind the device.
+ *   5. Listen for subscription changes and sync the subscription ID to the DB.
+ *
+ * IMPORTANT: we intentionally do NOT rely on a single getSession() call on
+ * mount. With @supabase/ssr, the client-side session frequently has not
+ * finished rehydrating from cookies/local storage on the very first tick
+ * after mount, so getSession() can return null even when the user is
+ * actually logged in — causing login() to silently never fire. Instead we
+ * use onAuthStateChange, which fires immediately with the current session
+ * if already hydrated, AND fires again later once hydration completes.
  */
 export function PushInitializer() {
-  const initialized = useRef(false);
+  const sdkInitialized = useRef(false);
+  const boundUserId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    const supabase = createClient();
+    let cancelled = false;
 
-    const runOneSignal = async () => {
+    const initSdkOnce = async () => {
+      if (sdkInitialized.current) return;
+      sdkInitialized.current = true;
+
       try {
         const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
         if (!appId) {
@@ -41,29 +54,15 @@ export function PushInitializer() {
           allowLocalhostAsSecureOrigin: process.env.NODE_ENV === "development",
         });
 
-        // Prompt the user to subscribe to push notifications
         OneSignal.Slidedown.promptPush();
 
-        // Read the current session so we can bind the subscription to the user.
-        // We do this INSIDE the hook (client-side) because the root layout is
-        // a Server Component and cannot forward the userId safely.
-        const supabase = createClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        const userId = session?.user?.id;
-        if (!userId) return; // Not logged in — no binding needed
-
-        // Login the user with their Supabase UUID as the external ID.
-        // This maps all their push subscriptions (web, mobile) to one identity.
-        await OneSignal.login(userId);
-
-        // Also save the raw subscription ID to the profiles table as a fallback
-        // for the server-side `/api/notify` route that uses include_subscription_ids.
+        // Sync the raw subscription ID to profiles as a fallback for the
+        // server-side /api/notify route that can target by subscription id.
         OneSignal.User.PushSubscription.addEventListener(
           "change",
           async (subscription) => {
+            const userId = boundUserId.current;
+            if (!userId) return;
             if (subscription.current.optedIn && subscription.current.id) {
               const { error } = await supabase
                 .from("profiles")
@@ -79,13 +78,67 @@ export function PushInitializer() {
           }
         );
       } catch (error) {
-        // Swallowed — push init failure must never break the app
+        // Swallowed — push init failure must never break the app.
         console.error("[OneSignal] Initialization error:", error);
       }
     };
 
-    runOneSignal();
-  }, []); // Run once on mount
+    const bindUser = async (userId: string) => {
+      if (boundUserId.current === userId) return; // already bound, avoid redundant calls
+      try {
+        await OneSignal.login(userId);
+        boundUserId.current = userId;
+        console.log("[OneSignal] Bound external ID:", userId);
+      } catch (error) {
+        console.error("[OneSignal] login() failed:", error);
+      }
+    };
+
+    const unbindUser = async () => {
+      if (!boundUserId.current) return;
+      try {
+        await OneSignal.logout();
+        boundUserId.current = null;
+      } catch (error) {
+        console.error("[OneSignal] logout() failed:", error);
+      }
+    };
+
+    const run = async () => {
+      await initSdkOnce();
+      if (cancelled) return;
+
+      // Handle whatever session is already hydrated at this point (may be
+      // null if hydration is still in flight — onAuthStateChange below
+      // will fire again once it resolves).
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        await bindUser(session.user.id);
+      }
+    };
+
+    run();
+
+    // The reliable source of truth: fires on initial hydration AND on
+    // every subsequent sign-in/sign-out/token-refresh.
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        const userId = session?.user?.id;
+        if (userId) {
+          await bindUser(userId);
+        } else if (event === "SIGNED_OUT") {
+          await unbindUser();
+        }
+      }
+    );
+
+    return () => {
+      cancelled = true;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
 
   return null;
 }
