@@ -866,7 +866,21 @@ function ChatSystemContent({
           }
         }
 
-        // B. Check recent incoming messages across ALL contacts to detect unread messages from others
+        // B. Resync all contacts — build per-partner aggregate maps first, then apply.
+        //
+        // BUG FIX (#1 + #3): The old code ran forEach over all 25 DESC-sorted messages,
+        // processing every message for each partner sequentially. This caused two problems:
+        //   - lastMessage/lastTime could be overwritten with an OLDER message on later iterations
+        //   - unreadCount was accumulated (+1 per unread message seen in the loop), causing
+        //     multi-tick drift and non-monotonic values (16→17→3→1→2)
+        //
+        // Fix: aggregate per partner FIRST (newest message, absolute unread count), then patch.
+        // This also makes the poller self-correcting: if Realtime drops a message due to a
+        // network blip or backgrounded tab, the 60s resync resets counts to their true DB value.
+        //
+        // FOLLOW-UP: ConnectedChatSystem.contacts[].unreadCount is a separate source of truth
+        // from NotificationCountsProvider.unreadMessages. These should eventually be consolidated
+        // so there is one authoritative source (the Provider) rather than two.
         const { data: allRecent } = await supabase
           .from("messages")
           .select(`
@@ -880,10 +894,10 @@ function ChatSystemContent({
           `)
           .or(`receiver_id.eq.${currentUser.id},sender_id.eq.${currentUser.id}`)
           .order("created_at", { ascending: false })
-          .limit(25);
+          .limit(50);
 
         if (allRecent && allRecent.length > 0) {
-          // If tourist, filter out admin messages; if admin, filter out tourist messages
+          // Role-based filter (tourist can't see admin messages, admin can't see tourist messages)
           const filteredRecent = (allRecent as any[]).filter((msg: any) => {
             const senderRole = msg.sender?.role;
             if (currentRole === "tourist" && senderRole === "admin") return false;
@@ -891,42 +905,81 @@ function ChatSystemContent({
             return true;
           });
 
+          // Pass 1: build Map<partnerId, latestMsg> — first occurrence per partner is newest (DESC sort)
+          const latestPerPartner = new Map<string, any>();
+          // Pass 2: build Map<partnerId, absoluteUnreadCount> — sum all unread incoming per partner
+          const unreadPerPartner = new Map<string, number>();
+
+          filteredRecent.forEach((msg: any) => {
+            const partnerId =
+              msg.sender_id === currentUser.id
+                ? msg.receiver_id
+                : msg.sender_id;
+            if (!partnerId || partnerId === currentUser.id) return;
+
+            // Only store the first (newest) message per partner
+            if (!latestPerPartner.has(partnerId)) {
+              latestPerPartner.set(partnerId, msg);
+            }
+
+            // Count every unread incoming message for this partner (absolute, not incremental)
+            if (msg.receiver_id === currentUser.id && !msg.is_read) {
+              unreadPerPartner.set(
+                partnerId,
+                (unreadPerPartner.get(partnerId) ?? 0) + 1
+              );
+            }
+          });
+
+          // Pass 3: apply aggregated maps to contacts state
           setContacts((prev) => {
             let changed = false;
             const updated = [...prev];
 
-            filteredRecent.forEach((msg: any) => {
-              const partnerId =
-                msg.sender_id === currentUser.id
-                  ? msg.receiver_id
-                  : msg.sender_id;
+            latestPerPartner.forEach((latestMsg, partnerId) => {
               const idx = updated.findIndex((c) => c.id === partnerId);
-              if (idx !== -1) {
-                const contact = updated[idx];
-                const msgTime = new Date(msg.created_at).getTime();
-                const contactTime = contact.lastMessageCreatedAt
-                  ? new Date(contact.lastMessageCreatedAt).getTime()
-                  : 0;
+              if (idx === -1) return;
 
-                if (msgTime > contactTime || contact.lastMessageIsRead !== msg.is_read) {
-                  changed = true;
-                  const isViewing = activeContact?.id === partnerId;
-                  const isIncoming = msg.receiver_id === currentUser.id;
-                  updated[idx] = {
-                    ...contact,
-                    lastMessage: msg.content,
-                    lastTime: formatMessageTime(msg.created_at),
-                    lastMessageSenderId: msg.sender_id,
-                    lastMessageCreatedAt: msg.created_at,
-                    lastMessageIsRead: isIncoming ? isViewing || msg.is_read : msg.is_read,
-                    unreadCount:
-                      isIncoming && !isViewing && !msg.is_read
-                        ? (contact.unreadCount || 0) + 1
-                        : isViewing
-                        ? 0
-                        : contact.unreadCount,
-                  };
-                }
+              const contact = updated[idx];
+              const isViewing = activeContact?.id === partnerId;
+              const isIncoming = latestMsg.receiver_id === currentUser.id;
+
+              // Absolute unread count from DB — 0 if viewing this contact right now
+              const absoluteUnread = isViewing
+                ? 0
+                : (unreadPerPartner.get(partnerId) ?? 0);
+
+              const msgTime = new Date(latestMsg.created_at).getTime();
+              const contactTime = contact.lastMessageCreatedAt
+                ? new Date(contact.lastMessageCreatedAt).getTime()
+                : 0;
+
+              // Only patch if something actually changed
+              const previewChanged = msgTime > contactTime;
+              const unreadChanged = absoluteUnread !== (contact.unreadCount ?? 0);
+              const readChanged =
+                contact.lastMessageIsRead !==
+                (isIncoming ? isViewing || latestMsg.is_read : latestMsg.is_read);
+
+              if (previewChanged || unreadChanged || readChanged) {
+                changed = true;
+                updated[idx] = {
+                  ...contact,
+                  lastMessage: previewChanged ? latestMsg.content : contact.lastMessage,
+                  lastTime: previewChanged
+                    ? formatMessageTime(latestMsg.created_at)
+                    : contact.lastTime,
+                  lastMessageSenderId: previewChanged
+                    ? latestMsg.sender_id
+                    : contact.lastMessageSenderId,
+                  lastMessageCreatedAt: previewChanged
+                    ? latestMsg.created_at
+                    : contact.lastMessageCreatedAt,
+                  lastMessageIsRead: isIncoming
+                    ? isViewing || latestMsg.is_read
+                    : latestMsg.is_read,
+                  unreadCount: absoluteUnread,
+                };
               }
             });
 
@@ -949,7 +1002,11 @@ function ChatSystemContent({
       } catch {
         // Ignored
       }
-    }, 3000);
+      // Interval is 60s — Realtime handles instant updates.
+      // This poll is a rare safety-net resync in case Realtime missed an event
+      // (network blip, backgrounded tab, reconnect). The per-partner aggregation
+      // above makes it self-correcting: it sets absolute counts, not increments.
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [currentUser, activeContact, currentRole]);

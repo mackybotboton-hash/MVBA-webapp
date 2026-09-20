@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { PushInitializer } from "@/components/shared/PushInitializer";
 import { QueryProvider } from "@/providers/query-provider";
+import { NotificationCountsProvider } from "@/hooks/use-notification-counts";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -61,8 +62,10 @@ export default function RootLayout({
     <html lang="en" className={cn("font-sans", geist.variable)} data-scroll-behavior="smooth">
       <body className={`${inter.variable} font-sans antialiased bg-background text-foreground text-base leading-relaxed tracking-tight min-h-screen selection:bg-neutral-200 selection:text-black`}>
         <QueryProvider>
-          {children}
-          <PushInitializer />
+          <NotificationCountsProvider>
+            {children}
+            <PushInitializer />
+          </NotificationCountsProvider>
         </QueryProvider>
       </body>
     </html>

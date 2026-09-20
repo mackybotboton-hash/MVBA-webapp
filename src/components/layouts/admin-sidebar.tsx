@@ -31,11 +31,8 @@ export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
 
-  // Live badge counts from Supabase Realtime
-  const { pendingTransactions, unreadMessages } = useNotificationCounts(
-    user?.id,
-    "admin"
-  );
+  // Live badge counts — sourced from the singleton NotificationCountsProvider
+  const { pendingTransactions, unreadMessages } = useNotificationCounts();
 
   // Map href → badge count
   const badgeMap: Record<string, number> = {

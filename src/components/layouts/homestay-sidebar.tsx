@@ -30,11 +30,8 @@ export function HomestaySidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
 
-  // Live badge counts from Supabase Realtime
-  const { unseenBookings, unreadMessages } = useNotificationCounts(
-    user?.id,
-    "homestay"
-  );
+  // Live badge counts — sourced from the singleton NotificationCountsProvider
+  const { unseenBookings, unreadMessages } = useNotificationCounts();
 
   // Map href → badge count
   const badgeMap: Record<string, number> = {

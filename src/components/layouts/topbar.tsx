@@ -31,12 +31,12 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Live badge counts — role-aware
-  const role = profile?.role;
+  // Live badge counts — sourced from the singleton NotificationCountsProvider
   const { unreadMessages, unseenBookings, pendingTransactions } =
-    useNotificationCounts(user?.id, role);
+    useNotificationCounts();
 
   // Total bell count: sum up all relevant counts for this role
+  const role = profile?.role;
   const bellCount =
     role === "admin"
       ? pendingTransactions

@@ -1,12 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { TOURIST_NAV_ITEMS } from "@/lib/constants";
-import { createClient } from "@/lib/supabase/client";
 import { useNotificationCounts } from "@/hooks/use-notification-counts";
+import { useAuth } from "@/hooks/use-auth";
 
 /** Renders a red badge dot or count bubble above an icon */
 function NavBadge({ count }: { count: number }) {
@@ -20,36 +19,14 @@ function NavBadge({ count }: { count: number }) {
 
 export function TouristBottomNav() {
   const pathname = usePathname();
-  const [userId, setUserId] = useState<string | undefined>(undefined);
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const { user, isLoading } = useAuth();
 
-  useEffect(() => {
-    const supabase = createClient();
+  // Live badge counts — sourced from the singleton NotificationCountsProvider.
+  // The Provider manages its own Realtime subscription via useAuth() internally.
+  const { unreadMessages } = useNotificationCounts();
 
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsLoggedIn(!!session);
-      setUserId(session?.user?.id);
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
-      setUserId(session?.user?.id);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  // Live badge counts — only active when userId is known
-  const { unreadMessages } = useNotificationCounts(userId, "tourist");
-
-  // Do not render anything if still loading or if user is not logged in
-  if (isLoggedIn === null || isLoggedIn === false) {
-    return null;
-  }
+  // Don't render until auth is resolved, and hide for non-logged-in visitors
+  if (isLoading || !user) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
