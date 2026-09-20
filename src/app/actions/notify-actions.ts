@@ -48,24 +48,15 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
     // Swallowed intentionally — do not block the parent transaction
   }
 
-  // ── 2. Lookup OneSignal subscription ID ─────────────────────────────────
-  let onesignalId: string | null = null;
-  try {
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("onesignal_id")
-      .eq("id", targetUserId)
-      .single();
-
-    onesignalId = (profile as any)?.onesignal_id ?? null;
-  } catch (lookupErr) {
-    console.error("[Notify] Failed to lookup OneSignal ID:", lookupErr);
-    // Swallowed — user may not have push subscribed yet, that is fine
-  }
-
-  // ── 3. Send OneSignal push if subscription exists ───────────────────────
-  if (!onesignalId) return; // User hasn't subscribed to push — silent exit
-
+  // ── 2. Send OneSignal push via External ID (alias method) ───────────────
+  // PushInitializer calls OneSignal.login(supabaseUserId) on every sign-in,
+  // which registers the Supabase UUID as the OneSignal External ID. We target
+  // that alias directly — no DB column lookup required, no per-device gap.
+  //
+  // Previous approach used include_subscription_ids with profiles.onesignal_id,
+  // which silently failed whenever the push-subscription change event didn't
+  // fire (e.g., user accepted push on a previous browser session). The External
+  // ID is set at the OneSignal account level and survives browser clears.
   const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
   const restApiKey = process.env.ONESIGNAL_REST_API_KEY;
 
@@ -83,7 +74,9 @@ export async function sendNotification(payload: NotificationPayload): Promise<vo
       },
       body: JSON.stringify({
         app_id: appId,
-        include_subscription_ids: [onesignalId],
+        // target_channel is required when using include_aliases (OneSignal v1 API)
+        target_channel: "push",
+        include_aliases: { external_id: [targetUserId] },
         headings: { en: title },
         contents: { en: body },
         url: url || "/",
