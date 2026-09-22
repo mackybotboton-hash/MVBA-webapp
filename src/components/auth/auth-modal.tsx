@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff, Loader2, X, Lock, Mail, User, Phone } from "lucide-react";
 import { ROLE_HOME_ROUTES, type UserRole } from "@/lib/constants";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, registerSchema, type LoginFormData, type RegisterFormData } from "@/lib/validations/auth";
@@ -467,6 +468,34 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Complete Registration"}
               </Button>
+
+              <p className="text-[11px] text-center text-neutral-500 leading-relaxed pt-2">
+                By registering, you agree to our{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="underline hover:text-black font-medium"
+                >
+                  Terms of Service
+                </Link>
+                ,{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="underline hover:text-black font-medium"
+                >
+                  Privacy Policy
+                </Link>
+                , and{" "}
+                <Link
+                  href="/cookies"
+                  target="_blank"
+                  className="underline hover:text-black font-medium"
+                >
+                  Cookie Policy
+                </Link>
+                .
+              </p>
             </form>
           </Form>
         )}
