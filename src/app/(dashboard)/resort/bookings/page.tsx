@@ -156,7 +156,7 @@ export default function ResortBookingsPage() {
     } catch (err: any) {
       toast.error(err.message || "Failed to update reservation");
     }
-  }, [bookings, queryClient, user?.id]);
+  }, [bookings, queryClient, user]);
 
   const filteredBookings = React.useMemo(() => {
     if (activeTab === "all") return bookings;

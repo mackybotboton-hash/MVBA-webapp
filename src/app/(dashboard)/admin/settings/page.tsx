@@ -193,7 +193,7 @@ export default function AdminSettingsPage() {
                             </div>
                           </FormControl>
                           <FormDescription>
-                            The registered name of the association's GCash account.
+                            The registered name of the association&apos;s GCash account.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

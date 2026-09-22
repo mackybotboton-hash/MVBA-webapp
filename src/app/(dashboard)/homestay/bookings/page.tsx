@@ -156,7 +156,7 @@ export default function HomestayBookingsPage() {
     } catch (err: any) {
       toast.error(err.message || "Failed to update booking status");
     }
-  }, [bookings, queryClient, user?.id]);
+  }, [bookings, queryClient, user]);
 
   const filteredBookings = React.useMemo(() => {
     if (activeTab === "all") return bookings;

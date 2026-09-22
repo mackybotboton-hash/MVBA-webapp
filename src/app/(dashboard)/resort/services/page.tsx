@@ -161,7 +161,7 @@ export default function ResortServicesPage() {
             <tbody className="divide-y divide-neutral-100 font-medium">
               {services.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-16 text-center text-neutral-500 text-xs">No services found. Click "Create Package" to add one.</td>
+                  <td colSpan={4} className="py-16 text-center text-neutral-500 text-xs">No services found. Click &quot;Create Package&quot; to add one.</td>
                 </tr>
               ) : (
                 services.map((service) => (

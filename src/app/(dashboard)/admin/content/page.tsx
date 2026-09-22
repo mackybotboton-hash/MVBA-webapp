@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +20,9 @@ export default function AdminContentPage() {
   const [islands, setIslands] = useState<any[]>([]);
   const [isLoadingIslands, setIsLoadingIslands] = useState(true);
 
-  useEffect(() => {
-    fetchHelpline();
-    fetchIslands();
-  }, []);
-
-  async function fetchHelpline() {
+  const fetchHelpline = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("app_settings")
         .select("value")
         .eq("key", "helpline")
@@ -41,11 +36,11 @@ export default function AdminContentPage() {
     } finally {
       setIsLoadingHelpline(false);
     }
-  }
+  }, [supabase]);
 
-  async function fetchIslands() {
+  const fetchIslands = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("explore_islands")
         .select("*")
         .order("display_order", { ascending: true });
@@ -58,7 +53,12 @@ export default function AdminContentPage() {
     } finally {
       setIsLoadingIslands(false);
     }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchHelpline();
+    fetchIslands();
+  }, [fetchHelpline, fetchIslands]);
 
   async function handleSaveHelpline() {
     setIsSavingHelpline(true);
