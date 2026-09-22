@@ -2,18 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
-  User,
   MapPin,
   ShieldCheck,
-  PhoneCall,
-  CreditCard,
-  Lock,
 } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Logo } from "@/components/shared/logo";
 import { SignOutButton } from "./sign-out-button";
 import { ProfileActivityStats } from "./profile-activity-stats";
+import { ProfileSettingsGrid } from "@/components/tourist/profile-settings-grid";
 
 export default async function TouristProfilePage() {
   const supabase = (await createClient()) as any;
@@ -32,9 +29,11 @@ export default async function TouristProfilePage() {
     .maybeSingle();
 
   const userProfile = (profile as any) || {
+    id: user.id,
     full_name: user.email?.split("@")[0] || "Tourist",
     email: user.email,
     role: "tourist",
+    phone_number: "",
   };
 
   const { data: announcementsData } = await supabase
@@ -46,8 +45,9 @@ export default async function TouristProfilePage() {
     .limit(1)
     .maybeSingle();
 
-  const helpSupportDesc = announcementsData?.title 
-    || "MVBA Guidelines and Emergency Hotlines (MDRRMO, Local Police)";
+  const helpSupportDesc =
+    announcementsData?.title ||
+    "MVBA Guidelines and Emergency Hotlines (MDRRMO, Local Police)";
 
   return (
     <div className="min-h-screen bg-white">
@@ -71,7 +71,6 @@ export default async function TouristProfilePage() {
       </header>
 
       <main className="mx-auto max-w-4xl p-4 sm:p-6 space-y-8 pb-24 md:pb-12 mt-4">
-        
         {/* Profile Heading Section */}
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
           <div className="w-24 h-24 rounded-full bg-black text-white flex items-center justify-center text-3xl font-bold shrink-0 shadow-sm">
@@ -87,7 +86,11 @@ export default async function TouristProfilePage() {
               <p className="text-sm text-neutral-600 font-medium">
                 {userProfile.email}
               </p>
-              <Badge variant="subtle" size="sm" className="bg-emerald-50 text-emerald-700 border border-emerald-100">
+              <Badge
+                variant="subtle"
+                size="sm"
+                className="bg-emerald-50 text-emerald-700 border border-emerald-100"
+              >
                 <ShieldCheck className="h-3.5 w-3.5 mr-1" />
                 Verified Guest
               </Badge>
@@ -105,53 +108,16 @@ export default async function TouristProfilePage() {
           <ProfileActivityStats />
         </div>
 
-        {/* Settings Grid - Airbnb Style */}
+        {/* Settings Grid - Airbnb Style with Full Interactive Modals */}
         <div className="pt-4">
-          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Account settings</h2>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              {
-                icon: User,
-                title: "Personal info",
-                desc: "Provide personal details and how we can reach you",
-                href: "#",
-              },
-              {
-                icon: CreditCard,
-                title: "Payment methods",
-                desc: "Add your GCash or cards for seamless booking",
-                href: "#",
-              },
-              {
-                icon: Lock,
-                title: "Login & security",
-                desc: "Update your password and secure your account",
-                href: "#",
-              },
-              {
-                icon: PhoneCall,
-                title: "Help & support",
-                desc: helpSupportDesc,
-                href: "/explore",
-              },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.title}
-                  href={item.href}
-                  className="flex flex-col gap-4 p-5 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-md transition-all group h-full"
-                >
-                  <Icon className="h-8 w-8 text-neutral-800" strokeWidth={1.5} />
-                  <div>
-                    <h3 className="font-semibold text-neutral-900 mb-1">{item.title}</h3>
-                    <p className="text-sm text-neutral-500 leading-snug">{item.desc}</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-6">
+            Account settings
+          </h2>
+
+          <ProfileSettingsGrid
+            initialProfile={userProfile}
+            helpSupportDesc={helpSupportDesc}
+          />
         </div>
 
         {/* Sign Out Action */}
