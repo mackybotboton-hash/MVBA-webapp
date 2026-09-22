@@ -5,13 +5,12 @@ import Link from "next/link";
 import { toast } from "sonner";
 import {
   Ticket,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
-  Compass,
   RefreshCw,
   Plus,
+  WifiOff,
+  Wifi,
+  QrCode,
+  ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/shared/logo";
@@ -20,26 +19,45 @@ import {
   type BookingData,
 } from "@/components/tourist/booking-card";
 import { EmptyState } from "@/components/tourist/empty-state";
-import { Skeleton } from "@/components/ui/skeleton";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DigitalBoardingPassModal } from "@/components/tourist/digital-boarding-pass-modal";
 import { GCashDepositModal } from "@/components/tourist/gcash-deposit-modal";
 import { TouristReviewModal } from "@/components/tourist/tourist-review-modal";
 import { TouristViewPaymentModal } from "@/components/tourist/tourist-view-payment-modal";
 import { submitDepositReceiptAction } from "@/app/actions/booking-actions";
+import { useOfflineBoardingPasses } from "@/hooks/use-offline-boarding-passes";
+import { BoardingPassData } from "@/lib/boarding-pass-generator";
 
-
-type BookingFilterTab = "all" | "pending" | "accepted" | "completed" | "cancelled";
+type BookingFilterTab =
+  | "all"
+  | "pending"
+  | "accepted"
+  | "completed"
+  | "cancelled"
+  | "offline";
 
 export default function TouristBookingsPage() {
   const [bookings, setBookings] = React.useState<BookingData[]>([]);
+  const [userName, setUserName] = React.useState<string>("Tourist Guest");
   const [isLoading, setIsLoading] = React.useState(true);
   const [activeTab, setActiveTab] = React.useState<BookingFilterTab>("all");
-  const [selectedPassBooking, setSelectedPassBooking] = React.useState<any | null>(null);
-  const [selectedDepositBooking, setSelectedDepositBooking] = React.useState<BookingData | null>(null);
-  const [selectedPaymentBooking, setSelectedPaymentBooking] = React.useState<BookingData | null>(null);
-  const [selectedReviewBooking, setSelectedReviewBooking] = React.useState<BookingData | null>(null);
+  const [selectedPassBooking, setSelectedPassBooking] =
+    React.useState<BoardingPassData | null>(null);
+  const [selectedDepositBooking, setSelectedDepositBooking] =
+    React.useState<BookingData | null>(null);
+  const [selectedPaymentBooking, setSelectedPaymentBooking] =
+    React.useState<BookingData | null>(null);
+  const [selectedReviewBooking, setSelectedReviewBooking] =
+    React.useState<BookingData | null>(null);
+
+  const {
+    cachedPasses,
+    isOnline,
+    saveMultiplePasses,
+    hasPass,
+  } = useOfflineBoardingPasses();
 
   const fetchBookings = React.useCallback(async () => {
     setIsLoading(true);
@@ -53,6 +71,12 @@ export default function TouristBookingsPage() {
         setBookings([]);
         setIsLoading(false);
         return;
+      }
+
+      if (user.user_metadata?.full_name) {
+        setUserName(user.user_metadata.full_name);
+      } else if (user.email) {
+        setUserName(user.email.split("@")[0]);
       }
 
       // Fetch bookings joined with room and property
@@ -84,8 +108,11 @@ export default function TouristBookingsPage() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        toast.error("Failed to load bookings.");
-        setBookings([]);
+        if (!navigator.onLine) {
+          toast.info("Offline mode active. Displaying saved passes.");
+        } else {
+          toast.error("Failed to load bookings.");
+        }
       } else {
         const mapped: BookingData[] = (data || []).map((b: any) => ({
           id: b.id,
@@ -104,14 +131,37 @@ export default function TouristBookingsPage() {
           owner_id: b.rooms?.properties?.owner_id,
         }));
         setBookings(mapped);
+
+        // Auto-cache confirmed & completed reservations for offline island boarding
+        const passesToCache: BoardingPassData[] = mapped
+          .filter((b) => b.status === "completed" || b.payment_status === "verified" || b.status === "accepted")
+          .map((b) => ({
+            id: b.id,
+            property_name: b.property_name,
+            room_name: b.room_name,
+            guest_name: user.user_metadata?.full_name || "Tourist Guest",
+            check_in: b.check_in_date,
+            check_out: b.check_out_date,
+            guests_count: b.guest_count,
+            total_price: b.total_price,
+            status: b.status,
+            reference_code: `MVBA-BRIT-${b.id.slice(0, 4).toUpperCase()}`,
+          }));
+
+        if (passesToCache.length > 0) {
+          saveMultiplePasses(passesToCache);
+        }
       }
     } catch {
-      toast.error("An error occurred while loading your bookings.");
-      setBookings([]);
+      if (!navigator.onLine) {
+        toast.info("Offline mode active. Saved passes are available.");
+      } else {
+        toast.error("An error occurred while loading your bookings.");
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [saveMultiplePasses]);
 
   React.useEffect(() => {
     fetchBookings();
@@ -137,8 +187,12 @@ export default function TouristBookingsPage() {
 
   const filteredBookings = React.useMemo(() => {
     if (activeTab === "all") return bookings;
+    if (activeTab === "offline") {
+      // Return bookings that are in the offline cache
+      return bookings.filter((b) => hasPass(b.id));
+    }
     return bookings.filter((b) => b.status === activeTab);
-  }, [bookings, activeTab]);
+  }, [bookings, activeTab, hasPass]);
 
   const counts = React.useMemo(() => {
     return {
@@ -147,8 +201,9 @@ export default function TouristBookingsPage() {
       accepted: bookings.filter((b) => b.status === "accepted").length,
       completed: bookings.filter((b) => b.status === "completed").length,
       cancelled: bookings.filter((b) => b.status === "cancelled").length,
+      offline: cachedPasses.length,
     };
-  }, [bookings]);
+  }, [bookings, cachedPasses]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -163,6 +218,14 @@ export default function TouristBookingsPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Offline indicator badge in header */}
+            {!isOnline && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-medium">
+                <WifiOff className="h-3 w-3" />
+                Offline
+              </span>
+            )}
+
             <Link href="/">
               <Button
                 size="sm"
@@ -177,21 +240,57 @@ export default function TouristBookingsPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-6">
+        {/* Offline Banner Callout when disconnected */}
+        {!isOnline && (
+          <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+                <WifiOff className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">You are currently offline</h3>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  No cellular signal needed. Your {cachedPasses.length} saved boarding pass{cachedPasses.length === 1 ? "" : "es"} are securely stored on your device and ready to present at the dock.
+                </p>
+              </div>
+            </div>
+
+            {cachedPasses.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setActiveTab("offline")}
+                className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100 text-xs h-8 font-semibold shrink-0"
+              >
+                View Offline Passes ({cachedPasses.length})
+              </Button>
+            )}
+          </div>
+        )}
+
         {/* Page Title & Context */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-              My Bookings
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+                My Bookings
+              </h1>
+              {cachedPasses.length > 0 && (
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
+                  <ShieldCheck className="h-3 w-3" />
+                  {cachedPasses.length} Pass{cachedPasses.length === 1 ? "" : "es"} Cached Offline
+                </span>
+              )}
+            </div>
             <p className="text-xs sm:text-sm text-neutral-600 mt-1">
-              Manage your upcoming island stays and view confirmed reservations
+              Manage your upcoming island stays and access instant digital boarding passes
             </p>
           </div>
 
           <button
             onClick={fetchBookings}
             disabled={isLoading}
-            className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-black font-medium self-start sm:self-auto"
+            className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-black font-medium self-start sm:self-auto transition-colors"
           >
             <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
@@ -206,6 +305,9 @@ export default function TouristBookingsPage() {
             { id: "accepted", label: "Awaiting Deposit", count: counts.accepted },
             { id: "completed", label: "Completed", count: counts.completed },
             { id: "cancelled", label: "Cancelled", count: counts.cancelled },
+            ...(cachedPasses.length > 0
+              ? [{ id: "offline", label: "⚡ Offline Passes", count: counts.offline }]
+              : []),
           ].map((tab) => {
             const isSelected = activeTab === tab.id;
             return (
@@ -237,7 +339,9 @@ export default function TouristBookingsPage() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <LoadingLogo size="large" />
-            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading your reservations</p>
+            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">
+              Loading your reservations
+            </p>
           </div>
         ) : filteredBookings.length === 0 ? (
           <EmptyState
@@ -245,11 +349,15 @@ export default function TouristBookingsPage() {
             title={
               activeTab === "all"
                 ? "No reservations found"
+                : activeTab === "offline"
+                ? "No offline boarding passes cached"
                 : `No ${activeTab} reservations`
             }
             description={
               activeTab === "all"
                 ? "You haven't requested any bookings yet. Explore accredited homestays and resorts in Bretania to plan your next island trip."
+                : activeTab === "offline"
+                ? "Boarding passes are automatically saved to your device when your reservation is confirmed."
                 : `You currently do not have any bookings marked as ${activeTab}.`
             }
             actionLabel="Discover Stays in Bretania"
@@ -260,27 +368,36 @@ export default function TouristBookingsPage() {
         ) : (
           <div className="space-y-4">
             {filteredBookings.map((booking) => (
-              <BookingCard
-                key={booking.id}
-                booking={booking}
-                onCancelBooking={handleCancelBooking}
-                onViewBoardingPass={(b) =>
-                  setSelectedPassBooking({
-                    id: b.id,
-                    property_name: b.property_name,
-                    room_name: b.room_name,
-                    guest_name: "Tourist Guest",
-                    check_in: b.check_in_date,
-                    check_out: b.check_out_date,
-                    guests_count: b.guest_count,
-                    total_price: b.total_price,
-                    status: b.status,
-                  })
-                }
-                onViewPayment={(b) => setSelectedPaymentBooking(b)}
-                onPayDeposit={(b) => setSelectedDepositBooking(b)}
-                onRateStay={(b) => setSelectedReviewBooking(b)}
-              />
+              <div key={booking.id} className="relative">
+                {/* Visual indicator tag on card if pass is cached offline */}
+                {hasPass(booking.id) && (
+                  <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
+                    <ShieldCheck className="h-3 w-3" />
+                    Offline Ready
+                  </div>
+                )}
+                <BookingCard
+                  booking={booking}
+                  onCancelBooking={handleCancelBooking}
+                  onViewBoardingPass={(b) =>
+                    setSelectedPassBooking({
+                      id: b.id,
+                      property_name: b.property_name,
+                      room_name: b.room_name,
+                      guest_name: userName,
+                      check_in: b.check_in_date,
+                      check_out: b.check_out_date,
+                      guests_count: b.guest_count,
+                      total_price: b.total_price,
+                      status: b.status,
+                      reference_code: `MVBA-BRIT-${b.id.slice(0, 4).toUpperCase()}`,
+                    })
+                  }
+                  onViewPayment={(b) => setSelectedPaymentBooking(b)}
+                  onPayDeposit={(b) => setSelectedDepositBooking(b)}
+                  onRateStay={(b) => setSelectedReviewBooking(b)}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -302,9 +419,9 @@ export default function TouristBookingsPage() {
         onUploadComplete={async (payload) => {
           if (!selectedDepositBooking) return;
           const supabase = createClient();
-          
+
           try {
-            const fileExt = payload.receiptFile.name.split('.').pop();
+            const fileExt = payload.receiptFile.name.split(".").pop();
             const filePath = `${selectedDepositBooking.id}-${Date.now()}.${fileExt}`;
 
             const { data: uploadData, error: uploadError } = await supabase.storage
@@ -327,7 +444,7 @@ export default function TouristBookingsPage() {
             await fetchBookings();
           } catch (error) {
             console.error("Failed to upload deposit:", error);
-            throw error; // Let the modal's catch block handle the error toast
+            throw error;
           }
         }}
       />
