@@ -33,6 +33,7 @@ export interface BookingData {
   total_price: number;
   downpayment_amount?: number;
   payment_status?: "awaiting_deposit" | "deposit_uploaded" | "verified" | "completed" | "refunded";
+  receipt_url?: string;
   status: "pending" | "accepted" | "declined" | "cancelled" | "completed";
   created_at?: string;
   owner_id?: string;
@@ -43,6 +44,7 @@ export interface BookingCardProps {
   onCancelBooking?: (bookingId: string) => void;
   onViewBoardingPass?: (booking: BookingData) => void;
   onPayDeposit?: (booking: BookingData) => void;
+  onViewPayment?: (booking: BookingData) => void;
   onRateStay?: (booking: BookingData) => void;
   className?: string;
 }
@@ -52,6 +54,7 @@ export function BookingCard({
   onCancelBooking,
   onViewBoardingPass,
   onPayDeposit,
+  onViewPayment,
   onRateStay,
   className,
 }: BookingCardProps) {
@@ -192,12 +195,12 @@ export function BookingCard({
       </div>
 
       {/* Actions footer */}
-      <div className="pt-4 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2">
+      <div className="pt-4 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-[11px] text-neutral-500">
           Booking ID: #{booking.id.slice(0, 8)}
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {onViewBoardingPass && (
             <Button
               variant="outline"
@@ -250,6 +253,18 @@ export function BookingCard({
             >
               <Receipt className="h-3.5 w-3.5 mr-1" />
               Pay Deposit
+            </Button>
+          )}
+
+          {booking.receipt_url && onViewPayment && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-8 px-3 border-blue-200 text-blue-600 hover:bg-blue-50"
+              onClick={() => onViewPayment(booking)}
+            >
+              <Receipt className="h-3.5 w-3.5 mr-1" />
+              View Payment
             </Button>
           )}
 

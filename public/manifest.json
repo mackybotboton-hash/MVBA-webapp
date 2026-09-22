@@ -1,7 +1,7 @@
 {
-  "name": "Britania Travel",
-  "short_name": "Britania",
-  "description": "Britania Stays and Tours",
+  "name": "Bretania Travel",
+  "short_name": "Bretania",
+  "description": "Bretania Stays and Tours",
 
   "start_url": "/",
   "display": "standalone",

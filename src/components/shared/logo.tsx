@@ -1,11 +1,14 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export function Logo({
   size = "default",
   href = "/",
+  iconOnly = false,
 }: {
   size?: "small" | "default" | "large";
   href?: string;
+  iconOnly?: boolean;
 }) {
   const sizeClasses = {
     small: "text-lg",
@@ -16,22 +19,28 @@ export function Logo({
   return (
     <Link href={href} className="flex items-center gap-2 group">
       <div className="relative">
-        <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center">
-          <span className="text-white font-bold text-sm">B</span>
-        </div>
+        <Image
+          src="/icons/icon-192.png"
+          alt="Bretania Logo"
+          width={32}
+          height={32}
+          className="rounded-lg shadow-sm"
+        />
       </div>
-      <div className="flex flex-col">
-        <span
-          className={`font-bold tracking-tight text-black ${sizeClasses[size]}`}
-        >
-          Britania
-        </span>
-        {size !== "small" && (
-          <span className="text-[10px] text-gray-400 leading-none -mt-0.5 tracking-widest uppercase">
-            Surigao del Sur
+      {!iconOnly && (
+        <div className="flex flex-col">
+          <span
+            className={`font-bold tracking-tight text-black ${sizeClasses[size]}`}
+          >
+            Bretania
           </span>
-        )}
-      </div>
+          {size !== "small" && (
+            <span className="text-[10px] text-gray-400 leading-none -mt-0.5 tracking-widest uppercase">
+              Surigao del Sur
+            </span>
+          )}
+        </div>
+      )}
     </Link>
   );
 }

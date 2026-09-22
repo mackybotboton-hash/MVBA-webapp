@@ -2,392 +2,240 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import {
-  Ship,
-  UtensilsCrossed,
-  MapPin,
-  Sparkles,
-  Plus,
-  Trash2,
-  X,
-  Loader2,
-  RefreshCw,
-  Building2,
-} from "lucide-react";
+import { Plus, RefreshCw, Palmtree, Utensils, Sailboat } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { Badge } from "@/components/ui/badge";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/tourist/empty-state";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { upsertService, toggleServiceStatus } from "@/app/actions/service-actions";
+
+type ExtraService = {
+  id: string;
+  property_id: string;
+  service_type: "Boat" | "Food" | "Tour";
+  name: string;
+  price: number;
+  is_active: boolean;
+};
 
 export default function ResortServicesPage() {
-  const [property, setProperty] = React.useState<any>(null);
-  const [services, setServices] = React.useState<any[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [propertyId, setPropertyId] = React.useState<string | null>(null);
 
-  // Form State
-  const [serviceName, setServiceName] = React.useState("");
-  const [serviceType, setServiceType] = React.useState<"boat" | "food" | "tour" | "spa">("boat");
-  const [price, setPrice] = React.useState(1500);
-  const [description, setDescription] = React.useState("");
-  const [paymentType, setPaymentType] = React.useState<"upfront" | "cash">("cash");
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  // Fetch Owner's Services
+  const { data: services = [], isLoading, refetch } = useQuery({
+    queryKey: ['resort-services'],
+    queryFn: async () => {
+      const supabase = createClient() as any;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
 
-  const fetchServices = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: propData } = await supabase
+      // First, get the owner's property
+      const { data: properties } = await supabase
         .from("properties")
-        .select("*")
+        .select("id")
         .eq("owner_id", user.id)
-        .eq("type", "resort")
         .limit(1);
 
-      const ownerProp = propData && propData.length > 0 ? (propData as any[])[0] : null;
-      setProperty(ownerProp);
+      if (!properties || properties.length === 0) return [];
+      
+      const propId = properties[0].id;
+      setPropertyId(propId);
 
-      if (ownerProp) {
-        const { data: servData } = await supabase
-          .from("extra_services")
-          .select("*")
-          .eq("property_id", ownerProp.id)
-          .order("created_at", { ascending: true });
+      // Then fetch services for that property
+      const { data, error } = await supabase
+        .from("extra_services")
+        .select("*")
+        .eq("property_id", propId)
+        .order("created_at", { ascending: false });
 
-        setServices(servData || []);
-      }
-    } catch {
-      // Ignored
-    } finally {
-      setIsLoading(false);
+      if (error) throw error;
+      return data as ExtraService[];
     }
-  }, []);
+  });
 
-  React.useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+  // Toggle Status Mutation (Optimistic)
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) => toggleServiceStatus(id, isActive),
+    onMutate: async ({ id, isActive }) => {
+      await queryClient.cancelQueries({ queryKey: ['resort-services'] });
+      const previousServices = queryClient.getQueryData<ExtraService[]>(['resort-services']);
 
-  const handleCreateService = async (e: React.FormEvent) => {
+      if (previousServices) {
+        queryClient.setQueryData<ExtraService[]>(['resort-services'], old => {
+          if (!old) return [];
+          return old.map(s => s.id === id ? { ...s, is_active: isActive } : s);
+        });
+      }
+
+      return { previousServices };
+    },
+    onError: (err, newStatus, context) => {
+      if (context?.previousServices) {
+        queryClient.setQueryData(['resort-services'], context.previousServices);
+      }
+      toast.error("Failed to update status.");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['resort-services'] });
+    }
+  });
+
+  // Create Package Mutation
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => upsertService(payload),
+    onSuccess: (res) => {
+      if (res.success) {
+        toast.success("Service package created successfully!");
+        setIsModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['resort-services'] });
+      } else {
+        toast.error("Failed to create package: " + res.error);
+      }
+    },
+    onError: (err: any) => {
+      toast.error("An error occurred: " + err.message);
+    }
+  });
+
+  const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!property) return;
-    if (!serviceName.trim()) {
-      toast.error("Service name is required");
+    if (!propertyId) {
+      toast.error("No property found for this account.");
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const supabase = createClient();
-      const { data, error } = await (supabase.from("extra_services") as any)
-        .insert({
-          property_id: property.id,
-          service_type: serviceType,
-          name: serviceName.trim(),
-          description: description.trim(),
-          price: price,
-          payment_type: paymentType,
-          is_active: true,
-        })
-        .select()
-        .single();
+    const formData = new FormData(e.currentTarget);
+    const payload = {
+      property_id: propertyId,
+      name: formData.get("name") as string,
+      service_type: formData.get("service_type") as "Boat" | "Food" | "Tour",
+      price: Number(formData.get("price")),
+    };
 
-      if (error) throw error;
-
-      toast.success("Service package added!", {
-        description: "Tourists can view this service on your resort storefront.",
-      });
-
-      setServices((prev) => [...prev, data]);
-      setIsModalOpen(false);
-      setServiceName("");
-      setDescription("");
-      setPrice(1500);
-      setPaymentType("cash");
-    } catch (err: any) {
-      toast.error(err.message || "Failed to create service");
-    } finally {
-      setIsSubmitting(false);
-    }
+    createMutation.mutate(payload);
   };
 
-  const handleDeleteService = async (serviceId: string) => {
-    if (!confirm("Are you sure you want to remove this service?")) return;
-    try {
-      const supabase = createClient();
-      await supabase.from("extra_services").delete().eq("id", serviceId);
-      setServices((prev) => prev.filter((s) => s.id !== serviceId));
-      toast.success("Service removed");
-    } catch {
-      toast.error("Failed to delete service");
+  const getIcon = (type: string) => {
+    switch(type) {
+      case 'Boat': return <Sailboat className="h-4 w-4 text-blue-500" />;
+      case 'Food': return <Utensils className="h-4 w-4 text-orange-500" />;
+      case 'Tour': return <Palmtree className="h-4 w-4 text-emerald-500" />;
+      default: return null;
     }
-  };
-
-  const typeIcons: Record<string, any> = {
-    boat: Ship,
-    food: UtensilsCrossed,
-    tour: MapPin,
-    spa: Sparkles,
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-6 max-w-6xl pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-            Resort Packages & Menus
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-1">
-            Manage add-on services that tourists can book alongside their rooms.
-          </p>
+          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Extra Services</h1>
+          <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">Manage and upsell packages to your guests during checkout.</p>
         </div>
-
         <div className="flex items-center gap-2">
-          <button
-            onClick={fetchServices}
-            title="Refresh"
-            className="p-2 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors"
-          >
+          <button onClick={() => refetch()} className="p-2 rounded-xl border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors">
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </button>
-
-          {property && (
-            <Button
-              onClick={() => setIsModalOpen(true)}
-              className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-4 font-semibold"
-            >
-              <Plus className="h-4 w-4 mr-1.5" />
-              Add Service Package
-            </Button>
-          )}
+          <Button onClick={() => setIsModalOpen(true)} className="bg-black text-white hover:bg-neutral-800 rounded-xl">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Package
+          </Button>
         </div>
       </div>
 
-      {!property ? (
-        <EmptyState
-          icon={Building2}
-          title="Create a resort listing first"
-          description="You need to set up your resort profile before adding extra services."
-          actionLabel="View Dashboard"
-          onAction={() => (window.location.href = "/resort")}
-        />
-      ) : services.length === 0 ? (
-        <EmptyState
-          icon={Ship}
-          title="No services added yet"
-          description="Expand your tourist revenue by adding Bretania island hopping boat transfers, picnic packages, or dive rentals."
-          actionLabel="Add First Service"
-          onAction={() => setIsModalOpen(true)}
-        />
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map((service) => {
-            const Icon = typeIcons[service.service_type] || Ship;
-            return (
-              <div
-                key={service.id}
-                className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs flex flex-col justify-between gap-4 hover:border-neutral-300 transition-all"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-100 text-neutral-800">
-                        <Icon className="h-4 w-4" />
+      <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-neutral-200 bg-neutral-50 text-neutral-900 uppercase tracking-wider font-bold">
+                <th className="px-5 py-3.5">Service Name</th>
+                <th className="px-5 py-3.5">Category</th>
+                <th className="px-5 py-3.5">Price (Flat Fee)</th>
+                <th className="px-5 py-3.5 text-right">Status (Active)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100 font-medium">
+              {services.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-16 text-center text-neutral-500 text-xs">No services found. Click "Create Package" to add one.</td>
+                </tr>
+              ) : (
+                services.map((service) => (
+                  <tr key={service.id} className="hover:bg-neutral-50/60 transition-colors">
+                    <td className="px-5 py-4">
+                      <p className="font-bold text-neutral-900 text-sm">{service.name}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-2">
+                        {getIcon(service.service_type)}
+                        <span className="text-neutral-700">{service.service_type}</span>
                       </div>
-                      <Badge variant="subtle" size="sm" className="capitalize">
-                        {service.service_type}
-                      </Badge>
-                      <Badge variant={service.payment_type === "upfront" ? "default" : "secondary"} size="sm">
-                        {service.payment_type === "upfront" ? "Pay Online" : "Pay at Property"}
-                      </Badge>
-                    </div>
-
-                    <button
-                      onClick={() => handleDeleteService(service.id)}
-                      className="p-1 rounded-md text-neutral-500 hover:text-red-600 transition-colors"
-                      title="Delete service"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <h3 className="font-bold text-base text-neutral-900">
-                    {service.name}
-                  </h3>
-
-                  {service.description && (
-                    <p className="text-xs text-neutral-600 leading-relaxed line-clamp-3">
-                      {service.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-neutral-100 flex items-center justify-between">
-                  <div>
-                    <span className="text-base font-bold text-neutral-900">
-                      ₱{Number(service.price).toLocaleString()}
-                    </span>
-                  </div>
-                  <Badge variant="success" size="sm" dot>
-                    Active
-                  </Badge>
-                </div>
-              </div>
-            );
-          })}
+                    </td>
+                    <td className="px-5 py-4">
+                      <p className="font-bold text-neutral-900">₱{Number(service.price).toLocaleString()}</p>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <Switch 
+                        checked={service.is_active} 
+                        onCheckedChange={(checked) => toggleMutation.mutate({ id: service.id, isActive: checked })}
+                      />
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
-      {/* Add Service Modal */}
-      {isModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
-          <div
-            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsModalOpen(false)}
-          />
-
-          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-              <h3 className="font-bold text-base text-neutral-900">
-                Add Resort Service Package
-              </h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-full text-neutral-500 hover:text-black"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateService} className="space-y-4 text-xs">
-              <div className="space-y-1.5">
-                <label className="font-semibold text-neutral-800 uppercase tracking-wider text-[11px]">
-                  Service Type
-                </label>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[
-                    { id: "boat", label: "Boat" },
-                    { id: "tour", label: "Tour" },
-                    { id: "food", label: "Food" },
-                    { id: "spa", label: "Spa" },
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setServiceType(t.id as any)}
-                      className={`py-1.5 rounded-lg border text-center font-medium capitalize ${
-                        serviceType === t.id
-                          ? "border-black bg-black text-white"
-                          : "border-neutral-200 text-neutral-700 hover:border-neutral-300"
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
+      {/* Create Package Modal */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleCreateSubmit}>
+            <DialogHeader>
+              <DialogTitle>Create Extra Service</DialogTitle>
+              <DialogDescription>
+                Add a new package that guests can select when booking a room.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Package Name</Label>
+                <Input id="name" name="name" placeholder="e.g. Island Hopping Tour" required />
               </div>
-
-              <div className="space-y-1.5">
-                <label className="font-semibold text-neutral-800 uppercase tracking-wider text-[11px]">
-                  Service Title *
-                </label>
-                <input
-                  type="text"
+              <div className="grid gap-2">
+                <Label htmlFor="service_type">Category</Label>
+                <select 
+                  id="service_type" 
+                  name="service_type" 
                   required
-                  placeholder="e.g. Bretania 4-Island Tour with Life Vests"
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="font-semibold text-neutral-800 uppercase tracking-wider text-[11px]">
-                    Rate (₱) *
-                  </label>
-                  <input
-                    type="number"
-                    min={1}
-                    step="any"
-                    required
-                    value={price || ""}
-                    onChange={(e) => setPrice(e.target.value === "" ? 0 : Number(e.target.value))}
-                    className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black"
-                  />
-                </div>
-                
-                <div className="space-y-1.5">
-                  <label className="font-semibold text-neutral-800 uppercase tracking-wider text-[11px]">
-                    Payment Type
-                  </label>
-                  <select
-                    value={paymentType}
-                    onChange={(e) => setPaymentType(e.target.value as any)}
-                    className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black bg-white"
-                  >
-                    <option value="cash">Pay at Property</option>
-                    <option value="upfront">Pay Online (Upfront)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-semibold text-neutral-800 uppercase tracking-wider text-[11px]">
-                  Description / Inclusions
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="e.g. Includes licensed boat crew, fuel, life vests, visits to Boslon, Naked, and Hagonoy islands."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-neutral-100 flex items-center justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsModalOpen(false)}
-                  className="border-neutral-200 text-xs"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  size="sm"
-                  className="bg-black text-white hover:bg-neutral-800 text-xs px-4"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Publish Service"
-                  )}
-                </Button>
+                  <option value="Tour">Tour</option>
+                  <option value="Boat">Boat Rental</option>
+                  <option value="Food">Food / Meals</option>
+                </select>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <div className="grid gap-2">
+                <Label htmlFor="price">Price (₱)</Label>
+                <Input id="price" name="price" type="number" step="0.01" min="0" placeholder="e.g. 1500" required />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending} className="bg-black text-white hover:bg-neutral-800">
+                {createMutation.isPending ? "Saving..." : "Create Package"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export interface Message {
   id: string;
@@ -13,25 +14,42 @@ export interface Message {
 }
 
 export function useRealtimeMessages(userId: string | undefined, initialMessages: Message[] = []) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const queryClient = useQueryClient();
   const supabase = useMemo(() => createClient(), []);
 
-  // Update isolated state without forcing full parent reload for every keystroke
+  // 1. Initial Historical Fetch using React Query
+  const { data: messages = initialMessages, isLoading } = useQuery({
+    queryKey: ["messages", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data || []) as Message[];
+    },
+    enabled: !!userId,
+  });
+
+  // Update isolated state using setQueryData
   const handleNewMessage = useCallback((payload: any) => {
     const newMessage = payload.new as Message;
-    setMessages((prev) => {
-      // Prevent duplicates in strict mode
-      if (prev.some((m) => m.id === newMessage.id)) return prev;
-      return [...prev, newMessage].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    queryClient.setQueryData(["messages", userId], (oldData: Message[] | undefined) => {
+      if (!oldData) return [newMessage];
+      if (oldData.some((m) => m.id === newMessage.id)) return oldData;
+      return [...oldData, newMessage].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     });
-  }, []);
+  }, [queryClient, userId]);
 
   const handleUpdateMessage = useCallback((payload: any) => {
     const updatedMessage = payload.new as Message;
-    setMessages((prev) => 
-      prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
-    );
-  }, []);
+    queryClient.setQueryData(["messages", userId], (oldData: Message[] | undefined) => {
+      if (!oldData) return [];
+      return oldData.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg));
+    });
+  }, [queryClient, userId]);
 
   useEffect(() => {
     if (!userId) return;
@@ -98,21 +116,26 @@ export function useRealtimeMessages(userId: string | undefined, initialMessages:
     const data = rawData as any;
 
     if (error) throw error;
-    return data;
-  }, [userId, supabase]);
+    return data as Message;
+  }, [userId, supabase, queryClient]);
 
   const markAsRead = useCallback(async (messageId: string) => {
-    const { error } = await supabase
-      .from("messages")
-      .update({ is_read: true } as never)
+    const { error } = await (supabase.from("messages") as any)
+      .update({ is_read: true })
       .eq("id", messageId);
-
-    if (error) throw error;
-  }, [supabase]);
+    
+    if (!error) {
+      queryClient.setQueryData(["messages", userId], (oldData: Message[] | undefined) => {
+        if (!oldData) return [];
+        return oldData.map(msg => msg.id === messageId ? { ...msg, is_read: true } : msg);
+      });
+    }
+  }, [supabase, queryClient, userId]);
 
   return {
     messages,
     sendMessage,
-    markAsRead
+    markAsRead,
+    isLoading
   };
 }

@@ -12,6 +12,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   TouristHeader,
 } from "@/components/tourist/tourist-header";
@@ -23,9 +24,7 @@ import {
   PropertyCard,
   type PropertyCardData,
 } from "@/components/tourist/property-card";
-import {
-  PropertyListSkeleton,
-} from "@/components/tourist/property-card-skeleton";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import {
   FilterDialog,
   INITIAL_FILTERS,
@@ -41,54 +40,68 @@ import { ROLE_HOME_ROUTES, type UserRole } from "@/lib/constants";
 
 export default function TouristDiscoveryPage() {
   const router = useRouter();
-  const [properties, setProperties] = React.useState<PropertyCardData[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("all");
   const [viewMode, setViewMode] = React.useState<"grid" | "feed">("grid");
   const [isFilterDialogOpen, setIsFilterDialogOpen] = React.useState(false);
   const [filters, setFilters] = React.useState<FilterState>(INITIAL_FILTERS);
+
+  // Default to feed view on mobile devices for better UX
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setViewMode("feed");
+    }
+  }, []);
   const [user, setUser] = React.useState<{ email?: string; fullName?: string; role?: string } | null>(null);
 
   const { savedSet, toggleSave, count: savedCount } = useWishlist();
 
-  // Fetch current user and properties from Supabase
-  const fetchData = React.useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
+  // Fetch current user
+  React.useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const supabase = createClient();
 
-      // 1. Check user session
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
+        // 1. Check user session
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
 
-      if (authUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, email, role")
-          .eq("id", authUser.id)
-          .maybeSingle();
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, email, role")
+            .eq("id", authUser.id)
+            .maybeSingle();
 
-        const role = ((profile as any)?.role || (authUser.user_metadata?.role as string) || "tourist") as UserRole;
+          const role = ((profile as any)?.role || (authUser.user_metadata?.role as string) || "tourist") as UserRole;
 
-        // If non-tourist visits root tourist discovery page, automatically redirect to their dashboard
-        if (role && role !== "tourist" && ROLE_HOME_ROUTES[role]) {
-          router.replace(ROLE_HOME_ROUTES[role]);
-          return;
+          // If non-tourist visits root tourist discovery page, automatically redirect to their dashboard
+          if (role && role !== "tourist" && ROLE_HOME_ROUTES[role]) {
+            router.replace(ROLE_HOME_ROUTES[role]);
+            return;
+          }
+
+          setUser({
+            email: authUser.email,
+            fullName: (profile as any)?.full_name || authUser.email?.split("@")[0],
+            role: role,
+          });
+        } else {
+          setUser(null);
         }
-
-        setUser({
-          email: authUser.email,
-          fullName: (profile as any)?.full_name || authUser.email?.split("@")[0],
-          role: role,
-        });
-      } else {
-        setUser(null);
+      } catch (err) {
+        console.error("Error fetching user:", err);
       }
+    };
+    checkUser();
+  }, [router]);
 
-
-      // 2. Fetch properties from Supabase
+  const { data: properties = [], isLoading } = useQuery({
+    queryKey: ["properties"],
+    queryFn: async () => {
+      const supabase = createClient();
       const { data: dbProperties, error } = await supabase
         .from("properties")
         .select(`
@@ -108,7 +121,7 @@ export default function TouristDiscoveryPage() {
 
       if (error) {
         toast.error("Failed to load properties.");
-        setProperties([]);
+        return [];
       } else {
         // Map database records into UI PropertyCardData
         const mapped: PropertyCardData[] = (dbProperties || []).map((p: any) => {
@@ -123,24 +136,22 @@ export default function TouristDiscoveryPage() {
             address: p.address || "Bretania, San Agustin, Surigao del Sur",
             cover_image_url: p.cover_image_url,
             base_price: minPrice,
-            rating: 0,
-            reviews_count: 0,
+            rating: p.rating,
+            reviews_count: p.reviews_count,
             max_capacity: maxCap,
             is_verified: true,
             status: p.status,
             amenities: [],
           };
         });
-        setProperties(mapped);
+        return mapped;
       }
-    } catch (err) {
-      console.error("DEBUG: fetchData failed with error:", err);
-      toast.error("An unexpected error occurred while loading properties.");
-      setProperties([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+  });
+
+  const fetchData = React.useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["properties"] });
+  }, [queryClient]);
 
   React.useEffect(() => {
     fetchData();
@@ -450,7 +461,10 @@ export default function TouristDiscoveryPage() {
 
         {/* 5. Listing Content: Loading State, Empty State, or Results */}
         {isLoading ? (
-          <PropertyListSkeleton count={6} viewMode={viewMode} />
+          <div className="flex flex-col items-center justify-center py-24">
+            <LoadingLogo size="large" />
+            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading available stays</p>
+          </div>
         ) : filteredProperties.length === 0 ? (
           <EmptyState
             icon={Compass}
@@ -481,42 +495,6 @@ export default function TouristDiscoveryPage() {
           </div>
         )}
 
-        {/* 6. Footer Information Banner for Tourists */}
-        <section className="mt-12 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 sm:p-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="space-y-1.5 max-w-xl">
-            <div className="flex items-center justify-center sm:justify-start gap-2">
-              <Badge variant="default" size="sm">
-                Official Association
-              </Badge>
-              <span className="text-xs text-neutral-600 font-medium">
-                San Agustin, Surigao del Sur
-              </span>
-            </div>
-            <h2 className="text-lg font-bold text-neutral-900">
-              Booking Directly with MVBA Property Members
-            </h2>
-            <p className="text-xs text-neutral-600 leading-relaxed">
-              Every homestay and resort on this platform is inspected and certified by the San Agustin local tourism office. Directly chat with owners, enjoy transparent member rates, and ensure legitimate island hopping boat transfers.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <Button
-              variant="outline"
-              onClick={() => setIsFilterDialogOpen(true)}
-              className="border-neutral-300 bg-white text-xs h-10 px-4"
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
-              Filter Stays
-            </Button>
-            <Button
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="bg-black text-white hover:bg-neutral-800 text-xs h-10 px-5"
-            >
-              Explore Stays
-            </Button>
-          </div>
-        </section>
       </main>
 
       {/* 7. Modal Filter Dialog */}

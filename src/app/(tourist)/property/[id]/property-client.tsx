@@ -30,7 +30,18 @@ import {
   PlaySquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Badge } from "@/components/ui/badge";
+const formatTime12Hour = (timeStr?: string) => {
+  if (!timeStr) return "";
+  const [hourStr, minStr] = timeStr.split(":");
+  const hour = parseInt(hourStr, 10);
+  if (isNaN(hour)) return timeStr;
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${minStr || "00"} ${ampm}`;
+};
+
 import { Button } from "@/components/ui/button";
 import { SocialVideoEmbed } from "@/components/ui/social-video-embed";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -40,6 +51,7 @@ import { addDays } from "date-fns";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { cn } from "@/lib/utils";
 import { ShareButton } from "@/components/tourist/share-button";
+import { AuthModal } from "@/components/auth/auth-modal";
 
 interface RoomItem {
   id: string;
@@ -67,6 +79,9 @@ export default function PropertyStorefrontPage() {
   const [activeTab, setActiveTab] = React.useState<"overview" | "rooms" | "services" | "reviews">("overview");
 
   // Booking Modal State
+  const [user, setUser] = React.useState<any>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [pendingRoomToBook, setPendingRoomToBook] = React.useState<RoomItem | null>(null);
   const [selectedRoom, setSelectedRoom] = React.useState<RoomItem | null>(null);
   const [gallery, setGallery] = React.useState<{
     isOpen: boolean;
@@ -100,6 +115,16 @@ export default function PropertyStorefrontPage() {
     status: string;
   }[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = React.useState(false);
+
+  // Load User Data
+  React.useEffect(() => {
+    async function fetchUser() {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    }
+    fetchUser();
+  }, []);
 
   // Fetch active booked dates for selected room to block conflicting dates
   React.useEffect(() => {
@@ -169,6 +194,8 @@ export default function PropertyStorefrontPage() {
             policies,
             check_in_time,
             check_out_time,
+            facebook_url,
+            messenger_url,
             rooms (*, room_images(id, image_url, display_order)),
             extra_services (*),
             reviews (
@@ -393,11 +420,9 @@ export default function PropertyStorefrontPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-black border-t-transparent mx-auto" />
-          <p className="text-xs text-neutral-600">Loading stay details...</p>
-        </div>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <LoadingLogo size="large" />
+        <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading stay details...</p>
       </div>
     );
   }
@@ -463,16 +488,32 @@ export default function PropertyStorefrontPage() {
 
       <main className="mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-8">
         {/* Visual Hero Gallery */}
-        <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200">
+        <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 group cursor-pointer">
           {property.cover_image_url ? (
-            <Image
-              src={property.cover_image_url}
-              alt={property.name}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
-              priority
-              className="object-cover"
-            />
+            <div 
+              className="absolute inset-0"
+              onClick={() => {
+                setGallery({
+                  isOpen: true,
+                  roomName: property.name,
+                  images: [property.cover_image_url],
+                  currentIndex: 0,
+                });
+              }}
+            >
+              <Image
+                src={property.cover_image_url}
+                alt={property.name}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
+                priority
+                className="object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm font-bold gap-2 backdrop-blur-[2px]">
+                <Eye className="h-5 w-5" />
+                <span>View Full Screen</span>
+              </div>
+            </div>
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-500">
               <span className="text-xl font-bold">{property.name}</span>
@@ -563,20 +604,54 @@ export default function PropertyStorefrontPage() {
               </p>
             </div>
 
+            {(property.facebook_url || property.messenger_url) && (
+              <div className="space-y-3 pt-4 border-t border-neutral-100">
+                <h3 className="text-base font-bold text-neutral-900">Connect with the Host</h3>
+                <div className="flex flex-wrap gap-3">
+                  {property.facebook_url && (
+                    <a
+                      href={property.facebook_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2]/10 text-[#1877F2] font-semibold text-sm rounded-xl hover:bg-[#1877F2]/20 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      Facebook Page
+                    </a>
+                  )}
+                  {property.messenger_url && (
+                    <a
+                      href={property.messenger_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#00B2FF]/10 text-[#00B2FF] font-semibold text-sm rounded-xl hover:bg-[#00B2FF]/20 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 256 256">
+                        <path d="M128,24C68.9,24,21,68.6,21,123.6c0,31.7,16,61.4,43.2,80.7v27.7c0,3.6,3.6,6,7,4.7l30.9-12.2c8.2,2.3,16.8,3.5,25.8,3.5,59.1,0,107-44.6,107-99.6S187.1,24,128,24Zm9.3,131.6-26.6-28.5c-2.3-2.5-6.2-2.7-8.8-.5l-33.8,28.5c-4,3.4-9.3-1.6-6.3-5.9l29.7-42c2.3-3.2,6.7-4,9.8-1.7l26.6,28.5c2.3,2.5,6.2,2.7,8.8.5l33.8-28.5c4-3.4,9.3,1.6,6.3,5.9l-29.7,42C144.9,159,140.4,159.8,137.3,155.6Z"/>
+                      </svg>
+                      Chat on Messenger
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Property Policies (Dynamic) */}
             {property.policies && (
               <div className="space-y-3 pt-4 border-t border-neutral-100">
                 <h3 className="text-base font-bold text-neutral-900">House Rules</h3>
                 
-                <div className="flex items-center gap-4 text-sm font-medium text-neutral-700 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-sm font-medium text-neutral-700 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-neutral-500" />
-                    <span>Check-in: {property.check_in_time || "14:00"}</span>
+                    <span>Check-in: {formatTime12Hour(property.check_in_time || "14:00")}</span>
                   </div>
-                  <div className="w-px h-4 bg-neutral-300"></div>
+                  <div className="hidden sm:block w-px h-4 bg-neutral-300"></div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-neutral-500" />
-                    <span>Check-out: {property.check_out_time || "12:00"}</span>
+                    <span>Check-out: {formatTime12Hour(property.check_out_time || "12:00")}</span>
                   </div>
                 </div>
 
@@ -751,7 +826,14 @@ export default function PropertyStorefrontPage() {
                       </div>
 
                       <Button
-                        onClick={() => setSelectedRoom(room)}
+                        onClick={() => {
+                          if (!user) {
+                            setPendingRoomToBook(room);
+                            setIsAuthModalOpen(true);
+                          } else {
+                            setSelectedRoom(room);
+                          }
+                        }}
                         className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-4 font-bold shadow-xs"
                       >
                         Book Room
@@ -873,32 +955,34 @@ export default function PropertyStorefrontPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6"
         >
           <div
             className="fixed inset-0 bg-black/40 backdrop-blur-xs"
             onClick={() => setSelectedRoom(null)}
           />
 
-          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3 sticky top-0 bg-white z-10 pt-2">
+          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85dvh] overflow-hidden">
+            {/* Header - Fixed */}
+            <div className="shrink-0 flex items-center justify-between border-b border-neutral-100 p-4 bg-white">
               <div>
-                <h3 className="font-bold text-base text-neutral-900">
+                <h3 className="font-bold text-lg text-neutral-900 leading-tight">
                   Request Reservation
                 </h3>
                 <p className="text-xs font-medium text-neutral-700">{selectedRoom.name}</p>
               </div>
               <button
                 onClick={() => setSelectedRoom(null)}
-                className="p-1 rounded-full text-neutral-600 hover:text-black"
+                className="p-1.5 rounded-full text-neutral-600 hover:text-black bg-neutral-100 hover:bg-neutral-200 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            {/* Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
               {/* Custom Inline Calendar */}
-              <div className="rounded-xl border border-neutral-200 overflow-hidden flex justify-center bg-white p-2">
+              <div className="rounded-xl border border-neutral-200 bg-white p-1 flex justify-center overflow-hidden">
                 <CalendarComponent
                   mode="range"
                   defaultMonth={dateRange?.from}
@@ -917,7 +1001,7 @@ export default function PropertyStorefrontPage() {
               )}
 
               <div>
-                <label className="font-medium text-neutral-700 block mb-1">
+                <label className="font-medium text-neutral-700 block mb-1.5">
                   Number of Guests
                 </label>
                 <input
@@ -926,28 +1010,28 @@ export default function PropertyStorefrontPage() {
                   max={selectedRoom.max_capacity}
                   value={guestCount}
                   onChange={(e) => setGuestCount(Number(e.target.value))}
-                  className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black font-medium"
+                  className="w-full h-10 px-3 rounded-md border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium"
                 />
-                <span className="text-[11px] font-medium text-neutral-700 mt-1 block">
+                <span className="text-xs font-medium text-neutral-700 mt-1 block">
                   Maximum capacity: {selectedRoom.max_capacity} guests
                 </span>
               </div>
 
               <div>
-                <label className="font-medium text-neutral-700 block mb-1">
+                <label className="font-medium text-neutral-700 block mb-1.5">
                   Estimated Arrival Time <span className="text-neutral-600 font-normal">(Optional)</span>
                 </label>
                 <select
                   value={arrivalTime}
                   onChange={(e) => setArrivalTime(e.target.value)}
-                  className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
+                  className="w-full h-10 px-3 rounded-md border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
                 >
                   <option value="">Not Sure Yet</option>
                   <option value="2:00 PM - 4:00 PM">2:00 PM - 4:00 PM</option>
                   <option value="4:00 PM - 6:00 PM">4:00 PM - 6:00 PM</option>
                   <option value="After 6:00 PM">Late Arrival (After 6:00 PM)</option>
                 </select>
-                <span className="text-[11px] font-medium text-neutral-700 mt-1 block">
+                <span className="text-xs font-medium text-neutral-700 mt-1 block">
                   Standard Check-in: 2:00 PM | Check-out: 12:00 PM
                 </span>
               </div>
@@ -974,11 +1058,11 @@ export default function PropertyStorefrontPage() {
                         />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold text-neutral-900 text-[11px]">{service.name}</span>
-                            <span className="font-bold text-neutral-900 text-[11px]">₱{Number(service.price).toLocaleString()}</span>
+                            <span className="font-semibold text-neutral-900 text-sm">{service.name}</span>
+                            <span className="font-bold text-neutral-900 text-sm">₱{Number(service.price).toLocaleString()}</span>
                           </div>
                           {service.description && (
-                            <p className="text-[10px] text-neutral-600 mt-0.5 line-clamp-2">{service.description}</p>
+                            <p className="text-xs text-neutral-600 mt-1 line-clamp-2">{service.description}</p>
                           )}
                         </div>
                       </label>
@@ -989,12 +1073,12 @@ export default function PropertyStorefrontPage() {
             </div>
 
             {/* Summary */}
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3 text-xs space-y-1.5">
+            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
               <div className="flex justify-between text-neutral-600">
                 <span className="font-medium text-neutral-700">
                   ₱{selectedRoom.base_price.toLocaleString()} &times; {calculateTotalNights()} {calculateTotalNights() === 1 ? "night" : "nights"}
                 </span>
-                <span className="font-bold text-neutral-900">
+                <span className="font-bold text-neutral-900 text-base">
                   ₱{(selectedRoom.base_price * calculateTotalNights()).toLocaleString()}
                 </span>
               </div>
@@ -1006,21 +1090,24 @@ export default function PropertyStorefrontPage() {
               </div>
             </div>
 
-            <Button
-              onClick={handleCreateBooking}
-              disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
-              className="w-full h-11 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-xs font-semibold rounded-xl transition-all"
-            >
-              {isSubmittingBooking ? (
-                "Verifying & Sending Request..."
-              ) : conflictingBooking ? (
-                "Dates Unavailable (Already Booked)"
-              ) : checkInDate >= checkOutDate ? (
-                "Select Valid Dates"
-              ) : (
-                "Confirm & Send Request"
-              )}
-            </Button>
+            {/* Footer - Fixed */}
+            <div className="shrink-0 p-4 border-t border-neutral-100 bg-white">
+              <Button
+                onClick={handleCreateBooking}
+                disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
+                className="w-full h-10 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-lg transition-all shadow-md"
+              >
+                {isSubmittingBooking ? (
+                  "Verifying & Sending Request..."
+                ) : conflictingBooking ? (
+                  "Dates Unavailable (Already Booked)"
+                ) : checkInDate >= checkOutDate ? (
+                  "Select Valid Dates"
+                ) : (
+                  "Confirm & Send Request"
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -1030,11 +1117,11 @@ export default function PropertyStorefrontPage() {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-md"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black"
           onClick={() => setGallery((prev) => ({ ...prev, isOpen: false }))}
         >
           <div
-            className="relative max-w-4xl w-full rounded-2xl overflow-hidden shadow-2xl bg-neutral-950 border border-white/10 flex flex-col max-h-[92vh]"
+            className="relative w-full h-[100dvh] flex flex-col bg-black"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Gallery Top Bar */}
@@ -1058,7 +1145,7 @@ export default function PropertyStorefrontPage() {
             </div>
 
             {/* Main Active Image Stage with Left & Right Arrows */}
-            <div className="relative flex-1 aspect-[16/10] sm:aspect-[16/9] w-full bg-black flex items-center justify-center overflow-hidden">
+            <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
               <Image
                 src={gallery.images[gallery.currentIndex]}
                 alt={`${gallery.roomName} angle ${gallery.currentIndex + 1}`}
@@ -1105,7 +1192,7 @@ export default function PropertyStorefrontPage() {
             </div>
 
             {/* Bottom Thumbnail Strip for all angles */}
-            <div className="p-3 bg-neutral-900 border-t border-white/10 flex items-center gap-2 overflow-x-auto shrink-0 scrollbar-hide">
+            <div className="p-4 bg-black border-t border-white/10 flex items-center gap-3 overflow-x-auto shrink-0 scrollbar-hide">
               {gallery.images.map((img, idx) => (
                 <button
                   key={idx}
@@ -1126,6 +1213,26 @@ export default function PropertyStorefrontPage() {
           </div>
         </div>
       )}
+
+      {/* Auth Gate Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setPendingRoomToBook(null);
+        }}
+        redirectOnSuccess={false}
+        onLoginSuccess={async () => {
+          const supabase = createClient();
+          const { data } = await supabase.auth.getUser();
+          setUser(data.user);
+          setIsAuthModalOpen(false);
+          if (pendingRoomToBook) {
+            setSelectedRoom(pendingRoomToBook);
+            setPendingRoomToBook(null);
+          }
+        }}
+      />
     </div>
   );
 }

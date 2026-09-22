@@ -1,11 +1,16 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import { MapPin, Star, User, Info, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Button } from "@/components/ui/button";
 import { BookingRequestModal } from "./booking-request-modal";
+import { createClient } from "@/lib/supabase/client";
+import { createReservationAction } from "@/app/actions/booking-actions";
 
 export interface FeedProperty {
   id: string;
@@ -18,15 +23,7 @@ export interface FeedProperty {
   rooms: { id: string; name: string; base_price: number; max_capacity: number }[];
 }
 
-interface DiscoveryFeedProps {
-  initialData: FeedProperty[];
-  fetchMore: (offset: number) => Promise<FeedProperty[]>;
-  totalCount: number;
-}
-
-export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryFeedProps) {
-  const [properties, setProperties] = useState<FeedProperty[]>(initialData);
-  const [isFetching, setIsFetching] = useState(false);
+export function DiscoveryFeed() {
   const [activePropertyIndex, setActivePropertyIndex] = useState(0);
   
   // Booking Modal State
@@ -34,9 +31,51 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
   const [selectedProperty, setSelectedProperty] = useState<FeedProperty | null>(null);
 
   const parentRef = useRef<HTMLDivElement>(null);
+  const supabase = createClient();
+  const queryClient = useQueryClient();
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ["discovery-feed"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const limit = 10;
+      const { data: dbProps, error } = await supabase
+        .from("properties")
+        .select(`
+          id, name, type, address, cover_image_url,
+          rooms (id, name, base_price, max_capacity)
+        `)
+        .eq("status", "active")
+        .range(pageParam, pageParam + limit - 1);
+
+      if (error) throw error;
+
+      return (dbProps || []).map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        address: p.address || "Bretania, San Agustin",
+        cover_image_url: p.cover_image_url,
+        rooms: p.rooms || [],
+        rating: p.rating,
+        reviews_count: p.reviews_count,
+      })) as FeedProperty[];
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 10 ? allPages.length * 10 : undefined;
+    },
+  });
+
+  const properties = data?.pages.flat() || [];
 
   const rowVirtualizer = useVirtualizer({
-    count: properties.length + (properties.length < totalCount ? 1 : 0),
+    count: hasNextPage ? properties.length + 1 : properties.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => window.innerHeight, // Each item takes exactly 100vh
     overscan: 1, // Only render 1 item off-screen to preserve memory on mobile
@@ -51,16 +90,12 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
 
     if (
       lastItem.index >= properties.length - 1 &&
-      !isFetching &&
-      properties.length < totalCount
+      hasNextPage &&
+      !isFetchingNextPage
     ) {
-      setIsFetching(true);
-      fetchMore(properties.length).then((newData) => {
-        setProperties((prev) => [...prev, ...newData]);
-        setIsFetching(false);
-      });
+      fetchNextPage();
     }
-  }, [virtualItems, isFetching, properties.length, totalCount, fetchMore]);
+  }, [virtualItems, hasNextPage, isFetchingNextPage, properties.length, fetchNextPage]);
 
   // Track the currently active video based on scroll position
   useEffect(() => {
@@ -83,10 +118,33 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
     setBookingModalOpen(true);
   };
 
+  const bookingMutation = useMutation({
+    mutationFn: createReservationAction,
+    onSuccess: (data) => {
+      if (data.success) {
+        toast.success("Booking request sent successfully!", {
+          description: "The host will review your request shortly.",
+        });
+        queryClient.invalidateQueries({ queryKey: ["discovery-feed"] });
+        queryClient.invalidateQueries({ queryKey: ["properties"] });
+        setBookingModalOpen(false);
+      } else {
+        toast.error("Failed to request booking", { description: data.error });
+      }
+    },
+    onError: (error: any) => {
+      toast.error("Failed to request booking", { description: error.message });
+    }
+  });
+
   const handleBookingSubmit = async (payload: any) => {
-    // Booking submission handled here (calling server action or API)
-    console.log("Submitting booking:", payload);
-    setBookingModalOpen(false);
+    bookingMutation.mutate({
+      roomId: payload.roomId,
+      checkInDate: payload.checkInDate,
+      checkOutDate: payload.checkOutDate,
+      guestCount: payload.guestCount,
+      notes: payload.serviceIds?.length ? `Extra Services: ${payload.serviceIds.join(", ")}` : undefined,
+    });
   };
 
   return (
@@ -120,7 +178,7 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
               >
                 {isLoaderRow ? (
                   <div className="flex flex-col items-center justify-center text-white/50">
-                    <Loader2 className="w-8 h-8 animate-spin mb-4" />
+                    <div className="flex justify-center mb-4"><LoadingLogo size="large" /></div>
                     <p className="text-sm font-medium tracking-wide">Loading more places...</p>
                   </div>
                 ) : (
@@ -141,8 +199,10 @@ export function DiscoveryFeed({ initialData, fetchMore, totalCount }: DiscoveryF
         <BookingRequestModal 
           isOpen={bookingModalOpen}
           onClose={() => setBookingModalOpen(false)}
+          propertyId={selectedProperty.id}
           rooms={selectedProperty.rooms}
           onSubmit={handleBookingSubmit}
+          isSubmitting={bookingMutation.isPending}
         />
       )}
       
@@ -213,21 +273,21 @@ function FeedCard({ property, isActive, onBook }: { property: FeedProperty, isAc
           
           <div className="flex-1 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-md bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider">
+              <span className="px-2.5 py-1 rounded-md bg-white/60 backdrop-blur-md text-slate-900 text-[10px] font-bold uppercase tracking-wider">
                 {property.type}
               </span>
               {property.rating && (
-                <div className="flex items-center gap-1 text-yellow-400 font-medium text-sm drop-shadow-md">
+                <div className="flex items-center gap-1 text-yellow-400 font-semibold text-sm drop-shadow-md">
                   <Star className="w-4 h-4 fill-current" /> {property.rating}
                 </div>
               )}
             </div>
             
-            <h1 className="text-3xl font-bold text-white drop-shadow-lg leading-tight">
+            <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-md leading-tight">
               {property.name}
             </h1>
             
-            <p className="text-white/80 text-sm font-medium flex items-center gap-1.5 drop-shadow-sm">
+            <p className="text-white font-semibold drop-shadow-md text-sm flex items-center gap-1.5">
               <MapPin className="w-4 h-4" /> {property.address}
             </p>
           </div>

@@ -28,9 +28,10 @@ interface AuthModalProps {
   onClose: () => void;
   initialMode?: "login" | "register";
   onLoginSuccess?: () => void;
+  redirectOnSuccess?: boolean;
 }
 
-export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSuccess }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSuccess, redirectOnSuccess = true }: AuthModalProps) {
   const [mounted, setMounted] = useState(false);
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [showPassword, setShowPassword] = useState(false);
@@ -113,7 +114,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       }
 
       if (authData.user) {
-        toast.success("Signed in successfully!");
+        const name = authData.user.user_metadata?.full_name?.split(" ")[0] || "User";
+        toast.success(`Welcome ${name}! You are completely logged in.`);
 
         // Determine target dashboard
         const { data: profile } = await supabase
@@ -133,9 +135,11 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
           onLoginSuccess();
         }
 
-        const currentPath = window.location.pathname;
-        if (currentPath !== homeRoute) {
-          router.push(homeRoute);
+        if (redirectOnSuccess) {
+          const currentPath = window.location.pathname;
+          if (currentPath !== homeRoute) {
+            router.push(homeRoute);
+          }
         }
         onClose();
       }
@@ -170,15 +174,18 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       }
 
       if (authData.session) {
-        toast.success("Account created successfully!");
+        const name = data.fullName.split(" ")[0] || "User";
+        toast.success(`Welcome ${name}! Account created and you are completely logged in.`);
         const homeRoute = ROLE_HOME_ROUTES["tourist" as UserRole] || "/";
         if (onLoginSuccess) {
           onLoginSuccess();
         }
 
-        const currentPath = window.location.pathname;
-        if (currentPath !== homeRoute) {
-          router.push(homeRoute);
+        if (redirectOnSuccess) {
+          const currentPath = window.location.pathname;
+          if (currentPath !== homeRoute) {
+            router.push(homeRoute);
+          }
         }
         onClose();
       } else {
@@ -244,11 +251,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
               setMode("login");
               setError("");
             }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              mode === "login"
-                ? "bg-white text-black shadow-xs"
-                : "text-neutral-600 hover:text-black"
-            }`}
+            className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "login"
+              ? "bg-white text-black shadow-xs"
+              : "text-neutral-600 hover:text-black"
+              }`}
           >
             Sign In
           </button>
@@ -258,11 +264,10 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
               setMode("register");
               setError("");
             }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${
-              mode === "register"
-                ? "bg-white text-black shadow-xs"
-                : "text-neutral-600 hover:text-black"
-            }`}
+            className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "register"
+              ? "bg-white text-black shadow-xs"
+              : "text-neutral-600 hover:text-black"
+              }`}
           >
             Create Account
           </button>
@@ -292,7 +297,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
                           <Input
                             id="login-email"
                             autoComplete="email"
-                            placeholder="admin@sarah.test"
+                            placeholder="email@gmail.com"
                             type="email"
                             className="h-10 pl-9 rounded-xl border-neutral-300 text-xs sm:text-sm focus-visible:ring-black"
                             {...field}

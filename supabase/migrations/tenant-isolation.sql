@@ -10,7 +10,7 @@ ALTER TABLE bookings
 ADD CONSTRAINT no_overlapping_bookings
 EXCLUDE USING gist (
   room_id WITH =,
-  daterange(check_in_date, check_out_date, '[]') WITH &&
+  daterange(check_in_date, check_out_date, '[)') WITH &&
 )
 WHERE (status NOT IN ('cancelled', 'declined'));
 

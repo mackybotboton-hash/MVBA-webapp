@@ -10,6 +10,12 @@ export type BookingStatus = "pending" | "accepted" | "declined" | "cancelled" | 
 export type PaymentStatus = "awaiting_deposit" | "deposit_uploaded" | "verified" | "completed" | "refunded";
 export type ServiceType = "boat" | "food" | "tour" | "spa";
 export type DuesStatus = "paid" | "unpaid" | "overdue";
+export type NotificationType =
+  | "new_booking"
+  | "booking_status"
+  | "new_message"
+  | "deposit_verified"
+  | "booking_cancelled";
 
 // ---- Core Table Types ----
 
@@ -39,6 +45,8 @@ export interface Property {
   check_in_time?: string | null;
   check_out_time?: string | null;
   status: PropertyStatus;
+  facebook_url: string | null;
+  messenger_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +75,10 @@ export interface Booking {
   id: string;
   tourist_id: string;
   room_id: string;
+  /** Denormalized from rooms→properties.owner_id for Supabase Realtime filtering */
+  owner_id: string | null;
+  /** Set when the host opens the Bookings page; NULL drives the unseen badge count */
+  seen_by_host_at: string | null;
   check_in_date: string;
   check_out_date: string;
   guest_count: number;
@@ -81,6 +93,17 @@ export interface Booking {
   notes?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  url: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface ExtraService {
@@ -199,6 +222,11 @@ export interface Database {
         Insert: Partial<Booking> & { tourist_id: string; room_id: string; check_in_date: string; check_out_date: string; guest_count: number; total_price: number };
         Update: Partial<Booking>;
         Relationships: [];
+      };
+      notifications: {
+        Row: Notification;
+        Insert: Omit<Notification, "id" | "created_at">;
+        Update: Partial<Omit<Notification, "id" | "created_at">>;
       };
       extra_services: {
         Row: ExtraService;

@@ -160,10 +160,12 @@ export function PropertyCard({
 
               <div className="flex items-center gap-1 text-sm font-semibold text-neutral-900 shrink-0">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span>{property.rating ? property.rating.toFixed(1) : "4.8"}</span>
-                <span className="text-xs text-neutral-600 font-medium">
-                  ({property.reviews_count ?? 12})
-                </span>
+                <span>{!property.reviews_count ? "New" : property.rating ? property.rating.toFixed(1) : "0.0"}</span>
+                {!!property.reviews_count && (
+                  <span className="text-xs text-neutral-600 font-medium">
+                    ({property.reviews_count})
+                  </span>
+                )}
               </div>
             </div>
 
@@ -276,7 +278,7 @@ export function PropertyCard({
       <div className="p-3.5 flex flex-col justify-between flex-1 gap-2.5">
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-1">
-            <h3 className="text-sm font-semibold text-neutral-900 tracking-tight truncate leading-tight">
+            <h3 className="text-base font-semibold text-neutral-900 tracking-tight truncate leading-tight">
               <Link
                 href={`/property/${property.id}`}
                 className="hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-black rounded-xs"
@@ -285,14 +287,19 @@ export function PropertyCard({
               </Link>
             </h3>
 
-            <div className="flex items-center gap-0.5 text-xs font-semibold text-neutral-900 shrink-0">
+            <div className="flex items-center gap-0.5 text-sm font-semibold text-neutral-900 shrink-0">
               <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              <span>{property.rating ? property.rating.toFixed(1) : "4.8"}</span>
+              <span>{!property.reviews_count ? "New" : property.rating ? property.rating.toFixed(1) : "0.0"}</span>
+              {!!property.reviews_count && (
+                <span className="text-[10px] text-neutral-600 font-medium ml-0.5">
+                  ({property.reviews_count})
+                </span>
+              )}
             </div>
           </div>
 
-          <p className="flex items-center gap-1 text-[11px] text-neutral-600 truncate">
-            <MapPin className="h-3 w-3 shrink-0 text-neutral-500" />
+          <p className="flex items-center gap-1 text-xs text-neutral-600 truncate">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
             <span className="truncate">
               {property.address || "Bretania Islands, San Agustin"}
             </span>
@@ -301,18 +308,18 @@ export function PropertyCard({
 
         <div className="pt-2 border-t border-neutral-100 flex items-center justify-between">
           <div className="flex items-baseline gap-0.5">
-            <span className="text-sm font-bold text-neutral-900">
+            <span className="text-base font-bold text-neutral-900">
               {formattedPrice}
             </span>
-            <span className="text-[10px] text-neutral-600">/ night</span>
+            <span className="text-xs text-neutral-600">/ night</span>
           </div>
 
           <Link
             href={`/property/${property.id}`}
-            className="text-xs font-semibold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-0.5"
+            className="text-sm font-semibold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-0.5"
           >
             Details
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
+import { useNotificationCounts } from "@/hooks/use-notification-counts";
 import { Logo } from "@/components/shared/logo";
 import {
   Bell,
@@ -25,10 +26,23 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuToggle, title }: TopbarProps) {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const router = useRouter();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Live badge counts — sourced from the singleton NotificationCountsProvider
+  const { unreadMessages, unseenBookings, pendingTransactions } =
+    useNotificationCounts();
+
+  // Total bell count: sum up all relevant counts for this role
+  const role = profile?.role;
+  const bellCount =
+    role === "admin"
+      ? pendingTransactions
+      : role === "homestay" || role === "resort"
+      ? unseenBookings + unreadMessages
+      : unreadMessages;
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -50,12 +64,15 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 
   async function handleSignOut() {
     setIsUserMenuOpen(false);
+
+    const confirmed = window.confirm("Are you sure you want to sign out?");
+    if (!confirmed) return;
+
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/");
+    window.location.href = "/";
   }
 
-  const role = profile?.role || "tourist";
   const portalHomeRoute =
     role === "homestay"
       ? "/homestay"
@@ -95,24 +112,23 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
               <Menu className="h-5 w-5 text-gray-600" />
             </button>
           )}
-          <div className="hidden md:block">
-            <Logo size="small" href={portalHomeRoute} />
-          </div>
           {title && (
-            <>
-              <div className="hidden md:block w-px h-5 bg-gray-200" />
-              <h1 className="text-sm font-medium text-gray-900">{title}</h1>
-            </>
+            <h1 className="text-sm font-medium text-gray-900 ml-2 md:ml-0">{title}</h1>
           )}
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Live Bell Notification Button */}
           <button
             className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Notifications"
+            aria-label={`Notifications${bellCount > 0 ? ` (${bellCount} unread)` : ""}`}
           >
             <Bell className="h-5 w-5 text-gray-500" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500" />
+            {bellCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm animate-in zoom-in-75 duration-200">
+                {bellCount > 99 ? "99+" : bellCount}
+              </span>
+            )}
           </button>
 
           <div className="w-px h-5 bg-gray-200 mx-1" />
@@ -168,14 +184,16 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 
                 {/* Quick actions */}
                 <div className="py-1 space-y-0.5 text-xs">
-                  <Link
-                    href="/profile"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium transition-colors"
-                  >
-                    <User className="h-4 w-4 text-gray-400" />
-                    <span>My Account & Profile</span>
-                  </Link>
+                  {role !== "admin" && (
+                    <Link
+                      href={role === "tourist" ? "/profile" : `/${role}/settings`}
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium transition-colors"
+                    >
+                      <User className="h-4 w-4 text-gray-400" />
+                      <span>{role === "tourist" ? "My Account & Profile" : "Host Settings"}</span>
+                    </Link>
+                  )}
 
                   <Link
                     href={portalHomeRoute}

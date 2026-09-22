@@ -91,8 +91,6 @@ export function FilterDialog({
 
   const handleReset = () => {
     setDraft(INITIAL_FILTERS);
-    onResetFilters();
-    onClose();
   };
 
   return (
@@ -299,6 +297,7 @@ export function FilterDialog({
                         minPrice: Number(e.target.value),
                       }))
                     }
+                    onFocus={(e) => e.target.select()}
                     className="w-full h-10 pl-7 pr-3 rounded-lg border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black"
                   />
                 </div>
@@ -321,6 +320,7 @@ export function FilterDialog({
                         maxPrice: Number(e.target.value),
                       }))
                     }
+                    onFocus={(e) => e.target.select()}
                     className="w-full h-10 pl-7 pr-3 rounded-lg border border-neutral-200 text-xs font-medium text-neutral-900 focus:outline-none focus:ring-1 focus:ring-black"
                   />
                 </div>

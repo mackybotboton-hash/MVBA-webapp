@@ -45,6 +45,19 @@ export default function AdminLayout({
                   pathname === item.href ||
                   (item.href !== "/admin" && pathname.startsWith(item.href));
                 const Icon = item.icon;
+
+                if (item.disabled) {
+                  return (
+                    <div
+                      key={item.href}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all opacity-50 cursor-not-allowed pointer-events-none text-gray-500"
+                    >
+                      <Icon className="h-5 w-5 flex-shrink-0 text-gray-400" />
+                      <span>{item.label}</span>
+                    </div>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.href}

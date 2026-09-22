@@ -75,17 +75,26 @@ export function OwnerBookingCard({
     }
   };
 
+  const getAcceptedStatusConfig = () => {
+    switch (booking.payment_status) {
+      case "awaiting_deposit":
+        return { label: "Awaiting Deposit", variant: "warning" as const, icon: Clock };
+      case "deposit_uploaded":
+        return { label: "Verifying Deposit", variant: "warning" as const, icon: Clock };
+      case "verified":
+        return { label: "Confirmed Booking", variant: "success" as const, icon: CheckCircle2 };
+      default:
+        return { label: "Awaiting Deposit", variant: "warning" as const, icon: Clock };
+    }
+  };
+
   const statusConfig = {
     pending: {
       label: "Pending Your Approval",
       variant: "warning" as const,
       icon: Clock,
     },
-    accepted: {
-      label: "Confirmed Booking",
-      variant: "success" as const,
-      icon: CheckCircle2,
-    },
+    accepted: getAcceptedStatusConfig(),
     declined: {
       label: "Declined",
       variant: "destructive" as const,

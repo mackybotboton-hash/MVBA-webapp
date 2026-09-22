@@ -3,6 +3,8 @@ import { Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { PushInitializer } from "@/components/shared/PushInitializer";
+import { QueryProvider } from "@/providers/query-provider";
+import { NotificationCountsProvider } from "@/hooks/use-notification-counts";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -13,11 +15,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Britania Travel — Resort & Homestay Bookings",
+  title: "Bretania Travel — Resort & Homestay Bookings",
   description:
-    "Discover and book stays in Britania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
+    "Discover and book stays in Bretania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
   keywords: [
-    "Britania",
+    "Bretania",
     "San Agustin",
     "Surigao del Sur",
     "resort",
@@ -26,12 +28,12 @@ export const metadata: Metadata = {
     "Philippines",
     "island hopping",
   ],
-  authors: [{ name: "Britania Tourism" }],
+  authors: [{ name: "Bretania Tourism" }],
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Britania",
+    title: "Bretania",
   },
   icons: {
     apple: [
@@ -48,6 +50,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -57,9 +60,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)} data-scroll-behavior="smooth">
-      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground tracking-tight min-h-screen selection:bg-neutral-200 selection:text-black`}>
-        {children}
-        <PushInitializer />
+      <body className={`${inter.variable} font-sans antialiased bg-background text-foreground text-base leading-relaxed tracking-tight min-h-screen selection:bg-neutral-200 selection:text-black`}>
+        <QueryProvider>
+          <NotificationCountsProvider>
+            {children}
+            <PushInitializer />
+          </NotificationCountsProvider>
+        </QueryProvider>
       </body>
     </html>
   );

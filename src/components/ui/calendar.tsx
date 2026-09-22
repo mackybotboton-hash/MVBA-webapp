@@ -17,25 +17,25 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("p-1 sm:p-2 relative w-full", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        month_caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
+        months: "flex flex-col sm:flex-row space-y-2 sm:space-x-4 sm:space-y-0",
+        month: "space-y-2 w-full",
+        month_caption: "flex justify-center pt-1 relative items-center mb-1",
+        caption_label: "text-sm font-bold",
         nav: "space-x-1 flex items-center",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute left-1"
+          "h-9 w-9 bg-white p-0 opacity-90 hover:opacity-100 absolute left-0 top-[55%] -translate-y-1/2 rounded-full shadow-md z-10 border border-neutral-200 text-black hover:bg-neutral-50"
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 absolute right-1"
+          "h-9 w-9 bg-white p-0 opacity-90 hover:opacity-100 absolute right-0 top-[55%] -translate-y-1/2 rounded-full shadow-md z-10 border border-neutral-200 text-black hover:bg-neutral-50"
         ),
         month_grid: "w-full border-collapse space-y-1",
-        weekdays: "flex",
-        weekday: "text-neutral-600 rounded-md w-8 font-normal text-[0.8rem]",
-        week: "flex w-full mt-2",
+        weekdays: "flex justify-between sm:justify-center sm:gap-2 px-1 sm:px-0",
+        weekday: "text-neutral-600 rounded-md w-8 font-medium text-[11px]",
+        week: "flex justify-between sm:justify-center sm:gap-2 w-full mt-1 px-1 sm:px-0",
         day: cn(
           "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-neutral-100 [&:has([aria-selected].outside)]:bg-neutral-100/50 [&:has([aria-selected].range_end)]:rounded-r-md",
           props.mode === "range"
@@ -44,7 +44,7 @@ function Calendar({
         ),
         day_button: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
+          "h-8 w-8 p-0 font-medium aria-selected:opacity-100 text-sm"
         ),
         range_start: "range_start",
         range_end: "range_end",

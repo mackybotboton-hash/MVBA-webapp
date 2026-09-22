@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import { notifyDepositVerified } from "@/app/actions/notify-actions";
 
 export async function createOwnerAccount(formData: FormData) {
   try {
@@ -84,5 +85,90 @@ export async function createOwnerAccount(formData: FormData) {
       success: false,
       error: err.message || "An unexpected error occurred while creating account.",
     };
+  }
+}
+
+export async function approveBookingDeposit(bookingId: string) {
+  try {
+    const supabase = (await createClient()) as any;
+    
+    // 1. Verify Authentication and Role
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.role !== "admin") {
+      return { success: false, error: "Forbidden: Admin access required." };
+    }
+
+    // 2. Fetch the booking for idempotency and notification targeting
+    const { data: booking, error: fetchError } = await supabase
+      .from("bookings")
+      .select(`
+        id,
+        tourist_id,
+        owner_id,
+        payment_status,
+        rooms (
+          properties (
+            name
+          )
+        )
+      `)
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchError || !booking) {
+      return { success: false, error: "Booking not found." };
+    }
+
+    // Idempotency check: prevent double processing
+    if (booking.payment_status === "verified") {
+      return { success: true };
+    }
+
+    // 3. Atomically update the booking with audit trail using createAdminClient
+    const supabaseAdmin = createAdminClient() as any;
+
+    const { error: updateError } = await supabaseAdmin
+      .from("bookings")
+      .update({ 
+        payment_status: "verified",
+        payout_status: "pending",
+        verified_by: user.id,
+        verified_at: new Date().toISOString(),
+      })
+      .eq("id", bookingId);
+
+    if (updateError) {
+      console.error("Failed to approve booking deposit:", updateError);
+      return { success: false, error: "Failed to update booking status." };
+    }
+
+    // 4. Fire-and-forget notifications to host + tourist
+    const propertyName = (booking as any).rooms?.properties?.name || "the property";
+    const touristId = (booking as any).tourist_id;
+    const ownerId = (booking as any).owner_id;
+
+    if (touristId || ownerId) {
+      notifyDepositVerified({
+        touristId: touristId || "",
+        ownerId: ownerId || "",
+        propertyName,
+      }).catch((err) => console.error("[Notify] notifyDepositVerified failed:", err));
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Unexpected error in approveBookingDeposit:", err);
+    return { success: false, error: "An unexpected error occurred." };
   }
 }

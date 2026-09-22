@@ -87,21 +87,17 @@ export function TouristHeader({
   }, [isUserMenuOpen]);
 
   async function handleSignOut() {
+    setIsUserMenuOpen(false);
+
+    const confirmed = window.confirm("Are you sure you want to sign out?");
+    if (!confirmed) return;
+
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     await supabase.auth.signOut();
     
-    setIsUserMenuOpen(false);
-
-    // If we're on the homepage, just update the state instantly
-    if (onLoginSuccess) {
-      onLoginSuccess();
-    }
-    
-    // Redirect to home if on a protected route
-    if (pathname !== "/" && pathname !== "/explore") {
-      router.push("/");
-    }
+    // Hard refresh to completely clear application state
+    window.location.href = "/";
   }
 
   const roleLabel =
@@ -236,7 +232,7 @@ export function TouristHeader({
 
           {/* User Profile or Login */}
           {user ? (
-            <div className="relative" ref={userMenuRef}>
+            <div className="relative hidden md:block" ref={userMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -363,7 +359,7 @@ export function TouristHeader({
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search homestays, resorts, or islands in Bretania... (Press '/' to focus)"
+              placeholder="Search homestays, resorts, or islands in Bretania..."
               className="w-full h-10 pl-9 pr-9 rounded-xl border border-neutral-200 bg-white text-xs sm:text-sm text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-all"
             />
             {searchQuery && (

@@ -21,10 +21,12 @@ import {
 } from "@/components/tourist/booking-card";
 import { EmptyState } from "@/components/tourist/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { Button } from "@/components/ui/button";
 import { DigitalBoardingPassModal } from "@/components/tourist/digital-boarding-pass-modal";
 import { GCashDepositModal } from "@/components/tourist/gcash-deposit-modal";
 import { TouristReviewModal } from "@/components/tourist/tourist-review-modal";
+import { TouristViewPaymentModal } from "@/components/tourist/tourist-view-payment-modal";
 
 
 type BookingFilterTab = "all" | "pending" | "accepted" | "completed" | "cancelled";
@@ -35,6 +37,7 @@ export default function TouristBookingsPage() {
   const [activeTab, setActiveTab] = React.useState<BookingFilterTab>("all");
   const [selectedPassBooking, setSelectedPassBooking] = React.useState<any | null>(null);
   const [selectedDepositBooking, setSelectedDepositBooking] = React.useState<BookingData | null>(null);
+  const [selectedPaymentBooking, setSelectedPaymentBooking] = React.useState<BookingData | null>(null);
   const [selectedReviewBooking, setSelectedReviewBooking] = React.useState<BookingData | null>(null);
 
   const fetchBookings = React.useCallback(async () => {
@@ -63,6 +66,7 @@ export default function TouristBookingsPage() {
           status,
           payment_status,
           downpayment_amount,
+          receipt_url,
           created_at,
           rooms (
             id,
@@ -94,6 +98,7 @@ export default function TouristBookingsPage() {
           total_price: Number(b.total_price),
           downpayment_amount: Number(b.downpayment_amount),
           payment_status: b.payment_status,
+          receipt_url: b.receipt_url,
           status: b.status,
           owner_id: b.rooms?.properties?.owner_id,
         }));
@@ -197,7 +202,7 @@ export default function TouristBookingsPage() {
           {[
             { id: "all", label: "All Bookings", count: counts.all },
             { id: "pending", label: "Pending", count: counts.pending },
-            { id: "accepted", label: "Confirmed", count: counts.accepted },
+            { id: "accepted", label: "Awaiting Deposit", count: counts.accepted },
             { id: "completed", label: "Completed", count: counts.completed },
             { id: "cancelled", label: "Cancelled", count: counts.cancelled },
           ].map((tab) => {
@@ -229,26 +234,9 @@ export default function TouristBookingsPage() {
 
         {/* Content: Loading Skeleton, Empty State, or Booking Cards List */}
         {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2].map((i) => (
-              <div
-                key={i}
-                className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-4"
-              >
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-5 w-48" />
-                  <Skeleton className="h-5 w-24 rounded-full" />
-                </div>
-                <div className="grid grid-cols-3 gap-4 py-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Skeleton className="h-8 w-24 rounded-md" />
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col items-center justify-center py-20">
+            <LoadingLogo size="large" />
+            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading your reservations</p>
           </div>
         ) : filteredBookings.length === 0 ? (
           <EmptyState
@@ -288,6 +276,7 @@ export default function TouristBookingsPage() {
                     status: b.status,
                   })
                 }
+                onViewPayment={(b) => setSelectedPaymentBooking(b)}
                 onPayDeposit={(b) => setSelectedDepositBooking(b)}
                 onRateStay={(b) => setSelectedReviewBooking(b)}
               />
@@ -308,9 +297,38 @@ export default function TouristBookingsPage() {
         isOpen={!!selectedDepositBooking}
         onClose={() => setSelectedDepositBooking(null)}
         bookingId={selectedDepositBooking?.id || ""}
+        amount={selectedDepositBooking?.downpayment_amount}
         onUploadComplete={async (payload) => {
-          console.log("Uploaded receipt for", selectedDepositBooking?.id, payload);
-          await fetchBookings();
+          if (!selectedDepositBooking) return;
+          const supabase = createClient();
+          
+          try {
+            const fileExt = payload.receiptFile.name.split('.').pop();
+            const filePath = `${selectedDepositBooking.id}-${Date.now()}.${fileExt}`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+              .from("payment-receipts")
+              .upload(filePath, payload.receiptFile);
+
+            if (uploadError) throw uploadError;
+
+            const { error: updateError } = await supabase
+              .from("bookings")
+              // @ts-expect-error: Supabase type inference assigns 'never' to update parameters
+              .update({
+                payment_status: "deposit_uploaded",
+                receipt_url: `${uploadData.path}|${payload.referenceNumber}`
+              })
+              .eq("id", selectedDepositBooking.id);
+
+            if (updateError) throw updateError;
+
+            toast.success("Payment submitted successfully!");
+            await fetchBookings();
+          } catch (error) {
+            console.error("Failed to upload deposit:", error);
+            throw error; // Let the modal's catch block handle the error toast
+          }
         }}
       />
 
@@ -319,6 +337,13 @@ export default function TouristBookingsPage() {
         isOpen={!!selectedReviewBooking}
         onClose={() => setSelectedReviewBooking(null)}
         booking={selectedReviewBooking}
+      />
+
+      {/* View Payment Modal */}
+      <TouristViewPaymentModal
+        isOpen={!!selectedPaymentBooking}
+        onClose={() => setSelectedPaymentBooking(null)}
+        booking={selectedPaymentBooking}
       />
     </div>
   );

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   User,
@@ -20,11 +21,16 @@ import {
   ShieldCheck,
   Plus,
   X,
+  MessageCircleOff,
+  ChevronLeft,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { notifyNewMessage } from "@/app/actions/notify-actions";
 
 export interface ChatContact {
   id: string; // User/Profile ID
@@ -114,6 +120,34 @@ function ChatSystemContent({
   const [isLoadingContacts, setIsLoadingContacts] = React.useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = React.useState(false);
   const [isSending, setIsSending] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [viewportHeight, setViewportHeight] = React.useState("100dvh");
+
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile(); // Check initially
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Update viewport height dynamically for iOS keyboard handling
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && window.visualViewport) {
+      const updateHeight = () => {
+        setViewportHeight(`${window.visualViewport!.height}px`);
+        window.scrollTo(0, 0); // Prevent body from scrolling up
+      };
+      
+      window.visualViewport.addEventListener("resize", updateHeight);
+      window.visualViewport.addEventListener("scroll", updateHeight);
+      updateHeight(); // initial
+      
+      return () => {
+        window.visualViewport!.removeEventListener("resize", updateHeight);
+        window.visualViewport!.removeEventListener("scroll", updateHeight);
+      };
+    }
+  }, []);
 
   // Admin & Host inter-communication state
   const [availableHosts, setAvailableHosts] = React.useState<any[]>([
@@ -148,6 +182,29 @@ function ChatSystemContent({
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const isNearBottomRef = React.useRef(true);
   const shouldScrollToBottomRef = React.useRef(true);
+  
+  // Prevent body scroll and iOS viewport pan when thread is open on mobile
+  React.useEffect(() => {
+    if (isMobile && activeContact) {
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+      // prevent layout shift
+    } else {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    };
+  }, [isMobile, activeContact]);
+
+  // Swipe to go back tracking
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchEndXRef = React.useRef<number | null>(null);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -413,12 +470,20 @@ function ChatSystemContent({
         if (found) {
           setActiveContact(found);
         } else if (list.length > 0) {
-          setActiveContact(list[0]);
+          if (window.innerWidth >= 768) {
+            setActiveContact(list[0]);
+          } else {
+            setActiveContact(null);
+          }
         } else {
           setActiveContact(null);
         }
       } else if (list.length > 0) {
-        setActiveContact(list[0]);
+        if (window.innerWidth >= 768) {
+          setActiveContact(list[0]);
+        } else {
+          setActiveContact(null);
+        }
       } else {
         setActiveContact(null);
       }
@@ -802,7 +867,21 @@ function ChatSystemContent({
           }
         }
 
-        // B. Check recent incoming messages across ALL contacts to detect unread messages from others
+        // B. Resync all contacts — build per-partner aggregate maps first, then apply.
+        //
+        // BUG FIX (#1 + #3): The old code ran forEach over all 25 DESC-sorted messages,
+        // processing every message for each partner sequentially. This caused two problems:
+        //   - lastMessage/lastTime could be overwritten with an OLDER message on later iterations
+        //   - unreadCount was accumulated (+1 per unread message seen in the loop), causing
+        //     multi-tick drift and non-monotonic values (16→17→3→1→2)
+        //
+        // Fix: aggregate per partner FIRST (newest message, absolute unread count), then patch.
+        // This also makes the poller self-correcting: if Realtime drops a message due to a
+        // network blip or backgrounded tab, the 60s resync resets counts to their true DB value.
+        //
+        // FOLLOW-UP: ConnectedChatSystem.contacts[].unreadCount is a separate source of truth
+        // from NotificationCountsProvider.unreadMessages. These should eventually be consolidated
+        // so there is one authoritative source (the Provider) rather than two.
         const { data: allRecent } = await supabase
           .from("messages")
           .select(`
@@ -816,10 +895,10 @@ function ChatSystemContent({
           `)
           .or(`receiver_id.eq.${currentUser.id},sender_id.eq.${currentUser.id}`)
           .order("created_at", { ascending: false })
-          .limit(25);
+          .limit(50);
 
         if (allRecent && allRecent.length > 0) {
-          // If tourist, filter out admin messages; if admin, filter out tourist messages
+          // Role-based filter (tourist can't see admin messages, admin can't see tourist messages)
           const filteredRecent = (allRecent as any[]).filter((msg: any) => {
             const senderRole = msg.sender?.role;
             if (currentRole === "tourist" && senderRole === "admin") return false;
@@ -827,42 +906,81 @@ function ChatSystemContent({
             return true;
           });
 
+          // Pass 1: build Map<partnerId, latestMsg> — first occurrence per partner is newest (DESC sort)
+          const latestPerPartner = new Map<string, any>();
+          // Pass 2: build Map<partnerId, absoluteUnreadCount> — sum all unread incoming per partner
+          const unreadPerPartner = new Map<string, number>();
+
+          filteredRecent.forEach((msg: any) => {
+            const partnerId =
+              msg.sender_id === currentUser.id
+                ? msg.receiver_id
+                : msg.sender_id;
+            if (!partnerId || partnerId === currentUser.id) return;
+
+            // Only store the first (newest) message per partner
+            if (!latestPerPartner.has(partnerId)) {
+              latestPerPartner.set(partnerId, msg);
+            }
+
+            // Count every unread incoming message for this partner (absolute, not incremental)
+            if (msg.receiver_id === currentUser.id && !msg.is_read) {
+              unreadPerPartner.set(
+                partnerId,
+                (unreadPerPartner.get(partnerId) ?? 0) + 1
+              );
+            }
+          });
+
+          // Pass 3: apply aggregated maps to contacts state
           setContacts((prev) => {
             let changed = false;
             const updated = [...prev];
 
-            filteredRecent.forEach((msg: any) => {
-              const partnerId =
-                msg.sender_id === currentUser.id
-                  ? msg.receiver_id
-                  : msg.sender_id;
+            latestPerPartner.forEach((latestMsg, partnerId) => {
               const idx = updated.findIndex((c) => c.id === partnerId);
-              if (idx !== -1) {
-                const contact = updated[idx];
-                const msgTime = new Date(msg.created_at).getTime();
-                const contactTime = contact.lastMessageCreatedAt
-                  ? new Date(contact.lastMessageCreatedAt).getTime()
-                  : 0;
+              if (idx === -1) return;
 
-                if (msgTime > contactTime || contact.lastMessageIsRead !== msg.is_read) {
-                  changed = true;
-                  const isViewing = activeContact?.id === partnerId;
-                  const isIncoming = msg.receiver_id === currentUser.id;
-                  updated[idx] = {
-                    ...contact,
-                    lastMessage: msg.content,
-                    lastTime: formatMessageTime(msg.created_at),
-                    lastMessageSenderId: msg.sender_id,
-                    lastMessageCreatedAt: msg.created_at,
-                    lastMessageIsRead: isIncoming ? isViewing || msg.is_read : msg.is_read,
-                    unreadCount:
-                      isIncoming && !isViewing && !msg.is_read
-                        ? (contact.unreadCount || 0) + 1
-                        : isViewing
-                        ? 0
-                        : contact.unreadCount,
-                  };
-                }
+              const contact = updated[idx];
+              const isViewing = activeContact?.id === partnerId;
+              const isIncoming = latestMsg.receiver_id === currentUser.id;
+
+              // Absolute unread count from DB — 0 if viewing this contact right now
+              const absoluteUnread = isViewing
+                ? 0
+                : (unreadPerPartner.get(partnerId) ?? 0);
+
+              const msgTime = new Date(latestMsg.created_at).getTime();
+              const contactTime = contact.lastMessageCreatedAt
+                ? new Date(contact.lastMessageCreatedAt).getTime()
+                : 0;
+
+              // Only patch if something actually changed
+              const previewChanged = msgTime > contactTime;
+              const unreadChanged = absoluteUnread !== (contact.unreadCount ?? 0);
+              const readChanged =
+                contact.lastMessageIsRead !==
+                (isIncoming ? isViewing || latestMsg.is_read : latestMsg.is_read);
+
+              if (previewChanged || unreadChanged || readChanged) {
+                changed = true;
+                updated[idx] = {
+                  ...contact,
+                  lastMessage: previewChanged ? latestMsg.content : contact.lastMessage,
+                  lastTime: previewChanged
+                    ? formatMessageTime(latestMsg.created_at)
+                    : contact.lastTime,
+                  lastMessageSenderId: previewChanged
+                    ? latestMsg.sender_id
+                    : contact.lastMessageSenderId,
+                  lastMessageCreatedAt: previewChanged
+                    ? latestMsg.created_at
+                    : contact.lastMessageCreatedAt,
+                  lastMessageIsRead: isIncoming
+                    ? isViewing || latestMsg.is_read
+                    : latestMsg.is_read,
+                  unreadCount: absoluteUnread,
+                };
               }
             });
 
@@ -885,7 +1003,11 @@ function ChatSystemContent({
       } catch {
         // Ignored
       }
-    }, 3000);
+      // Interval is 60s — Realtime handles instant updates.
+      // This poll is a rare safety-net resync in case Realtime missed an event
+      // (network blip, backgrounded tab, reconnect). The per-partner aggregation
+      // above makes it self-correcting: it sets absolute counts, not increments.
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [currentUser, activeContact, currentRole]);
@@ -952,6 +1074,27 @@ function ChatSystemContent({
           content: text,
           is_read: false,
         });
+
+        // Bug D fix: notifyNewMessage was defined but never called anywhere.
+        // Fire-and-forget push notification so the recipient gets alerted when
+        // their device is backgrounded or off. Never awaited at this level —
+        // push failures must not block or revert the message send.
+        const senderName =
+          currentUser.user_metadata?.full_name ||
+          currentUser.email?.split("@")[0] ||
+          "Someone";
+        const chatUrl =
+          currentRole === "tourist"
+            ? "/chat"
+            : `/${currentRole}/chat`;
+        notifyNewMessage({
+          recipientId: activeContact.id,
+          senderName,
+          messagePreview: text,
+          chatUrl,
+        }).catch((err) =>
+          console.error("[Notify] notifyNewMessage failed:", err)
+        );
       }
     } catch {
       // Local optimistic fallback
@@ -990,7 +1133,7 @@ function ChatSystemContent({
           <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
             {portalTitle}
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5 font-medium">
+          <p className="text-sm sm:text-base text-neutral-600 mt-0.5 font-medium">
             {portalSubtitle}
           </p>
         </div>
@@ -1013,7 +1156,10 @@ function ChatSystemContent({
       {/* Main Chat Grid (Sidebar + Message Thread) */}
       <div className="rounded-2xl border border-neutral-200 bg-white shadow-xs overflow-hidden grid grid-cols-1 md:grid-cols-12 h-[calc(100vh-13.5rem)] min-h-[520px] max-h-[850px]">
         {/* Left: Conversations List (md:col-span-5 lg:col-span-4) */}
-        <div className="md:col-span-5 lg:col-span-4 border-r border-neutral-200 flex flex-col bg-neutral-50/50 h-full min-h-0 overflow-hidden">
+        <div className={cn(
+          "md:col-span-5 lg:col-span-4 border-r border-neutral-200 flex-col bg-neutral-50/50 h-full min-h-0 overflow-hidden",
+          activeContact ? "hidden md:flex" : "flex"
+        )}>
           {/* Search Contacts Bar */}
           <div className="p-3.5 border-b border-neutral-200 bg-white shrink-0">
             <div className="relative">
@@ -1023,7 +1169,7 @@ function ChatSystemContent({
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-9 pl-9 pr-3 rounded-xl border border-neutral-200 text-xs font-medium text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-black bg-neutral-50"
+                className="w-full h-9 pl-9 pr-3 rounded-xl border border-neutral-200 text-sm font-medium text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-black bg-neutral-50"
               />
             </div>
           </div>
@@ -1095,8 +1241,8 @@ function ChatSystemContent({
                 <div className="h-12 w-12 rounded-2xl bg-neutral-200/60 flex items-center justify-center mx-auto">
                   <MessageSquare className="h-6 w-6 text-neutral-500" />
                 </div>
-                <p className="font-bold text-neutral-700">No active conversations</p>
-                <p className="text-[11px] text-neutral-600 leading-relaxed max-w-[220px] mx-auto">
+                <p className="text-base font-bold text-neutral-700">No active conversations</p>
+                <p className="text-sm mt-1 text-neutral-500 leading-relaxed max-w-[200px] mx-auto">
                   {currentRole === "tourist"
                     ? "When you message a homestay or resort host, your conversations will appear here."
                     : currentRole === "admin"
@@ -1334,15 +1480,22 @@ function ChatSystemContent({
           </div>
         </div>
 
-        {/* Right: Active Message Thread Window (md:col-span-7 lg:col-span-8) */}
-        <div className="md:col-span-7 lg:col-span-8 flex flex-col bg-white h-full min-h-0 overflow-hidden">
-          {activeContact ? (
+        {/* Right: Active Message Thread Window */}
+        {(() => {
+          const threadContent = activeContact ? (
             <>
-              {/* Thread Header */}
-              <div className="px-5 py-3.5 border-b border-neutral-200 bg-neutral-50/70 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
+              {/* Thread Header (Messenger Style) */}
+              <div className="pt-[max(env(safe-area-inset-top),0.5rem)] px-3 pb-3 border-b border-neutral-100 bg-white/95 backdrop-blur-md flex items-center justify-between shrink-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <button 
+                    onClick={() => setActiveContact(null)}
+                    className="md:hidden p-2 -ml-1 text-neutral-500 hover:text-black rounded-full active:bg-neutral-100 transition-colors"
+                    aria-label="Back to conversations"
+                  >
+                    <ChevronLeft className="h-7 w-7" />
+                  </button>
                   <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-xs shadow-2xs ${
+                    className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm shadow-sm border border-neutral-100 ${
                       activeContact.role === "admin"
                         ? "bg-amber-500 text-white"
                         : "bg-black text-white"
@@ -1353,60 +1506,46 @@ function ChatSystemContent({
                     ) : (
                       activeContact.name.slice(0, 2).toUpperCase()
                     )}
+                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-black/5" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-neutral-900 leading-snug">
-                        {activeContact.name}
-                      </h3>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h3 className="text-[15px] font-bold text-neutral-900 leading-tight truncate">
+                      {activeContact.name}
+                    </h3>
+                    <p className="text-[11px] text-neutral-500 flex items-center gap-1.5 mt-0.5 truncate">
                       {activeContact.role === "admin" ? (
-                        <Badge
-                          variant="default"
-                          size="sm"
-                          className="bg-amber-500 hover:bg-amber-600 text-white font-bold flex items-center gap-1 text-[10px]"
-                        >
-                          <ShieldCheck className="h-3 w-3" />
-                          <span>MVBA Admin</span>
-                        </Badge>
+                        <span className="font-semibold text-amber-600">Official Admin</span>
+                      ) : activeContact.role === "tourist" ? (
+                        <span>Tourist</span>
                       ) : (
-                        <Badge
-                          variant="subtle"
-                          size="sm"
-                          className="capitalize font-semibold"
-                        >
-                          {activeContact.role === "tourist" ? "Guest" : `${activeContact.role} Owner`}
-                        </Badge>
+                        <span className="capitalize">{activeContact.role} Owner</span>
                       )}
-                    </div>
-                    <p className="text-[11px] text-neutral-600 flex items-center gap-2 mt-0.5">
                       {activeContact.propertyName && (
-                        <span className="font-semibold text-neutral-700">
-                          {activeContact.propertyName} •
-                        </span>
+                        <>
+                          <span className="text-neutral-300">•</span>
+                          <span className="truncate">{activeContact.propertyName}</span>
+                        </>
                       )}
-                      {activeContact.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-neutral-500" />
-                          <span>{activeContact.phone}</span>
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Realtime Active
-                      </span>
                     </p>
                   </div>
                 </div>
 
-                {activeContact.roomName && (
-                  <Badge
-                    variant="secondary"
-                    size="sm"
-                    className="hidden sm:inline-flex"
-                  >
-                    {activeContact.roomName}
-                  </Badge>
-                )}
+                <div className="flex items-center gap-1 shrink-0">
+                  {activeContact.phone && (
+                    <a href={`tel:${activeContact.phone}`} className="p-2 text-blue-500 hover:bg-blue-50 rounded-full transition-colors">
+                      <Phone className="h-5 w-5 fill-current" />
+                    </a>
+                  )}
+                  {activeContact.roomName && (
+                    <Badge
+                      variant="secondary"
+                      size="sm"
+                      className="hidden sm:inline-flex"
+                    >
+                      {activeContact.roomName}
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               {/* Messages Container */}
@@ -1446,46 +1585,38 @@ function ChatSystemContent({
                     return (
                       <div
                         key={msg.id}
-                        className={`flex items-end gap-2 ${
-                          isSelf ? "justify-end" : "justify-start"
+                        className={`flex items-end gap-2 mb-1 ${
+                          isSelf ? "justify-end pl-12" : "justify-start pr-12"
                         }`}
                       >
                         {!isSelf && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-200 text-neutral-800 text-[10px] font-bold shrink-0 mb-1">
-                            {activeContact.name.slice(0, 1)}
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-neutral-600 text-[10px] font-bold shrink-0 mb-1">
+                            {activeContact.name.slice(0, 2).toUpperCase()}
                           </div>
                         )}
 
                         <div
-                          className={`max-w-md rounded-2xl px-4 py-2.5 text-xs shadow-xs leading-relaxed ${
+                          className={`max-w-md px-4 py-2.5 text-[15px] shadow-sm leading-relaxed ${
                             isSelf
-                              ? "bg-black text-white rounded-br-xs"
-                              : "bg-neutral-100 text-neutral-900 border border-neutral-200 rounded-bl-xs font-medium"
+                              ? "bg-blue-600 text-white rounded-[20px] rounded-br-[4px]"
+                              : "bg-[#E4E6EB] text-black rounded-[20px] rounded-bl-[4px]"
                           }`}
                         >
                           <p>{msg.content}</p>
                           <div
-                            className={`flex items-center justify-end gap-1 text-[10px] mt-1 ${
-                              isSelf ? "text-neutral-500" : "text-neutral-500"
+                            className={`flex items-center justify-end gap-1 text-[9px] mt-0.5 ${
+                              isSelf ? "text-blue-100" : "text-neutral-500"
                             }`}
                           >
                             <span>{time}</span>
                             {isSelf && (
                               msg.is_read ? (
-                                <span
-                                  className="flex items-center gap-0.5 text-emerald-400 font-semibold"
-                                  title="Seen by recipient"
-                                >
-                                  <CheckCheck className="h-3 w-3 text-emerald-400" />
-                                  <span>Seen</span>
+                                <span className="flex items-center" title="Seen by recipient">
+                                  <CheckCheck className="h-3 w-3" />
                                 </span>
                               ) : (
-                                <span
-                                  className="flex items-center gap-0.5 text-neutral-500"
-                                  title="Delivered • Not read yet"
-                                >
-                                  <Check className="h-3 w-3 text-neutral-500" />
-                                  <span>Delivered</span>
+                                <span className="flex items-center opacity-70" title="Delivered • Not read yet">
+                                  <Check className="h-3 w-3" />
                                 </span>
                               )
                             )}
@@ -1500,39 +1631,64 @@ function ChatSystemContent({
               {/* Bottom Input Bar */}
               <form
                 onSubmit={handleSendMessage}
-                className="p-3.5 border-t border-neutral-200 bg-neutral-50/50 flex items-center gap-2 shrink-0"
+                className="p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-neutral-100 bg-white flex items-center gap-2 shrink-0 z-10"
               >
-                <input
-                  type="text"
-                  placeholder={`Type a message to ${activeContact.name}...`}
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  className="flex-1 h-11 px-4 rounded-xl border border-neutral-300 bg-white text-xs font-medium text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-black"
-                />
-                <Button
+                <button
+                  type="button"
+                  onClick={() => toast.info("Image upload coming soon!")}
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors shrink-0"
+                  aria-label="Add attachment"
+                >
+                  <Plus className="h-6 w-6" />
+                </button>
+                <div className="flex-1 relative flex items-center">
+                  <input
+                    type="text"
+                    placeholder="Aa"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onFocus={() => {
+                      // Small delay to let keyboard animate in
+                      setTimeout(() => scrollToBottom("smooth"), 300);
+                    }}
+                    className="w-full h-10 pl-4 pr-10 rounded-full border-none bg-neutral-100 text-[15px] text-black placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Stickers coming soon!")}
+                    className="absolute right-2 p-1.5 text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                  </button>
+                </div>
+                <button
                   type="submit"
                   disabled={!inputText.trim() || isSending}
-                  className="h-11 px-5 bg-black text-white hover:bg-neutral-800 text-xs font-bold rounded-xl shadow-xs"
+                  className={`p-2 rounded-full transition-all shrink-0 ${
+                    inputText.trim() && !isSending
+                      ? "text-blue-600 hover:bg-blue-50"
+                      : "text-neutral-300"
+                  }`}
+                  aria-label="Send message"
                 >
                   {isSending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
                   ) : (
-                    <>
-                      <Send className="h-3.5 w-3.5 mr-1.5" />
-                      <span>Send</span>
-                    </>
+                    <Send className="h-6 w-6" />
                   )}
-                </Button>
+                </button>
               </form>
             </>
-          ) : (
+          ) : null;
+
+          const emptyState = (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-neutral-500 space-y-3">
-              <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center">
-                <MessageSquare className="h-8 w-8 text-neutral-500" />
+              <div className="h-20 w-20 rounded-2xl bg-neutral-100 flex items-center justify-center">
+                <MessageSquare className="h-10 w-10 text-neutral-500" />
               </div>
               <div>
-                <h3 className="font-bold text-sm text-neutral-800">No conversation selected</h3>
-                <p className="text-xs text-neutral-600 mt-1 max-w-sm leading-relaxed">
+                <h3 className="font-bold text-base text-neutral-800">No conversation selected</h3>
+                <p className="text-sm text-neutral-600 mt-2 max-w-sm leading-relaxed">
                   {currentRole === "tourist"
                     ? "Pick a conversation from the left, or visit a homestay/resort page to message a host directly."
                     : currentRole === "admin"
@@ -1542,7 +1698,7 @@ function ChatSystemContent({
               </div>
               {currentRole === "tourist" && (
                 <Link href="/explore" className="pt-2">
-                  <Button size="sm" className="text-xs bg-black text-white font-bold h-9 px-4 rounded-xl shadow-xs">
+                  <Button size="sm" className="text-sm bg-black text-white font-bold h-10 px-5 rounded-xl shadow-xs">
                     Explore Stays
                   </Button>
                 </Link>
@@ -1561,8 +1717,41 @@ function ChatSystemContent({
                 </div>
               )}
             </div>
-          )}
-        </div>
+          );
+
+          if (isMobile) {
+            return (
+              <AnimatePresence>
+                {activeContact && (
+                  <motion.div
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", bounce: 0, duration: 0.35 }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={{ left: 0, right: 1 }}
+                    onDragEnd={(e, info) => {
+                      if (info.offset.x > 75 && info.velocity.x > 20) {
+                        setActiveContact(null);
+                      }
+                    }}
+                    style={{ height: viewportHeight }}
+                    className="fixed top-0 left-0 w-screen z-[100] bg-white flex flex-col overflow-hidden"
+                  >
+                    {threadContent}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            );
+          }
+
+          return (
+            <div className="hidden md:flex md:col-span-7 lg:col-span-8 flex-col bg-white h-full min-h-0 overflow-hidden border-l border-neutral-200">
+              {activeContact ? threadContent : emptyState}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Admin Host Directory Modal */}
@@ -1648,9 +1837,9 @@ export function ConnectedChatSystem(props: ConnectedChatSystemProps) {
   return (
     <React.Suspense
       fallback={
-        <div className="p-8 text-center text-xs text-neutral-500 space-y-2">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto text-neutral-500" />
-          <span>Connecting to Bretania Chat Gateway...</span>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <LoadingLogo size="large" className="mb-4" />
+          <p className="text-sm font-medium text-neutral-500">Loading messages...</p>
         </div>
       }
     >

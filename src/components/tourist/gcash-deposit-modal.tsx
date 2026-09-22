@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,35 +8,53 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UploadCloud, Image as ImageIcon, X, Loader2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-
-// ============================================================================
-// 1. RECEIPT UPLOAD DIALOG (Standard Component)
-// ============================================================================
+import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 
 interface GCashDepositModalProps {
   isOpen: boolean;
   onClose: () => void;
   bookingId: string;
+  amount?: number;
   onUploadComplete: (payload: { receiptFile: File; referenceNumber: string }) => Promise<void>;
 }
 
-export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete }: GCashDepositModalProps) {
+export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUploadComplete }: GCashDepositModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [referenceNumber, setReferenceNumber] = useState("");
+  const [refError, setRefError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const supabase = createClient();
+  const { data: adminSettings, isLoading: isLoadingSettings } = useQuery({
+    queryKey: ['system-settings'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('system_settings')
+        .select('admin_gcash_number, admin_gcash_name')
+        .eq('id', 1)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 mins
+  });
 
   const handleFile = (selectedFile: File) => {
+    // Strict restriction to images only
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!validTypes.includes(selectedFile.type)) {
       toast.error("Invalid file type. Please upload a JPG, PNG, or WEBP image.");
       return;
     }
     
+    // Restrict size to 5MB
     if (selectedFile.size > 5 * 1024 * 1024) {
       toast.error("File is too large. Maximum size is 5MB.");
       return;
@@ -79,9 +97,10 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
       return;
     }
     
+    // Strict GCash Ref Number formatting (at least 10 digits)
     const sanitizedRef = referenceNumber.replace(/\D/g, '');
     if (sanitizedRef.length < 10) {
-      toast.error("Please enter a valid GCash reference number.");
+      toast.error("Please enter a valid GCash reference number (at least 10 digits).");
       return;
     }
 
@@ -94,8 +113,9 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
         setIsSuccess(false);
         handleRemoveFile();
         setReferenceNumber("");
+        setRefError("");
       }, 2000);
-    } catch {
+    } catch (error) {
       toast.error("Failed to upload receipt. Please try again.");
     } finally {
       setIsUploading(false);
@@ -103,85 +123,136 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[440px] p-6 bg-white border border-neutral-200 rounded-3xl shadow-xl">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-xl font-bold text-neutral-900 tracking-tight">Upload Payment Receipt</DialogTitle>
-          <DialogDescription className="text-sm text-neutral-500">
-            Booking #{bookingId ? bookingId.slice(0, 8) : ""} • Send downpayment via GCash and upload your confirmation.
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px] border-zinc-200 p-0 overflow-hidden bg-white">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="text-xl font-medium">Verify Deposit</DialogTitle>
+          <DialogDescription className="text-zinc-500">
+            Upload your GCash payment screenshot to secure your booking.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="referenceNumber" className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-              GCash Reference No.
-            </Label>
-            <Input
-              id="referenceNumber"
-              placeholder="e.g. 1002 9384 19283"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              className="rounded-xl border-neutral-200 focus:border-black focus:ring-black h-11"
-              required
-            />
+        {amount && (
+          <div className="px-6 py-4 bg-blue-50 border-y border-blue-100 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
+                Send Payment To
+              </p>
+              {isLoadingSettings ? (
+                <div className="h-5 w-32 bg-blue-200/50 animate-pulse rounded" />
+              ) : (
+                <div className="flex flex-col gap-0.5">
+                  <p className="text-sm font-bold text-blue-900">
+                    GCash: {adminSettings?.admin_gcash_number || "0917-000-0000"}
+                  </p>
+                  <p className="text-xs font-medium text-blue-700/80">
+                    Account Name: {adminSettings?.admin_gcash_name || "MVBA Admin"}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Required Deposit</p>
+              <p className="text-lg font-bold text-blue-700">₱{amount.toLocaleString()}</p>
+            </div>
           </div>
+        )}
 
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold text-neutral-700 uppercase tracking-wider">
-              Proof of Payment
-            </Label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
+          {/* Animated Dropzone */}
+          <div className="space-y-3">
+            <Label className="text-zinc-700 font-medium">Payment Screenshot</Label>
             
-            {!previewUrl ? (
-              <div
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors ${
-                  isDragging ? "border-black bg-neutral-50" : "border-neutral-200 hover:border-neutral-300 bg-neutral-50/50"
-                }`}
-              >
-                <div className="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-neutral-500 mb-2">
-                  <UploadCloud className="w-6 h-6" />
-                </div>
-                <p className="text-sm font-medium text-neutral-700">Click to upload or drag and drop</p>
-                <p className="text-xs text-neutral-400 mt-1">PNG, JPG or WEBP (max 5MB)</p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png, image/jpeg, image/webp"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                />
-              </div>
-            ) : (
-              <div className="relative rounded-2xl border border-neutral-200 overflow-hidden bg-neutral-50 p-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden relative border border-neutral-200 flex-shrink-0">
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+            <AnimatePresence mode="wait">
+              {!file ? (
+                <motion.div
+                  key="dropzone"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`
+                    relative border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors
+                    ${isDragging ? 'border-blue-500 bg-blue-50/50' : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100/50 hover:border-zinc-300'}
+                  `}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/jpeg, image/png, image/webp"
+                    onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+                  />
+                  <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center border border-zinc-100">
+                    <UploadCloud className="w-6 h-6 text-zinc-400" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-neutral-900 truncate">{file?.name}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{file ? (file.size / 1024 / 1024).toFixed(2) : 0} MB</p>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-zinc-900">Click to upload or drag and drop</p>
+                    <p className="text-xs text-zinc-500 mt-1">JPG, PNG or WEBP (max. 5MB)</p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRemoveFile}
-                    className="h-8 w-8 text-neutral-400 hover:text-neutral-700 rounded-full"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="preview"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative rounded-2xl overflow-hidden border border-zinc-200 bg-zinc-50 group"
+                >
+                  <div className="aspect-[4/3] w-full relative bg-zinc-100 flex items-center justify-center">
+                    {previewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewUrl} alt="Receipt preview" className="object-contain w-full h-full" />
+                    ) : (
+                      <ImageIcon className="w-8 h-8 text-zinc-300" />
+                    )}
+                  </div>
+                  
+                  {/* Overlay for removal */}
+                  {!isUploading && !isSuccess && (
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="rounded-full shadow-lg"
+                        onClick={handleRemoveFile}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full bg-black text-white hover:bg-neutral-800 rounded-xl h-11 font-medium transition-all"
+          <div className="space-y-3">
+            <Label htmlFor="refNumber" className="text-zinc-700 font-medium">GCash Reference No.</Label>
+            <Input
+              id="refNumber"
+              placeholder="e.g. 1002394829103"
+              className={cn("rounded-xl bg-zinc-50 border-zinc-200 focus-visible:ring-black", refError && "border-red-500 focus-visible:ring-red-500")}
+              value={referenceNumber}
+              onChange={(e) => {
+                const val = e.target.value;
+                setReferenceNumber(val);
+                if (val && /\D/.test(val)) {
+                  setRefError("GCash reference numbers must only contain digits.");
+                } else {
+                  setRefError("");
+                }
+              }}
+              disabled={isUploading || isSuccess}
+            />
+            {refError && <p className="text-xs text-red-500 mt-1">{refError}</p>}
+          </div>
+
+          <Button 
+            type="submit" 
+            className="w-full rounded-xl py-6 text-base font-medium shadow-sm transition-all relative overflow-hidden"
             disabled={!file || !referenceNumber || isUploading || isSuccess}
           >
             <AnimatePresence mode="wait">
@@ -207,6 +278,3 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, onUploadComplete
     </Dialog>
   );
 }
-
-export const ReceiptUploadDialog = GCashDepositModal;
-

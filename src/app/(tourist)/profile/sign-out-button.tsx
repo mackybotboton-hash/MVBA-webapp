@@ -8,6 +8,9 @@ export function SignOutButton() {
   const router = useRouter();
 
   async function handleSignOut() {
+    const confirmed = window.confirm("Are you sure you want to sign out?");
+    if (!confirmed) return;
+
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");

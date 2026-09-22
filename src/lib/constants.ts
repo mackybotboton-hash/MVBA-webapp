@@ -18,6 +18,8 @@ import {
   Settings,
   Anchor,
   Star,
+  Wallet,
+  Cog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -65,6 +67,8 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Transactions", href: "/admin/transactions", icon: Briefcase },
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
   { label: "Chat", href: "/admin/chat", icon: MessageSquare },
+  { label: "Content", href: "/admin/content", icon: Settings },
+  { label: "Settings", href: "/admin/settings", icon: Cog },
 ];
 
 export const HOMESTAY_NAV_ITEMS: NavItem[] = [
@@ -75,7 +79,8 @@ export const HOMESTAY_NAV_ITEMS: NavItem[] = [
   { label: "Dispatch", href: "/homestay/dispatch", icon: Anchor },
   { label: "Chat", href: "/homestay/chat", icon: MessageSquare },
   { label: "Reviews", href: "/homestay/reviews", icon: Star },
-  { label: "Profile & Policies", href: "/homestay/profile", icon: Settings },
+  { label: "Overview & Policies", href: "/homestay/profile", icon: Building2 },
+  { label: "Payout Settings", href: "/homestay/settings", icon: Wallet },
 ];
 
 export const RESORT_NAV_ITEMS: NavItem[] = [
@@ -87,7 +92,8 @@ export const RESORT_NAV_ITEMS: NavItem[] = [
   { label: "Calendar", href: "/resort/calendar", icon: CalendarRange },
   { label: "Chat", href: "/resort/chat", icon: MessageSquare },
   { label: "Reviews", href: "/resort/reviews", icon: Star },
-  { label: "Profile & Policies", href: "/resort/profile", icon: Settings },
+  { label: "Overview & Policies", href: "/resort/profile", icon: Building2 },
+  { label: "Payout Settings", href: "/resort/settings", icon: Wallet },
 ];
 
 export const TOURIST_NAV_ITEMS: NavItem[] = [
