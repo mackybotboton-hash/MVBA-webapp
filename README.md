@@ -235,3 +235,5 @@ Before submitting pull requests or merging into `main`:
 ## Administrative Inquiries and License
 
 This software is developed for the **San Agustin Resort & Homestay Association (MVBA)** and the **Municipal Tourism Office of San Agustin, Surigao del Sur**. Unauthorized redistribution or deployment outside accredited municipal operations is prohibited.
+
+Aurora Alliance 2026
