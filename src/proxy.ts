@@ -6,7 +6,15 @@ import { ROLE_HOME_ROUTES, type UserRole } from "@/lib/constants";
 // STATIC PRE-ALLOCATED LOOKUP TABLES (Zero-GC allocations per request)
 // ----------------------------------------------------------------------------
 const PUBLIC_AUTH_ROUTES = new Set(["/login", "/register"]);
-const TOURIST_PUBLIC_EXACT = new Set(["/", "/explore", "/wishlist"]);
+const TOURIST_PUBLIC_EXACT = new Set([
+  "/",
+  "/explore",
+  "/wishlist",
+  "/terms",
+  "/privacy",
+  "/cookies",
+  "/policies",
+]);
 const TOURIST_ONLY_PREFIXES = ["/bookings", "/chat"] as const;
 
 // Static map for O(1) prefix validation without runtime array allocations

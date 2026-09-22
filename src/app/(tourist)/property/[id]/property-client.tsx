@@ -717,6 +717,50 @@ export default function PropertyStorefrontPage() {
                 </div>
               </div>
             </div>
+
+            {/* Municipal Booking & Safety Policies */}
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-3 shadow-xs">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  <span>Municipal Booking & Safety Policies</span>
+                </h3>
+                <span className="text-[11px] text-neutral-500 font-medium">San Agustin Eco-Tourism</span>
+              </div>
+              <p className="text-xs text-neutral-600 leading-relaxed">
+                All stays and boat excursions in Bretania are governed by the Municipal Eco-Tourism Code, including the 20% downpayment standard, free cancellation 7+ days prior, and mandatory Coast Guard weather safety protocols.
+              </p>
+              <div className="flex flex-wrap gap-2 pt-1 text-xs">
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold transition-colors"
+                >
+                  Terms of Service &rarr;
+                </Link>
+                <Link
+                  href="/policies"
+                  target="_blank"
+                  className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold transition-colors"
+                >
+                  Eco-Tourism & Safety Rules &rarr;
+                </Link>
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold transition-colors"
+                >
+                  Privacy Policy &rarr;
+                </Link>
+                <Link
+                  href="/cookies"
+                  target="_blank"
+                  className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold transition-colors"
+                >
+                  Cookie Policy &rarr;
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
