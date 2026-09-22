@@ -1,31 +1,56 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getSafeRedirectUrl } from "@/lib/utils";
+import crypto from "crypto";
+
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 export async function POST(request: Request) {
   try {
     // 1. Enforce Authorization: Either valid Bearer token matching INTERNAL_API_SECRET
-    // or an authenticated session from an active user
+    // or an authenticated session from an approved admin.
+    // Regular tourists/hosts must NOT trigger push notifications arbitrarily.
     const authHeader = request.headers.get("authorization");
     const internalSecret = process.env.INTERNAL_API_SECRET;
     let isAuthorized = false;
 
-    if (internalSecret && authHeader === `Bearer ${internalSecret}`) {
-      isAuthorized = true;
-    } else {
-      const supabaseUser = await createClient();
-      const {
-        data: { user },
-      } = await supabaseUser.auth.getUser();
-      if (user) {
+    if (internalSecret && authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.slice(7).trim();
+      if (safeCompare(token, internalSecret)) {
         isAuthorized = true;
       }
     }
 
     if (!isAuthorized) {
+      const supabaseUser = await createClient();
+      const {
+        data: { user },
+      } = await supabaseUser.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabaseUser
+          .from("profiles")
+          .select("role, is_approved")
+          .eq("id", user.id)
+          .maybeSingle<{ role: string; is_approved: boolean }>();
+
+        if (profile?.role === "admin" && profile?.is_approved) {
+          isAuthorized = true;
+        }
+      }
+    }
+
+    if (!isAuthorized) {
       return NextResponse.json(
-        { error: "Unauthorized: Invalid or missing authorization credentials." },
-        { status: 401 }
+        { error: "Forbidden: Administrative credentials or valid internal secret required." },
+        { status: 403 }
       );
     }
 
@@ -34,6 +59,11 @@ export async function POST(request: Request) {
     if (!targetUserId || !title || !message) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    // Sanitize lengths and target deep-link to prevent external phishing URLs
+    const sanitizedTitle = String(title).slice(0, 120);
+    const sanitizedMessage = String(message).slice(0, 500);
+    const safeUrl = getSafeRedirectUrl(url, "/");
 
     const supabaseAdmin = createAdminClient();
 
@@ -66,9 +96,9 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         app_id: appId,
         include_subscription_ids: [profile.onesignal_id],
-        headings: { en: title },
-        contents: { en: message },
-        url: url || "/",
+        headings: { en: sanitizedTitle },
+        contents: { en: sanitizedMessage },
+        url: safeUrl,
       }),
     });
 

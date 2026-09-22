@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag, revalidatePath } from "next/cache";
+import crypto from "crypto";
+
+function safeCompare(a: string, b: string): boolean {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 /**
  * On-Demand Cache Revalidation API Route (ISR in Next.js 16)
- * Allows webhooks or admin/host actions to purge and refresh Edge CDN caches in < 20ms.
+ * Allows authorized webhooks or admin actions to purge Edge CDN caches.
  *
- * Usage:
- * POST /api/revalidate?tag=properties&secret=YOUR_REVALIDATE_SECRET
- * POST /api/revalidate?path=/property/[id]&secret=YOUR_REVALIDATE_SECRET
+ * Preferred:
+ * POST /api/revalidate?tag=properties
+ * Headers:
+ *   Authorization: Bearer <YOUR_REVALIDATE_SECRET> OR x-revalidate-secret: <YOUR_REVALIDATE_SECRET>
  */
 export async function POST(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const tag = searchParams.get("tag");
-    const path = searchParams.get("path");
-    const secret = searchParams.get("secret");
-
     const expectedSecret = process.env.REVALIDATION_SECRET;
 
     if (!expectedSecret) {
@@ -25,7 +30,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!secret || secret !== expectedSecret) {
+    const { searchParams } = new URL(request.url);
+    const tag = searchParams.get("tag");
+    const path = searchParams.get("path");
+
+    // Prefer secure header transmission over URL search params to avoid token logging in access logs
+    const authHeader = request.headers.get("authorization");
+    let providedSecret: string | null = request.headers.get("x-revalidate-secret");
+
+    if (!providedSecret && authHeader && authHeader.startsWith("Bearer ")) {
+      providedSecret = authHeader.slice(7).trim();
+    }
+    // Backward compatibility fallback: query param
+    if (!providedSecret) {
+      providedSecret = searchParams.get("secret");
+    }
+
+    if (!providedSecret || !safeCompare(providedSecret, expectedSecret)) {
       return NextResponse.json(
         { success: false, message: "Invalid or missing revalidation secret token." },
         { status: 401 }
@@ -33,7 +54,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (tag) {
-      // In Next.js 16, revalidateTag accepts a second profile argument ('max' for stale-while-revalidate)
       revalidateTag(tag, "max");
       return NextResponse.json({
         revalidated: true,
@@ -68,8 +88,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-export async function GET(request: NextRequest) {
-  return POST(request);
 }

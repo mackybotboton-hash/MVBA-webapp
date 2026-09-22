@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +30,23 @@ async function handleKeepAlive(request: Request) {
     );
   }
 
-  // Optional: check CRON_SECRET for security if configured
-  const authHeader = request.headers.get("authorization");
+  // Enforce CRON_SECRET authorization if configured
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    // If CRON_SECRET is set but doesn't match, return 401
-    const { searchParams } = new URL(request.url);
-    const secretQuery = searchParams.get("secret");
-    if (secretQuery !== cronSecret) {
+  if (cronSecret) {
+    const authHeader = request.headers.get("authorization");
+    let token = "";
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.slice(7).trim();
+    } else {
+      const { searchParams } = new URL(request.url);
+      token = searchParams.get("secret") || "";
+    }
+
+    const bufToken = Buffer.from(token);
+    const bufExpected = Buffer.from(cronSecret);
+    const isMatch = bufToken.length === bufExpected.length && crypto.timingSafeEqual(bufToken, bufExpected);
+
+    if (!isMatch) {
       return NextResponse.json(
         { success: false, error: "Unauthorized request" },
         { status: 401 }
@@ -104,11 +114,11 @@ async function handleKeepAlive(request: Request) {
       details,
     });
   } catch (err: unknown) {
-    const error = err as Error;
+    console.error("[Keep-Alive Error]:", err);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to communicate with Supabase",
+        error: "Keep-alive ping operation failed.",
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

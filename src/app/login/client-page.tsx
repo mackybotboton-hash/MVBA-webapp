@@ -3,6 +3,7 @@
 import { AuthModal } from "@/components/auth/auth-modal";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getSafeRedirectUrl } from "@/lib/utils";
 
 export function AuthClientPage() {
   const router = useRouter();
@@ -24,8 +25,8 @@ export function AuthClientPage() {
       initialMode="login"
       onLoginSuccess={() => {
         // If they were trying to go to a specific page (e.g. /bookings),
-        // the middleware passed ?redirect=/bookings. Let's send them there!
-        const redirectUrl = searchParams.get("redirect") || "/";
+        // the middleware passed ?redirect=/bookings. Send them there safely!
+        const redirectUrl = getSafeRedirectUrl(searchParams.get("redirect"), "/");
         router.push(redirectUrl);
       }}
     />

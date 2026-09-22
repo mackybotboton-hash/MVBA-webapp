@@ -14,10 +14,29 @@ export async function upsertService(payload: {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized: Please sign in." };
     }
 
-    // Strict Ownership Validation
+    // 1. Strict Input Validation
+    if (!payload.name || typeof payload.name !== "string" || !payload.name.trim()) {
+      return { success: false, error: "Service name cannot be blank." };
+    }
+
+    if (!["Boat", "Food", "Tour"].includes(payload.service_type)) {
+      return { success: false, error: "Invalid service type selected." };
+    }
+
+    if (
+      typeof payload.price !== "number" ||
+      isNaN(payload.price) ||
+      !isFinite(payload.price) ||
+      payload.price < 0 ||
+      payload.price > 1000000
+    ) {
+      return { success: false, error: "Price must be a valid positive number." };
+    }
+
+    // 2. Strict Property Ownership Validation
     const { data: property, error: propError } = await supabase
       .from("properties")
       .select("owner_id")
@@ -32,12 +51,30 @@ export async function upsertService(payload: {
       return { success: false, error: "Forbidden: You do not own this property." };
     }
 
+    // 3. IDOR / Object Hijacking Prevention:
+    // If updating an existing service ID, ensure it belongs to the caller's property.
+    if (payload.id) {
+      const { data: existingService, error: serviceError } = await supabase
+        .from("extra_services")
+        .select("id, property_id")
+        .eq("id", payload.id)
+        .single();
+
+      if (serviceError || !existingService) {
+        return { success: false, error: "Service to update was not found." };
+      }
+
+      if (existingService.property_id !== payload.property_id) {
+        return { success: false, error: "Forbidden: Cannot alter service association across properties." };
+      }
+    }
+
     const { error: upsertError } = await supabase
       .from("extra_services")
       .upsert({
         ...(payload.id ? { id: payload.id } : {}),
         property_id: payload.property_id,
-        name: payload.name,
+        name: payload.name.trim().slice(0, 100),
         service_type: payload.service_type,
         price: payload.price,
         is_active: true
@@ -61,7 +98,11 @@ export async function toggleServiceStatus(serviceId: string, isActive: boolean) 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return { success: false, error: "Unauthorized" };
+      return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    if (!serviceId || typeof serviceId !== "string") {
+      return { success: false, error: "Invalid service identifier." };
     }
 
     // Verify ownership of the service's property
@@ -87,7 +128,7 @@ export async function toggleServiceStatus(serviceId: string, isActive: boolean) 
 
     const { error: updateError } = await supabase
       .from("extra_services")
-      .update({ is_active: isActive })
+      .update({ is_active: Boolean(isActive) })
       .eq("id", serviceId);
 
     if (updateError) {

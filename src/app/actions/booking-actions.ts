@@ -21,6 +21,35 @@ export async function createReservationAction(payload: {
       throw new Error("Unauthorized: You must be logged in to create a booking.");
     }
 
+    if (!payload.roomId || typeof payload.roomId !== "string") {
+      throw new Error("Invalid room ID specified.");
+    }
+
+    // Validate guest count boundaries
+    if (!Number.isInteger(payload.guestCount) || payload.guestCount < 1) {
+      throw new Error("Guest count must be an integer of at least 1.");
+    }
+
+    // Validate dates strictly
+    const checkIn = new Date(payload.checkInDate);
+    const checkOut = new Date(payload.checkOutDate);
+
+    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+      throw new Error("Invalid check-in or check-out date format.");
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (checkIn < today) {
+      throw new Error("Check-in date cannot be in the past.");
+    }
+
+    // Ensure checkOut > checkIn
+    if (checkOut <= checkIn) {
+      throw new Error("Check-out date must be after check-in date.");
+    }
+
     // Fetch the room and its property (owner) for pricing + denormalization
     const { data, error: roomError } = await supabaseUserClient
       .from("rooms")
@@ -57,15 +86,7 @@ export async function createReservationAction(payload: {
     
     const commissionRate = Number(systemSettings.commission_percentage) / 100;
 
-    // 3. Calculate total price and derivatives server-side
-    const checkIn = new Date(payload.checkInDate);
-    const checkOut = new Date(payload.checkOutDate);
-    
-    // Ensure checkOut > checkIn
-    if (checkOut <= checkIn) {
-      throw new Error("Check-out date must be after check-in date.");
-    }
-
+    // Calculate total price and derivatives server-side
     const timeDiff = checkOut.getTime() - checkIn.getTime();
     const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
     
@@ -78,8 +99,6 @@ export async function createReservationAction(payload: {
     const hostPayoutAmount = totalPrice - commissionAmount;
 
     // 4. Atomic Insertion via Admin Client
-    // We use the admin client because the exclusion constraint runs at the DB level,
-    // and we want this single transaction to succeed or fail atomically without client-side RLS conflicts on overlapping reads.
     const supabaseAdmin = createAdminClient();
     
     const { data: insertData, error: bookingError } = await supabaseAdmin
@@ -87,7 +106,6 @@ export async function createReservationAction(payload: {
       .insert({
         tourist_id: user.id,
         room_id: payload.roomId,
-        // Denormalize owner_id so Supabase Realtime can filter without joins
         owner_id: ownerId || null,
         check_in_date: payload.checkInDate,
         check_out_date: payload.checkOutDate,
@@ -98,14 +116,13 @@ export async function createReservationAction(payload: {
         host_payout_amount: hostPayoutAmount,
         payment_status: "awaiting_deposit",
         status: "pending",
-        notes: payload.notes || ""
+        notes: (payload.notes || "").slice(0, 1000)
       } as any)
       .select()
       .single();
     const newBooking = insertData as any;
 
     if (bookingError) {
-      // 23P01 is the PostgreSQL error code for exclusion constraint violation
       if (bookingError.code === '23P01') {
         throw new Error("These dates are no longer available. The room was booked by someone else.");
       }
@@ -115,9 +132,6 @@ export async function createReservationAction(payload: {
     revalidatePath("/bookings");
     revalidatePath(`/property/${payload.roomId}`);
 
-    // Fire-and-forget: notify host + admin about new booking
-    // This is intentionally NOT awaited at the top level — we do not want
-    // any notification failure to affect the booking response.
     if (ownerId) {
       const touristProfile = await supabaseUserClient
         .from("profiles")
@@ -138,5 +152,86 @@ export async function createReservationAction(payload: {
     return { success: true, booking: newBooking };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Authorized Server Action for submitting a GCash deposit receipt.
+ * Validates ownership, format, and status before updating the booking.
+ */
+export async function submitDepositReceiptAction(payload: {
+  bookingId: string;
+  receiptPath: string;
+  referenceNumber: string;
+}) {
+  try {
+    const supabaseUser = await createClient();
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+
+    if (authError || !user) {
+      return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    if (!payload.bookingId || !payload.receiptPath || !payload.referenceNumber) {
+      return { success: false, error: "Missing required booking or receipt information." };
+    }
+
+    // Sanitize reference number (digits only, 10–20 digits)
+    const sanitizedRef = payload.referenceNumber.replace(/\D/g, "");
+    if (sanitizedRef.length < 10 || sanitizedRef.length > 20) {
+      return { success: false, error: "GCash reference number must be between 10 and 20 digits." };
+    }
+
+    // Path safety validation
+    if (payload.receiptPath.includes("..") || /[\0\r\n]/.test(payload.receiptPath)) {
+      return { success: false, error: "Invalid receipt storage path." };
+    }
+
+    const supabaseAdmin = createAdminClient();
+
+    // Verify booking ownership and valid status
+    const { data: booking, error: fetchError } = await supabaseAdmin
+      .from("bookings")
+      .select("id, tourist_id, owner_id, payment_status, status, rooms(properties(name))")
+      .eq("id", payload.bookingId)
+      .single();
+
+    if (fetchError || !booking) {
+      return { success: false, error: "Booking not found." };
+    }
+
+    if (booking.tourist_id !== user.id) {
+      return { success: false, error: "Forbidden: You do not own this booking." };
+    }
+
+    if (booking.payment_status === "verified") {
+      return { success: false, error: "Deposit for this booking has already been verified." };
+    }
+
+    if (booking.status === "cancelled" || booking.status === "declined") {
+      return { success: false, error: "Cannot submit deposit for a cancelled or declined booking." };
+    }
+
+    // Atomically update payment status and receipt reference
+    const { error: updateError } = await supabaseAdmin
+      .from("bookings")
+      .update({
+        payment_status: "deposit_uploaded",
+        receipt_url: `${payload.receiptPath}|${sanitizedRef}`,
+      } as any)
+      .eq("id", payload.bookingId);
+
+    if (updateError) {
+      console.error("Failed to update booking receipt:", updateError);
+      return { success: false, error: "Failed to record payment receipt." };
+    }
+
+    revalidatePath("/bookings");
+    revalidatePath("/admin/transactions");
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error in submitDepositReceiptAction:", err);
+    return { success: false, error: err.message || "An unexpected error occurred." };
   }
 }

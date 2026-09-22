@@ -3,6 +3,7 @@
 import { AuthModal } from "@/components/auth/auth-modal";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { getSafeRedirectUrl } from "@/lib/utils";
 
 export function RegisterClientPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export function RegisterClientPage() {
       onClose={() => router.push("/")} 
       initialMode="register"
       onLoginSuccess={() => {
-        const redirectUrl = searchParams.get("redirect") || "/";
+        const redirectUrl = getSafeRedirectUrl(searchParams.get("redirect"), "/");
         router.push(redirectUrl);
       }}
     />

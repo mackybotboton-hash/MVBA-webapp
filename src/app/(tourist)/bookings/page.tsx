@@ -27,6 +27,7 @@ import { DigitalBoardingPassModal } from "@/components/tourist/digital-boarding-
 import { GCashDepositModal } from "@/components/tourist/gcash-deposit-modal";
 import { TouristReviewModal } from "@/components/tourist/tourist-review-modal";
 import { TouristViewPaymentModal } from "@/components/tourist/tourist-view-payment-modal";
+import { submitDepositReceiptAction } from "@/app/actions/booking-actions";
 
 
 type BookingFilterTab = "all" | "pending" | "accepted" | "completed" | "cancelled";
@@ -312,16 +313,15 @@ export default function TouristBookingsPage() {
 
             if (uploadError) throw uploadError;
 
-            const { error: updateError } = await supabase
-              .from("bookings")
-              // @ts-expect-error: Supabase type inference assigns 'never' to update parameters
-              .update({
-                payment_status: "deposit_uploaded",
-                receipt_url: `${uploadData.path}|${payload.referenceNumber}`
-              })
-              .eq("id", selectedDepositBooking.id);
+            const result = await submitDepositReceiptAction({
+              bookingId: selectedDepositBooking.id,
+              receiptPath: uploadData.path,
+              referenceNumber: payload.referenceNumber,
+            });
 
-            if (updateError) throw updateError;
+            if (!result.success) {
+              throw new Error(result.error || "Failed to record payment");
+            }
 
             toast.success("Payment submitted successfully!");
             await fetchBookings();
