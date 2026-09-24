@@ -57,11 +57,13 @@ export function ProfileSettingsGrid({
     initialProfile.phone_number || ""
   );
   const [isSavingProfile, setIsSavingProfile] = React.useState(false);
+  const [isProfileSaved, setIsProfileSaved] = React.useState(false);
 
   // Payment Form State (GCash preferences saved locally & prefilled)
   const [gcashNumber, setGcashNumber] = React.useState("");
   const [gcashName, setGcashName] = React.useState("");
   const [isSavingPayment, setIsSavingPayment] = React.useState(false);
+  const [isPaymentSaved, setIsPaymentSaved] = React.useState(false);
 
   // Password Security Form State
   const [newPassword, setNewPassword] = React.useState("");
@@ -116,7 +118,11 @@ export function ProfileSettingsGrid({
 
       if (res.success) {
         toast.success("Personal details updated successfully!");
-        setActiveModal(null);
+        setIsProfileSaved(true);
+        setTimeout(() => {
+          setIsProfileSaved(false);
+          setActiveModal(null);
+        }, 1000);
       } else {
         toast.error(res.error || "Failed to update personal details.");
       }
@@ -148,7 +154,11 @@ export function ProfileSettingsGrid({
         })
       );
       toast.success("GCash payment details saved for faster bookings!");
-      setActiveModal(null);
+      setIsPaymentSaved(true);
+      setTimeout(() => {
+        setIsPaymentSaved(false);
+        setActiveModal(null);
+      }, 1000);
     } catch {
       toast.error("Could not save payment details to device.");
     } finally {
@@ -360,14 +370,17 @@ export function ProfileSettingsGrid({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSavingProfile}
-                  className="flex-1 h-10 text-xs font-bold rounded-xl bg-neutral-900 hover:bg-black text-white"
+                  disabled={isSavingProfile || isProfileSaved}
+                  className={`flex-1 h-10 text-xs font-bold rounded-xl text-white ${
+                    isProfileSaved ? "bg-emerald-600 hover:bg-emerald-700" : "bg-neutral-900 hover:bg-black"
+                  }`}
                 >
                   {isSavingProfile ? (
                     <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                  ) : (
-                    "Save Changes"
-                  )}
+                  ) : isProfileSaved ? (
+                    <Check className="h-4 w-4 mr-2" />
+                  ) : null}
+                  {isProfileSaved ? "Saved" : "Save Changes"}
                 </Button>
               </div>
             </form>
@@ -452,14 +465,17 @@ export function ProfileSettingsGrid({
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSavingPayment}
-                  className="flex-1 h-10 text-xs font-bold rounded-xl bg-neutral-900 hover:bg-black text-white"
+                  disabled={isSavingPayment || isPaymentSaved}
+                  className={`flex-1 h-10 text-xs font-bold rounded-xl text-white ${
+                    isPaymentSaved ? "bg-emerald-600 hover:bg-emerald-700" : "bg-neutral-900 hover:bg-black"
+                  }`}
                 >
                   {isSavingPayment ? (
                     <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                  ) : (
-                    "Save GCash Details"
-                  )}
+                  ) : isPaymentSaved ? (
+                    <Check className="h-4 w-4 mr-2 inline-block" />
+                  ) : null}
+                  {isPaymentSaved ? "Saved" : "Save GCash Details"}
                 </Button>
               </div>
             </form>

@@ -1,20 +1,43 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Store, Wallet, Bell, Save, Loader2 } from "lucide-react";
+import { Store, Wallet, Bell, Save, Loader2, Check } from "lucide-react";
 import { updatePayoutMethod, updateNotificationPreferences } from "@/app/actions/settings-actions";
 import { useQueryClient } from "@tanstack/react-query";
+import { createClient } from "@/lib/supabase/client";
 
 export default function HomestaySettingsPage() {
   const queryClient = useQueryClient();
   const [isPendingPayout, startTransitionPayout] = useTransition();
   const [isPendingNotifications, startTransitionNotifications] = useTransition();
+  const [payoutNumber, setPayoutNumber] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+
+  useEffect(() => {
+    async function loadProfile() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from("profiles")
+          .select("payout_gcash_number")
+          .eq("id", user.id)
+          .single();
+        if (data?.payout_gcash_number) {
+          setPayoutNumber(data.payout_gcash_number);
+        }
+      }
+      setIsLoadingProfile(false);
+    }
+    loadProfile();
+  }, []);
 
   const handleSavePayout = (formData: FormData) => {
     startTransitionPayout(async () => {
@@ -22,6 +45,8 @@ export default function HomestaySettingsPage() {
       if (result.success) {
         toast.success("Payout method saved successfully.");
         queryClient.invalidateQueries({ queryKey: ['profile-settings'] });
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 1000);
       } else {
         toast.error(result.error || "Failed to save payout method.");
       }
@@ -110,6 +135,9 @@ export default function HomestaySettingsPage() {
                 <Input 
                   id="gcash-number" 
                   name="gcashNumber" 
+                  value={payoutNumber}
+                  onChange={(e) => setPayoutNumber(e.target.value)}
+                  disabled={isLoadingProfile}
                   placeholder="09123456789" 
                   required 
                   pattern="^09\d{9}$" 
@@ -121,13 +149,20 @@ export default function HomestaySettingsPage() {
               </div>
             </CardContent>
             <CardFooter className="border-t bg-neutral-50/50 px-6 py-4">
-              <Button type="submit" disabled={isPendingPayout} size="sm">
+              <Button 
+                type="submit" 
+                disabled={isPendingPayout || isLoadingProfile} 
+                size="sm"
+                className={isSaved ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+              >
                 {isPendingPayout ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : isSaved ? (
+                  <Check className="h-4 w-4 mr-2" />
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}
-                Save Payout Method
+                {isSaved ? "Saved" : "Save Payout Method"}
               </Button>
             </CardFooter>
           </form>
