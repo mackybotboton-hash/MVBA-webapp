@@ -399,7 +399,7 @@ export function RoomFormModal({
             </div>
           </div>
 
-          {/* 📸 Multi-Angle Room Photos (At least 5 recommended) */}
+          {/* Multi-Angle Room Photos (At least 5 recommended) */}
           <div className="space-y-2.5 pt-2 border-t border-neutral-100">
             <div className="flex items-center justify-between">
               <div>

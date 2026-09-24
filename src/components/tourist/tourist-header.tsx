@@ -13,6 +13,9 @@ import {
   User,
   Heart,
   Compass,
+  Hotel,
+  Home,
+  ShieldCheck,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Badge } from "@/components/ui/badge";
@@ -274,12 +277,23 @@ export function TouristHeader({
                         onClick={() => setIsUserMenuOpen(false)}
                         className="flex items-center justify-between px-3 py-2 rounded-xl text-neutral-900 bg-neutral-100/70 hover:bg-neutral-100 font-semibold transition-colors"
                       >
-                        <span>
-                          {user.role === "resort"
-                            ? "🏨 Resort Operations Portal"
-                            : user.role === "homestay"
-                            ? "🏡 Homestay Host Portal"
-                            : "🛡️ Admin Operations Portal"}
+                        <span className="flex items-center gap-1.5">
+                          {user.role === "resort" ? (
+                            <>
+                              <Hotel className="h-3.5 w-3.5 text-neutral-500" />
+                              <span>Resort Operations Portal</span>
+                            </>
+                          ) : user.role === "homestay" ? (
+                            <>
+                              <Home className="h-3.5 w-3.5 text-neutral-500" />
+                              <span>Homestay Host Portal</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck className="h-3.5 w-3.5 text-neutral-500" />
+                              <span>Admin Operations Portal</span>
+                            </>
+                          )}
                         </span>
                         <span className="text-[10px] text-neutral-600 font-normal">Open &rarr;</span>
                       </Link>

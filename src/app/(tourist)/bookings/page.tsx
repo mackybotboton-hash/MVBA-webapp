@@ -33,7 +33,8 @@ import { BoardingPassData } from "@/lib/boarding-pass-generator";
 type BookingFilterTab =
   | "all"
   | "pending"
-  | "accepted"
+  | "awaiting_deposit"
+  | "confirmed"
   | "completed"
   | "cancelled"
   | "offline";
@@ -191,6 +192,12 @@ export default function TouristBookingsPage() {
       // Return bookings that are in the offline cache
       return bookings.filter((b) => hasPass(b.id));
     }
+    if (activeTab === "awaiting_deposit") {
+      return bookings.filter((b) => b.status === "accepted" && b.payment_status !== "verified");
+    }
+    if (activeTab === "confirmed") {
+      return bookings.filter((b) => b.status === "accepted" && b.payment_status === "verified");
+    }
     return bookings.filter((b) => b.status === activeTab);
   }, [bookings, activeTab, hasPass]);
 
@@ -198,7 +205,8 @@ export default function TouristBookingsPage() {
     return {
       all: bookings.length,
       pending: bookings.filter((b) => b.status === "pending").length,
-      accepted: bookings.filter((b) => b.status === "accepted").length,
+      awaiting_deposit: bookings.filter((b) => b.status === "accepted" && b.payment_status !== "verified").length,
+      confirmed: bookings.filter((b) => b.status === "accepted" && b.payment_status === "verified").length,
       completed: bookings.filter((b) => b.status === "completed").length,
       cancelled: bookings.filter((b) => b.status === "cancelled").length,
       offline: cachedPasses.length,
@@ -302,11 +310,12 @@ export default function TouristBookingsPage() {
           {[
             { id: "all", label: "All Bookings", count: counts.all },
             { id: "pending", label: "Pending", count: counts.pending },
-            { id: "accepted", label: "Awaiting Deposit", count: counts.accepted },
+            { id: "awaiting_deposit", label: "Awaiting Deposit", count: counts.awaiting_deposit },
+            { id: "confirmed", label: "Confirmed", count: counts.confirmed },
             { id: "completed", label: "Completed", count: counts.completed },
             { id: "cancelled", label: "Cancelled", count: counts.cancelled },
             ...(cachedPasses.length > 0
-              ? [{ id: "offline", label: "⚡ Offline Passes", count: counts.offline }]
+              ? [{ id: "offline", label: "Offline Passes", icon: WifiOff, count: counts.offline }]
               : []),
           ].map((tab) => {
             const isSelected = activeTab === tab.id;
@@ -320,6 +329,10 @@ export default function TouristBookingsPage() {
                     : "border border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
                 }`}
               >
+                {(() => {
+                  const Icon = (tab as any).icon;
+                  return Icon ? <Icon className="h-3.5 w-3.5 mr-0.5" /> : null;
+                })()}
                 <span>{tab.label}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full ${

@@ -40,6 +40,8 @@ export interface PropertyCardProps {
   priority?: boolean;
 }
 
+import { useWishlist } from "@/hooks/use-wishlist";
+
 export function PropertyCard({
   property,
   viewMode = "grid",
@@ -48,15 +50,16 @@ export function PropertyCard({
   priority = false,
 }: PropertyCardProps) {
   const [imageError, setImageError] = React.useState(false);
-  const [isFavorited, setIsFavorited] = React.useState(
-    Boolean(property.is_favorited)
-  );
+  const { isSaved, toggleSave } = useWishlist();
+  
+  // A property is favorited if it's in localStorage OR if the DB says so
+  const isFavorited = isSaved(property.id) || Boolean(property.is_favorited);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const nextState = !isFavorited;
-    setIsFavorited(nextState);
+    
+    const nextState = toggleSave(property.id, property.name);
     onToggleFavorite?.(property.id, nextState);
   };
 

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarEventModal } from "@/components/owner/calendar-event-modal";
 
-export default function ResortCalendarPage() {
+export default function HomestayCalendarPage() {
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [bookings, setBookings] = React.useState<any[]>([]);
   const [events, setEvents] = React.useState<any[]>([]);
@@ -41,14 +41,14 @@ export default function ResortCalendarPage() {
           .from("properties")
           .select("id")
           .eq("owner_id", user.id)
-          .eq("type", "resort");
+          .eq("type", "homestay");
 
         const propIds = ((propData as any[]) || []).map((p) => p.id);
         if (propIds.length === 0) return;
 
         const { data: roomsData } = await supabase
           .from("rooms")
-          .select("id")
+          .select("id, name")
           .in("property_id", propIds);
 
         const roomIds = ((roomsData as any[]) || []).map((r) => r.id);
@@ -96,7 +96,7 @@ export default function ResortCalendarPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-neutral-200 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-            Resort Availability Calendar
+            Homestay Availability Calendar
           </h1>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1">
             Track confirmed guest stays, check-in arrivals, and open room dates
@@ -113,24 +113,25 @@ export default function ResortCalendarPage() {
           </Button>
 
           <div className="flex items-center gap-2">
-          <button
-            onClick={prevMonth}
-            className="p-2 rounded-lg border border-neutral-200 text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-semibold text-neutral-900 min-w-[140px] text-center">
-            {monthName}
-          </span>
-          <button
-            onClick={nextMonth}
-            className="p-2 rounded-lg border border-neutral-200 text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+            <button
+              onClick={prevMonth}
+              className="p-2 rounded-lg border border-neutral-200 text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-semibold text-neutral-900 min-w-[140px] text-center">
+              {monthName}
+            </span>
+            <button
+              onClick={nextMonth}
+              className="p-2 rounded-lg border border-neutral-200 text-neutral-600 hover:text-black hover:bg-neutral-50 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
-      </div>
+        </div>
+
 
       {/* Calendar Grid */}
       <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-xs">

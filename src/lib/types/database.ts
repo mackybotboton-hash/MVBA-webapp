@@ -164,6 +164,20 @@ export interface Review {
   updated_at: string;
 }
 
+export interface CalendarEvent {
+  id: string;
+  owner_id: string;
+  property_id: string;
+  room_id: string;
+  title: string;
+  description?: string | null;
+  start_date: string;
+  end_date: string;
+  event_type: "maintenance" | "offline_booking" | "personal";
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- Extended Types (with relations) ----
 
 export interface PropertyWithOwner extends Property {
@@ -256,6 +270,12 @@ export interface Database {
         Row: Review;
         Insert: Omit<Review, "id" | "created_at" | "updated_at"> & { id?: string };
         Update: Partial<Review>;
+        Relationships: [];
+      };
+      calendar_events: {
+        Row: CalendarEvent;
+        Insert: Omit<CalendarEvent, "id" | "created_at" | "updated_at"> & { id?: string };
+        Update: Partial<CalendarEvent>;
         Relationships: [];
       };
     };

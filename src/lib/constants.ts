@@ -75,6 +75,7 @@ export const HOMESTAY_NAV_ITEMS: NavItem[] = [
   { label: "Today", href: "/homestay", icon: CalendarCheck },
   { label: "Rooms", href: "/homestay/rooms", icon: BedDouble },
   { label: "Bookings", href: "/homestay/bookings", icon: Ticket },
+  { label: "Calendar", href: "/homestay/calendar", icon: CalendarRange },
   { label: "Services", href: "/homestay/services", icon: Compass },
   { label: "Dispatch", href: "/homestay/dispatch", icon: Anchor },
   { label: "Chat", href: "/homestay/chat", icon: MessageSquare },

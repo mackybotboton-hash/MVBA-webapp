@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle2,
+  AlertTriangle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -190,9 +191,10 @@ export default function AdminAnnouncementsPage() {
                   setTargetAudience("all");
                   toast.info("Gale Warning preset loaded");
                 }}
-                className="px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs font-bold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs font-bold transition-colors"
               >
-                🚨 Gale Warning (No Sailing)
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Gale Warning (No Sailing)
               </button>
 
               <button
@@ -203,9 +205,10 @@ export default function AdminAnnouncementsPage() {
                   setTargetAudience("all");
                   toast.info("Moderate Sea preset loaded");
                 }}
-                className="px-3 py-1.5 rounded-lg border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-semibold transition-colors"
               >
-                ⚠️ Moderate Sea Advisory
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Moderate Sea Advisory
               </button>
 
               <button
@@ -216,9 +219,10 @@ export default function AdminAnnouncementsPage() {
                   setTargetAudience("all");
                   toast.info("Assembly Notice preset loaded");
                 }}
-                className="px-3 py-1.5 rounded-lg border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-semibold transition-colors"
               >
-                📢 Association Assembly Notice
+                <Megaphone className="h-3.5 w-3.5" />
+                Association Assembly Notice
               </button>
             </div>
           </div>
