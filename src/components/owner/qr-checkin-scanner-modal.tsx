@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 export interface QRCheckinScannerModalProps {
   isOpen: boolean;
@@ -55,6 +56,30 @@ export function QRCheckinScannerModal({
   }, [searchInput, bookings]);
 
   if (!isOpen) return null;
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const scanner = new Html5QrcodeScanner(
+      "qr-reader",
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      false
+    );
+
+    scanner.render(
+      (text) => {
+        setSearchInput(text);
+        toast.success("QR Code scanned successfully!");
+      },
+      (err) => {
+        // Ignore scan failures (happens every frame when no QR is in view)
+      }
+    );
+
+    return () => {
+      scanner.clear().catch(console.error);
+    };
+  }, [isOpen]);
 
   const handleSimulateScan = () => {
     // Pick first confirmed or pending booking if available
@@ -149,6 +174,8 @@ export function QRCheckinScannerModal({
               />
             </div>
           </div>
+
+          <div id="qr-reader" className="w-full overflow-hidden rounded-xl border border-neutral-200"></div>
 
           {/* Quick Scanner Camera Simulator Button */}
           <Button

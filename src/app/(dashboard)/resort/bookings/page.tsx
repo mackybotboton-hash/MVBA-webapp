@@ -27,7 +27,12 @@ import {
 import { EmptyState } from "@/components/tourist/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { QRCheckinScannerModal } from "@/components/owner/qr-checkin-scanner-modal";
+import dynamic from 'next/dynamic';
+
+const QRCheckinScannerModal = dynamic(
+  () => import("@/components/owner/qr-checkin-scanner-modal").then(mod => mod.QRCheckinScannerModal),
+  { ssr: false }
+);
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeBookings } from "@/hooks/use-realtime-bookings";
