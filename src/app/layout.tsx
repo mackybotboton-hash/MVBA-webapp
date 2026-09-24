@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { PushInitializer } from "@/components/shared/PushInitializer";
 import { QueryProvider } from "@/providers/query-provider";
 import { NotificationCountsProvider } from "@/hooks/use-notification-counts";
+import { Toaster } from "@/components/ui/sonner";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -67,6 +68,7 @@ export default function RootLayout({
             <PushInitializer />
           </NotificationCountsProvider>
         </QueryProvider>
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );
