@@ -22,6 +22,7 @@ export default function AdminContentPage() {
   const [isLoadingIslands, setIsLoadingIslands] = useState(true);
   const [editingIsland, setEditingIsland] = useState<any | null>(null);
   const [isSavingIsland, setIsSavingIsland] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const fetchHotlines = useCallback(async () => {
     try {
@@ -104,6 +105,37 @@ export default function AdminContentPage() {
       fetchHotlines();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete");
+    }
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editingIsland) return;
+    
+    setIsUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      setEditingIsland({ ...editingIsland, image_url: publicUrl });
+      toast.success("Image uploaded!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setIsUploadingImage(false);
     }
   }
 
@@ -200,10 +232,6 @@ export default function AdminContentPage() {
               <Plus className="w-4 h-4 mr-2" /> Add Island
             </Button>
           </div>
-          
-          <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm border border-blue-100">
-            <strong>Note:</strong> Please run the database migration before using this feature. If no islands are loading, the table might not exist yet.
-          </div>
 
           {isLoadingIslands ? (
             <div className="flex justify-center p-8">
@@ -263,10 +291,35 @@ export default function AdminContentPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Image URL</label>
-              <Input required value={editingIsland.image_url} onChange={e => setEditingIsland({...editingIsland, image_url: e.target.value})} placeholder="https://..." />
+              <label className="text-sm font-medium">Island Image</label>
+              
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input 
+                    type="url" 
+                    value={editingIsland.image_url} 
+                    onChange={e => setEditingIsland({...editingIsland, image_url: e.target.value})} 
+                    placeholder="https://..." 
+                  />
+                  <p className="text-xs text-neutral-500 mt-1">Paste an image URL or upload a file</p>
+                </div>
+                
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    disabled={isUploadingImage}
+                  />
+                  <Button type="button" variant="outline" disabled={isUploadingImage}>
+                    {isUploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload File"}
+                  </Button>
+                </div>
+              </div>
+
               {editingIsland.image_url && (
-                <div className="mt-2 relative h-32 w-full rounded-md overflow-hidden bg-neutral-100">
+                <div className="mt-2 relative h-32 w-full rounded-md overflow-hidden bg-neutral-100 border">
                   <img src={editingIsland.image_url} alt="Preview" className="object-cover w-full h-full" />
                 </div>
               )}
