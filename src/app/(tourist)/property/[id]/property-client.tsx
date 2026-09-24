@@ -139,13 +139,28 @@ export default function PropertyStorefrontPage() {
       setIsLoadingAvailability(true);
       try {
         const supabase = createClient();
-        const { data } = await supabase
+        const { data: bookingsData } = await supabase
           .from("bookings")
           .select("id, check_in_date, check_out_date, status")
           .eq("room_id", targetRoomId)
           .in("status", ["accepted", "pending", "completed"]);
 
-        setBookedRanges((data as any[]) || []);
+        const { data: eventsData } = await supabase
+          .from("calendar_events")
+          .select("id, start_date, end_date")
+          .eq("room_id", targetRoomId);
+
+        const mergedRanges = [
+          ...(bookingsData || []),
+          ...(eventsData || []).map((e: any) => ({
+            id: e.id,
+            check_in_date: e.start_date,
+            check_out_date: e.end_date,
+            status: "accepted", // Force block
+          }))
+        ];
+
+        setBookedRanges(mergedRanges);
       } catch {
         // Graceful fallback
       } finally {

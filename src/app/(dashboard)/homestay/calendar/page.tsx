@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CalendarEventModal } from "@/components/owner/calendar-event-modal";
+import { toast } from "sonner";
 
 export default function HomestayCalendarPage() {
   const [currentDate, setCurrentDate] = React.useState(new Date());
@@ -89,6 +90,20 @@ export default function HomestayCalendarPage() {
 
   const nextMonth = () => {
     setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const handleDeleteEvent = async (id: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to remove the event "${title}"?`)) return;
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.from("calendar_events").delete().eq("id", id);
+      if (error) throw error;
+      setEvents((prev) => prev.filter(e => e.id !== id));
+      toast.success("Event removed successfully.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove event.");
+    }
   };
 
   return (
@@ -206,8 +221,9 @@ export default function HomestayCalendarPage() {
                       return (
                         <div
                           key={`e-${e.id}`}
-                          className="text-[10px] px-1.5 py-0.5 rounded truncate font-medium bg-red-100 text-red-800"
-                          title={`${e.title} (${e.rooms?.name})`}
+                          onClick={() => handleDeleteEvent(e.id, e.title)}
+                          className="text-[10px] px-1.5 py-0.5 rounded truncate font-medium bg-red-100 text-red-800 cursor-pointer hover:bg-red-200 transition-colors"
+                          title={`Click to remove: ${e.title} (${e.rooms?.name})`}
                         >
                           {e.title}
                         </div>
