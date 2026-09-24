@@ -20,6 +20,8 @@ export default function AdminContentPage() {
   // Explore State
   const [islands, setIslands] = useState<any[]>([]);
   const [isLoadingIslands, setIsLoadingIslands] = useState(true);
+  const [editingIsland, setEditingIsland] = useState<any | null>(null);
+  const [isSavingIsland, setIsSavingIsland] = useState(false);
 
   const fetchHotlines = useCallback(async () => {
     try {
@@ -71,7 +73,7 @@ export default function AdminContentPage() {
           description: editingHotline.description,
           number: editingHotline.number,
           display_order: editingHotline.display_order || 0,
-        });
+        } as any);
         if (error) throw error;
         toast.success("Hotline created!");
       } else {
@@ -80,7 +82,7 @@ export default function AdminContentPage() {
           description: editingHotline.description,
           number: editingHotline.number,
           display_order: editingHotline.display_order,
-        }).eq("id", editingHotline.id);
+        } as any).eq("id", editingHotline.id);
         if (error) throw error;
         toast.success("Hotline updated!");
       }
@@ -100,6 +102,53 @@ export default function AdminContentPage() {
       if (error) throw error;
       toast.success("Hotline deleted");
       fetchHotlines();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete");
+    }
+  }
+
+  async function handleSaveIsland(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingIsland) return;
+    setIsSavingIsland(true);
+    try {
+      if (editingIsland.id === "new") {
+        const { error } = await supabase.from("explore_islands").insert({
+          name: editingIsland.name,
+          tagline: editingIsland.tagline,
+          description: editingIsland.description,
+          image_url: editingIsland.image_url,
+          display_order: editingIsland.display_order || 0,
+        } as any);
+        if (error) throw error;
+        toast.success("Island added!");
+      } else {
+        const { error } = await supabase.from("explore_islands").update({
+          name: editingIsland.name,
+          tagline: editingIsland.tagline,
+          description: editingIsland.description,
+          image_url: editingIsland.image_url,
+          display_order: editingIsland.display_order,
+        } as any).eq("id", editingIsland.id);
+        if (error) throw error;
+        toast.success("Island updated!");
+      }
+      setEditingIsland(null);
+      fetchIslands();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save island");
+    } finally {
+      setIsSavingIsland(false);
+    }
+  }
+
+  async function handleDeleteIsland(id: string) {
+    if (!window.confirm("Are you sure you want to delete this island?")) return;
+    try {
+      const { error } = await supabase.from("explore_islands").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Island deleted");
+      fetchIslands();
     } catch (error: any) {
       toast.error(error.message || "Failed to delete");
     }
@@ -144,6 +193,7 @@ export default function AdminContentPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Manage Islands</h2>
             <Button
+              onClick={() => setEditingIsland({ id: "new", name: "", tagline: "", description: "", image_url: "", display_order: islands.length + 1 })}
               size="sm"
               className="bg-black text-white hover:bg-neutral-800"
             >
@@ -170,7 +220,12 @@ export default function AdminContentPage() {
                       <p className="text-sm text-neutral-500">{island.tagline}</p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">Edit</Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setEditingIsland(island)}>Edit</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteIsland(island.id)} className="text-red-600 hover:text-red-700">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
               {islands.length === 0 && (
@@ -178,6 +233,58 @@ export default function AdminContentPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {editingIsland && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <form onSubmit={handleSaveIsland} className="w-full max-w-lg bg-white rounded-xl shadow-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-bold">{editingIsland.id === "new" ? "Add Island" : "Edit Island"}</h3>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Island Name</label>
+              <Input required value={editingIsland.name} onChange={e => setEditingIsland({...editingIsland, name: e.target.value})} placeholder="e.g. Naked Island" />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tagline</label>
+              <Input required value={editingIsland.tagline} onChange={e => setEditingIsland({...editingIsland, tagline: e.target.value})} placeholder="e.g. The Bare Beauty" />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <textarea 
+                required 
+                value={editingIsland.description} 
+                onChange={e => setEditingIsland({...editingIsland, description: e.target.value})} 
+                className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm min-h-[100px]" 
+                placeholder="Detailed description..." 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Image URL</label>
+              <Input required value={editingIsland.image_url} onChange={e => setEditingIsland({...editingIsland, image_url: e.target.value})} placeholder="https://..." />
+              {editingIsland.image_url && (
+                <div className="mt-2 relative h-32 w-full rounded-md overflow-hidden bg-neutral-100">
+                  <img src={editingIsland.image_url} alt="Preview" className="object-cover w-full h-full" />
+                </div>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Display Order</label>
+              <Input type="number" required value={editingIsland.display_order} onChange={e => setEditingIsland({...editingIsland, display_order: parseInt(e.target.value) || 0})} />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4">
+              <Button type="button" variant="ghost" onClick={() => setEditingIsland(null)}>Cancel</Button>
+              <Button type="submit" disabled={isSavingIsland} className="bg-black text-white hover:bg-neutral-800">
+                {isSavingIsland ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                Save
+              </Button>
+            </div>
+          </form>
         </div>
       )}
 
