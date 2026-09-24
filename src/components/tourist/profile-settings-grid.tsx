@@ -678,7 +678,12 @@ export function ProfileSettingsGrid({
                       </button>
                     </div>
                   </div>
-                ))}
+                ))
+              ) : (
+                <div className="py-4 text-center text-xs text-neutral-500 border border-dashed rounded-xl">
+                  No hotlines configured.
+                </div>
+              )}
               </div>
             </div>
 

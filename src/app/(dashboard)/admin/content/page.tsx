@@ -68,21 +68,21 @@ export default function AdminContentPage() {
     setIsSavingHotline(true);
     try {
       if (editingHotline.id === "new") {
-        const { error } = await supabase.from("system_hotlines").insert({
+        const { error } = await (supabase.from("system_hotlines") as any).insert({
           name: editingHotline.name,
           description: editingHotline.description,
           number: editingHotline.number,
           display_order: editingHotline.display_order || 0,
-        } as any);
+        });
         if (error) throw error;
         toast.success("Hotline created!");
       } else {
-        const { error } = await supabase.from("system_hotlines").update({
+        const { error } = await (supabase.from("system_hotlines") as any).update({
           name: editingHotline.name,
           description: editingHotline.description,
           number: editingHotline.number,
           display_order: editingHotline.display_order,
-        } as any).eq("id", editingHotline.id);
+        }).eq("id", editingHotline.id);
         if (error) throw error;
         toast.success("Hotline updated!");
       }
@@ -113,23 +113,23 @@ export default function AdminContentPage() {
     setIsSavingIsland(true);
     try {
       if (editingIsland.id === "new") {
-        const { error } = await supabase.from("explore_islands").insert({
+        const { error } = await (supabase.from("explore_islands") as any).insert({
           name: editingIsland.name,
           tagline: editingIsland.tagline,
           description: editingIsland.description,
           image_url: editingIsland.image_url,
           display_order: editingIsland.display_order || 0,
-        } as any);
+        });
         if (error) throw error;
         toast.success("Island added!");
       } else {
-        const { error } = await supabase.from("explore_islands").update({
+        const { error } = await (supabase.from("explore_islands") as any).update({
           name: editingIsland.name,
           tagline: editingIsland.tagline,
           description: editingIsland.description,
           image_url: editingIsland.image_url,
           display_order: editingIsland.display_order,
-        } as any).eq("id", editingIsland.id);
+        }).eq("id", editingIsland.id);
         if (error) throw error;
         toast.success("Island updated!");
       }
