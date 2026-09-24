@@ -29,10 +29,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // @ts-expect-error - NextConfig types might be slightly outdated
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  turbopack: {},
 };
 
 export default withSerwist(nextConfig);
