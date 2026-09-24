@@ -8,33 +8,33 @@ import { toast } from "sonner";
 import { Loader2, Save, Plus, Trash2 } from "lucide-react";
 
 export default function AdminContentPage() {
-  const [activeTab, setActiveTab] = useState<"explore" | "helpline">("explore");
+  const [activeTab, setActiveTab] = useState<"explore" | "hotlines">("explore");
   const supabase = createClient();
 
-  // Settings State
-  const [helpline, setHelpline] = useState({ phone: "", description: "" });
-  const [isSavingHelpline, setIsSavingHelpline] = useState(false);
-  const [isLoadingHelpline, setIsLoadingHelpline] = useState(true);
+  // Hotlines State
+  const [hotlines, setHotlines] = useState<any[]>([]);
+  const [isLoadingHotlines, setIsLoadingHotlines] = useState(true);
+  const [editingHotline, setEditingHotline] = useState<any | null>(null);
+  const [isSavingHotline, setIsSavingHotline] = useState(false);
 
   // Explore State
   const [islands, setIslands] = useState<any[]>([]);
   const [isLoadingIslands, setIsLoadingIslands] = useState(true);
 
-  const fetchHelpline = useCallback(async () => {
+  const fetchHotlines = useCallback(async () => {
     try {
       const { data } = await supabase
-        .from("app_settings")
-        .select("value")
-        .eq("key", "helpline")
-        .maybeSingle();
+        .from("system_hotlines")
+        .select("*")
+        .order("display_order", { ascending: true });
 
-      if ((data as any)?.value) {
-        setHelpline((data as any).value);
+      if (data) {
+        setHotlines(data);
       }
     } catch (e) {
       console.error(e);
     } finally {
-      setIsLoadingHelpline(false);
+      setIsLoadingHotlines(false);
     }
   }, [supabase]);
 
@@ -56,24 +56,52 @@ export default function AdminContentPage() {
   }, [supabase]);
 
   useEffect(() => {
-    fetchHelpline();
+    fetchHotlines();
     fetchIslands();
-  }, [fetchHelpline, fetchIslands]);
+  }, [fetchHotlines, fetchIslands]);
 
-  async function handleSaveHelpline() {
-    setIsSavingHelpline(true);
+  async function handleSaveHotline(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingHotline) return;
+    setIsSavingHotline(true);
     try {
-      const { error } = await supabase.from("app_settings").upsert(
-        { key: "helpline", value: helpline } as any,
-        { onConflict: "key" }
-      );
-
-      if (error) throw error;
-      toast.success("Helpline settings saved!");
+      if (editingHotline.id === "new") {
+        const { error } = await supabase.from("system_hotlines").insert({
+          name: editingHotline.name,
+          description: editingHotline.description,
+          number: editingHotline.number,
+          display_order: editingHotline.display_order || 0,
+        });
+        if (error) throw error;
+        toast.success("Hotline created!");
+      } else {
+        const { error } = await supabase.from("system_hotlines").update({
+          name: editingHotline.name,
+          description: editingHotline.description,
+          number: editingHotline.number,
+          display_order: editingHotline.display_order,
+        }).eq("id", editingHotline.id);
+        if (error) throw error;
+        toast.success("Hotline updated!");
+      }
+      setEditingHotline(null);
+      fetchHotlines();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save settings");
+      toast.error(error.message || "Failed to save hotline");
     } finally {
-      setIsSavingHelpline(false);
+      setIsSavingHotline(false);
+    }
+  }
+
+  async function handleDeleteHotline(id: string) {
+    if (!window.confirm("Are you sure you want to delete this hotline?")) return;
+    try {
+      const { error } = await supabase.from("system_hotlines").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Hotline deleted");
+      fetchHotlines();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete");
     }
   }
 
@@ -100,14 +128,14 @@ export default function AdminContentPage() {
           Explore Islands
         </button>
         <button
-          onClick={() => setActiveTab("helpline")}
+          onClick={() => setActiveTab("hotlines")}
           className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "helpline"
+            activeTab === "hotlines"
               ? "border-black text-black"
               : "border-transparent text-neutral-500 hover:text-neutral-800"
           }`}
         >
-          Emergency Helpline
+          Emergency Hotlines
         </button>
       </div>
 
@@ -153,52 +181,84 @@ export default function AdminContentPage() {
         </div>
       )}
 
-      {activeTab === "helpline" && (
-        <div className="space-y-6 max-w-2xl bg-white p-6 rounded-xl border border-neutral-200 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold">Emergency Helpline</h2>
-            <p className="text-sm text-neutral-500">
-              Shown in the tourist Profile tab for urgent assistance.
-            </p>
+      {activeTab === "hotlines" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Emergency Hotlines</h2>
+              <p className="text-sm text-neutral-500">
+                Manage the emergency contact numbers shown in the tourist app.
+              </p>
+            </div>
+            <Button
+              onClick={() => setEditingHotline({ id: "new", name: "", description: "", number: "", display_order: hotlines.length + 1 })}
+              size="sm"
+              className="bg-black text-white hover:bg-neutral-800"
+            >
+              <Plus className="w-4 h-4 mr-2" /> Add Hotline
+            </Button>
           </div>
 
-          {isLoadingHelpline ? (
+          {isLoadingHotlines ? (
             <div className="flex justify-center p-8">
               <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Phone Number</label>
-                <Input
-                  value={helpline.phone}
-                  onChange={(e) =>
-                    setHelpline({ ...helpline, phone: e.target.value })
-                  }
-                  placeholder="(+63) 912-345-6789"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Description</label>
-                <textarea
-                  value={helpline.description}
-                  onChange={(e: any) =>
-                    setHelpline({ ...helpline, description: e.target.value })
-                  }
-                  className="min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                  rows={4}
-                />
-              </div>
-              <Button
-                onClick={handleSaveHelpline}
-                disabled={isSavingHelpline}
-                className="bg-black text-white hover:bg-neutral-800"
-              >
-                {isSavingHelpline && (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                )}
-                Save Settings
-              </Button>
+            <div className="grid gap-4">
+              {hotlines.map((hotline) => (
+                <div key={hotline.id} className="p-4 bg-white border rounded-lg shadow-sm flex items-start justify-between">
+                  <div>
+                    <h3 className="font-semibold text-neutral-900">{hotline.name}</h3>
+                    <p className="text-sm font-bold text-emerald-700 mt-1">{hotline.number}</p>
+                    <p className="text-xs text-neutral-500 mt-1">{hotline.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setEditingHotline(hotline)}>Edit</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteHotline(hotline.id)} className="text-red-600 hover:text-red-700">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {hotlines.length === 0 && (
+                <p className="text-center text-neutral-500 py-8 border rounded-lg border-dashed">No hotlines configured.</p>
+              )}
+            </div>
+          )}
+
+          {editingHotline && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+              <form onSubmit={handleSaveHotline} className="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-4">
+                <h3 className="text-lg font-bold">{editingHotline.id === "new" ? "Add Hotline" : "Edit Hotline"}</h3>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Agency / Name</label>
+                  <Input required value={editingHotline.name} onChange={e => setEditingHotline({...editingHotline, name: e.target.value})} placeholder="e.g. San Agustin MDRRMO" />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Phone Number</label>
+                  <Input required value={editingHotline.number} onChange={e => setEditingHotline({...editingHotline, number: e.target.value})} placeholder="0998..." />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Description</label>
+                  <Input value={editingHotline.description || ""} onChange={e => setEditingHotline({...editingHotline, description: e.target.value})} placeholder="e.g. 24/7 Sea rescue" />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Display Order</label>
+                  <Input type="number" required value={editingHotline.display_order} onChange={e => setEditingHotline({...editingHotline, display_order: parseInt(e.target.value) || 0})} />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-4">
+                  <Button type="button" variant="ghost" onClick={() => setEditingHotline(null)}>Cancel</Button>
+                  <Button type="submit" disabled={isSavingHotline} className="bg-black text-white hover:bg-neutral-800">
+                    {isSavingHotline ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                    Save
+                  </Button>
+                </div>
+              </form>
             </div>
           )}
         </div>

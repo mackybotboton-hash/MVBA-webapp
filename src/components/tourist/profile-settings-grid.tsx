@@ -29,6 +29,7 @@ import {
   updateProfileDetails,
   updateAccountPasswordAction,
 } from "@/app/actions/settings-actions";
+import { createClient } from "@/lib/supabase/client";
 
 interface ProfileSettingsGridProps {
   initialProfile: {
@@ -74,6 +75,10 @@ export function ProfileSettingsGrid({
   // Copied hotline feedback
   const [copiedNumber, setCopiedNumber] = React.useState<string | null>(null);
 
+  // Dynamic Hotlines State
+  const [systemHotlines, setSystemHotlines] = React.useState<any[]>([]);
+  const [isLoadingHotlines, setIsLoadingHotlines] = React.useState(false);
+
   // Hydrate payment preferences from localStorage
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -97,6 +102,8 @@ export function ProfileSettingsGrid({
       toast.error("Please enter a valid full name (at least 2 characters).");
       return;
     }
+
+    setIsSavingProfile(true);
 
     if (
       phoneNumber.trim() &&
@@ -592,6 +599,16 @@ export function ProfileSettingsGrid({
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setActiveModal(null)}
+          ref={(node) => {
+            if (node && systemHotlines.length === 0 && !isLoadingHotlines) {
+              setIsLoadingHotlines(true);
+              const supabase = createClient();
+              supabase.from("system_hotlines").select("*").order("display_order").then(({ data }) => {
+                if (data) setSystemHotlines(data);
+                setIsLoadingHotlines(false);
+              });
+            }
+          }}
         >
           <div
             className="w-full max-w-lg rounded-3xl bg-white border border-neutral-200 p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
@@ -623,35 +640,17 @@ export function ProfileSettingsGrid({
               </span>
 
               <div className="space-y-2">
-                {[
-                  {
-                    title: "San Agustin MDRRMO (Disaster & Rescue)",
-                    number: "09985551234",
-                    desc: "24/7 Sea rescue, emergency medical, and weather alerts",
-                  },
-                  {
-                    title: "San Agustin Municipal Police Station (PNP)",
-                    number: "09985986371",
-                    desc: "Public safety, assistance, and reporting",
-                  },
-                  {
-                    title: "Philippine Coast Guard (PCG) Lianga Bay",
-                    number: "09177245489",
-                    desc: "Maritime safety and vessel dispatch clearances",
-                  },
-                  {
-                    title: "San Agustin Municipal Tourism Office",
-                    number: "09123456789",
-                    desc: "Accreditation inquiries and tourist assistance",
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.number}
-                    className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-center justify-between gap-3 text-xs"
+                {isLoadingHotlines ? (
+                  <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-400" /></div>
+                ) : systemHotlines.length > 0 ? (
+                  systemHotlines.map((item) => (
+                    <div
+                      key={item.number}
+                      className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-center justify-between gap-3 text-xs"
                   >
                     <div className="space-y-0.5">
-                      <p className="font-bold text-neutral-900">{item.title}</p>
-                      <p className="text-[11px] text-neutral-500">{item.desc}</p>
+                      <p className="font-bold text-neutral-900">{item.name}</p>
+                      <p className="text-[11px] text-neutral-500">{item.description}</p>
                       <p className="font-mono text-xs font-semibold text-emerald-700">
                         {item.number}
                       </p>
@@ -667,7 +666,7 @@ export function ProfileSettingsGrid({
                       </a>
                       <button
                         type="button"
-                        onClick={() => copyHotline(item.number, item.title)}
+                        onClick={() => copyHotline(item.number, item.name)}
                         className="p-2 rounded-xl bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-100 transition-colors"
                         title="Copy number"
                       >
