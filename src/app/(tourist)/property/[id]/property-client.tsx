@@ -371,8 +371,9 @@ export default function PropertyStorefrontPage() {
             await (supabase.from("booking_addons") as any).insert(addonsData);
           }
 
-          toast.success("Reservation request sent to host!", {
-            description: "Check your bookings tab for confirmation updates.",
+          toast.success("Reservation request sent!", {
+            description: "The confirmation/verification of your booking will take some time. Check your bookings tab for updates.",
+            duration: 6000,
           });
           setSelectedRoom(null);
           router.push("/bookings");
@@ -418,8 +419,9 @@ export default function PropertyStorefrontPage() {
         await (supabase.from("booking_addons") as any).insert(addonsData);
       }
 
-      toast.success("Reservation request sent to host!", {
-        description: "The host has been notified. Track updates in My Bookings.",
+      toast.success("Reservation request sent!", {
+        description: "The confirmation/verification of your booking will take some time. Check your bookings tab for updates.",
+        duration: 6000,
       });
 
       setSelectedRoom(null);

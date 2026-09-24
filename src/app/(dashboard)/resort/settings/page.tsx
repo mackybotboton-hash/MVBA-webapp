@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Store, Wallet, Bell, Save, Loader2, Check } from "lucide-react";
-import { updatePayoutMethod, updateNotificationPreferences } from "@/app/actions/settings-actions";
+import { Store, Wallet, Bell, Save, Loader2, Check, Shield } from "lucide-react";
+import { updatePayoutMethod, updateNotificationPreferences, updateAccountPasswordAction } from "@/app/actions/settings-actions";
 import { useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 
@@ -20,6 +20,10 @@ export default function ResortSettingsPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isPendingPassword, startTransitionPassword] = useTransition();
+
   useEffect(() => {
     async function loadProfile() {
       const supabase = createClient();
@@ -30,8 +34,9 @@ export default function ResortSettingsPage() {
           .select("payout_gcash_number")
           .eq("id", user.id)
           .single();
-        if (data?.payout_gcash_number) {
-          setPayoutNumber(data.payout_gcash_number);
+        const profile = data as { payout_gcash_number?: string } | null;
+        if (profile?.payout_gcash_number) {
+          setPayoutNumber(profile.payout_gcash_number);
         }
       }
       setIsLoadingProfile(false);
@@ -61,6 +66,28 @@ export default function ResortSettingsPage() {
         queryClient.invalidateQueries({ queryKey: ['profile-settings'] });
       } else {
         toast.error(result.error || "Failed to update notification preferences.");
+      }
+    });
+  };
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      toast.error("Password must be at least 8 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+    startTransitionPassword(async () => {
+      const res = await updateAccountPasswordAction(newPassword);
+      if (res.success) {
+        toast.success("Account password changed successfully.");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        toast.error(res.error || "Failed to change password.");
       }
     });
   };
@@ -203,6 +230,55 @@ export default function ResortSettingsPage() {
               <Switch defaultChecked />
             </div>
           </CardContent>
+        </Card>
+
+        {/* Account Security */}
+        <Card>
+          <form onSubmit={handleUpdatePassword}>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-neutral-500" />
+                Account Security
+              </CardTitle>
+              <CardDescription>
+                Manage your login credentials and secure your host account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 max-w-md">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input 
+                  id="new-password" 
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••" 
+                  minLength={8}
+                />
+              </div>
+              <div className="space-y-2 max-w-md">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input 
+                  id="confirm-password" 
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••" 
+                  minLength={8}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="border-t bg-neutral-50/50 px-6 py-4">
+              <Button type="submit" disabled={isPendingPassword || !newPassword} size="sm">
+                {isPendingPassword ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Change Password
+              </Button>
+            </CardFooter>
+          </form>
         </Card>
       </div>
     </div>
