@@ -150,11 +150,22 @@ export async function notifyNewBooking(params: {
  */
 export async function notifyBookingStatusChange(params: {
   touristId: string;
-  newStatus: "accepted" | "declined";
+  newStatus: "accepted" | "declined" | "cancelled";
   propertyName: string;
   checkIn: string;
 }) {
   const { touristId, newStatus, propertyName, checkIn } = params;
+
+  if (newStatus === "cancelled") {
+    await sendNotification({
+      targetUserId: touristId,
+      type: "booking_status",
+      title: "🚫 Booking Cancelled",
+      body: `Your booking at ${propertyName} for ${checkIn} was cancelled.`,
+      url: `/bookings`,
+    });
+    return;
+  }
 
   const isAccepted = newStatus === "accepted";
 

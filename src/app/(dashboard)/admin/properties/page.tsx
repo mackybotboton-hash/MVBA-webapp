@@ -46,8 +46,7 @@ export default function AdminPropertiesPage() {
     
     try {
       const supabase = createClient();
-      const { error } = await supabase
-        .from("properties")
+      const { error } = await (supabase.from("properties") as any)
         .update({ status: newStatus })
         .eq("id", id);
         
