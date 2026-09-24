@@ -16,6 +16,16 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export interface OwnerBookingItem {
@@ -41,7 +51,7 @@ export interface OwnerBookingItem {
 
 export interface OwnerBookingCardProps {
   booking: OwnerBookingItem;
-  onUpdateStatus: (bookingId: string, newStatus: "accepted" | "declined") => Promise<void>;
+  onUpdateStatus: (bookingId: string, newStatus: "accepted" | "declined" | "cancelled") => Promise<void>;
   chatHrefPrefix?: string;
   className?: string;
 }
@@ -66,7 +76,7 @@ export function OwnerBookingCard({
       year: "numeric",
     });
 
-  const handleAction = async (status: "accepted" | "declined") => {
+  const handleAction = async (status: "accepted" | "declined" | "cancelled") => {
     setIsUpdating(true);
     try {
       await onUpdateStatus(booking.id, status);
@@ -258,6 +268,35 @@ export function OwnerBookingCard({
                 Accept Booking
               </Button>
             </>
+          )}
+          {booking.status === "accepted" && (
+            <Dialog>
+              <DialogTrigger render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isUpdating}
+                  className="text-xs h-8 px-3 border-neutral-200 text-red-600 hover:bg-red-50 hover:border-red-200"
+                />
+              }>
+                <X className="h-3.5 w-3.5 mr-1" />
+                Cancel Booking
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cancel Confirmed Booking</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to cancel this booking? Cancelling a confirmed booking may require you to refund the guest and could affect your host rating.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="outline" size="sm" />}>Keep Booking</DialogClose>
+                  <DialogClose render={<Button variant="destructive" size="sm" onClick={() => handleAction("cancelled")} />}>
+                    Yes, Cancel Booking
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </div>

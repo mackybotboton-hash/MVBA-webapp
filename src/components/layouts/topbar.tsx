@@ -5,6 +5,8 @@ import { useNotificationCounts } from "@/hooks/use-notification-counts";
 import { Logo } from "@/components/shared/logo";
 import {
   Bell,
+  BellOff,
+  BellRing,
   LogOut,
   Menu,
   User,
@@ -16,7 +18,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { getInitials } from "@/lib/utils";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
@@ -72,6 +74,37 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
     await supabase.auth.signOut();
     window.location.href = "/";
   }
+
+  // -- Push notification opt-in --
+  // Reads the browser Notification.permission API so the button label
+  // reflects the real current state. Runs in the browser only.
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">("default");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setPushPermission("unsupported");
+      return;
+    }
+    setPushPermission(Notification.permission);
+  }, [isUserMenuOpen]); // Re-read each time dropdown opens
+
+  const handleEnableNotifications = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const OS = (window as any).OneSignal;
+      if (OS?.Slidedown?.promptPush) {
+        // force: true overrides OneSignal's "already prompted" check
+        await OS.Slidedown.promptPush({ force: true });
+      } else {
+        // Fallback: native browser API (works without OneSignal SDK loaded)
+        await Notification.requestPermission();
+      }
+      setPushPermission(Notification.permission);
+    } catch {
+      // Ignore — some browsers throw on requestPermission outside gesture
+    }
+  }, []);
 
   const portalHomeRoute =
     role === "homestay"
@@ -215,6 +248,28 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
                     </div>
                     <ExternalLink className="h-3 w-3 text-gray-400" />
                   </Link>
+
+                  {/* Push notification opt-in */}
+                  {pushPermission === "granted" ? (
+                    <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-green-700 font-medium cursor-default select-none">
+                      <BellRing className="h-4 w-4 text-green-500" />
+                      <span>Notifications Enabled</span>
+                    </div>
+                  ) : pushPermission === "denied" ? (
+                    <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-400 font-medium cursor-default select-none">
+                      <BellOff className="h-4 w-4 text-gray-400" />
+                      <span className="leading-tight">Notifications Blocked — allow in browser settings</span>
+                    </div>
+                  ) : pushPermission !== "unsupported" ? (
+                    <button
+                      type="button"
+                      onClick={handleEnableNotifications}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:bg-amber-50 hover:text-amber-800 font-medium transition-colors"
+                    >
+                      <Bell className="h-4 w-4 text-amber-500" />
+                      <span>Enable Notifications</span>
+                    </button>
+                  ) : null}
                 </div>
 
                 {/* Sign out item */}

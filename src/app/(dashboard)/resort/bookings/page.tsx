@@ -117,7 +117,7 @@ export default function ResortBookingsPage() {
 
   const handleUpdateStatus = React.useCallback(async (
     bookingId: string,
-    newStatus: "accepted" | "declined"
+    newStatus: "accepted" | "declined" | "cancelled"
   ) => {
     try {
       const supabase = createClient();
@@ -141,6 +141,8 @@ export default function ResortBookingsPage() {
       toast.success(
         newStatus === "accepted"
           ? "Resort reservation confirmed!"
+          : newStatus === "cancelled"
+          ? "Confirmed reservation was cancelled successfully."
           : "Reservation declined."
       );
 

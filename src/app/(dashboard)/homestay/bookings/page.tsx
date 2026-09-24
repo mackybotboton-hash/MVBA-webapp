@@ -117,7 +117,7 @@ export default function HomestayBookingsPage() {
 
   const handleUpdateStatus = React.useCallback(async (
     bookingId: string,
-    newStatus: "accepted" | "declined"
+    newStatus: "accepted" | "declined" | "cancelled"
   ) => {
     try {
       const supabase = createClient();
@@ -141,6 +141,8 @@ export default function HomestayBookingsPage() {
       toast.success(
         newStatus === "accepted"
           ? "Booking accepted! Guest reservation confirmed."
+          : newStatus === "cancelled"
+          ? "Confirmed booking was cancelled successfully."
           : "Booking request declined."
       );
 

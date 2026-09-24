@@ -18,6 +18,16 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -226,15 +236,28 @@ export function BookingCard({
             </Link>
           )}
 
-          {booking.status === "pending" && onCancelBooking && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onCancelBooking(booking.id)}
-              className="text-xs h-8 px-3 border-neutral-200 text-red-600 hover:bg-red-50 hover:border-red-200"
-            >
-              Cancel Request
-            </Button>
+          {(booking.status === "pending" || booking.status === "accepted") && onCancelBooking && (
+            <Dialog>
+              <DialogTrigger render={<Button variant="outline" size="sm" className="text-xs h-8 px-3 border-neutral-200 text-red-600 hover:bg-red-50 hover:border-red-200" />}>
+                Cancel {booking.status === "accepted" ? "Booking" : "Request"}
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Cancel Booking</DialogTitle>
+                  <DialogDescription>
+                    {booking.status === "accepted" 
+                      ? "Are you sure you want to cancel this confirmed booking? As per our policy, your downpayment is non-refundable."
+                      : "Are you sure you want to cancel your booking request?"}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose render={<Button variant="outline" size="sm" />}>Keep Booking</DialogClose>
+                  <DialogClose render={<Button variant="destructive" size="sm" onClick={() => onCancelBooking(booking.id)} />}>
+                    Yes, Cancel
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           )}
 
           {booking.status === "accepted" && booking.payment_status === "awaiting_deposit" && (

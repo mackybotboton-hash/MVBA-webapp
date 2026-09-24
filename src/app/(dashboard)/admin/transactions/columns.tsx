@@ -201,7 +201,7 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
 
 export const getColumns = (
   onVerifyClick: (t: TransactionItem) => void,
-  onMarkPaidClick: (id: string) => void
+  onMarkPaidClick: (t: TransactionItem) => void
 ): ColumnDef<TransactionItem>[] => [
   {
     accessorKey: "id",
@@ -277,7 +277,7 @@ export const getColumns = (
             </Button>
           )}
           {t.payment_status === "verified" && t.payout_status === "pending" && (
-            <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t.id)} className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs">
+            <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t)} className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs">
               Mark Payout Paid
             </Button>
           )}

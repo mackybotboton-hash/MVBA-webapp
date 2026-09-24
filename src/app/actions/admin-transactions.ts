@@ -58,7 +58,7 @@ export async function verifyDepositAction(bookingId: string) {
   }
 }
 
-export async function markPayoutPaidAction(bookingId: string) {
+export async function markPayoutPaidAction(bookingId: string, payoutReceiptUrl: string) {
   try {
     if (!bookingId) {
       return { success: false, error: "Booking ID is required." };
@@ -68,9 +68,24 @@ export async function markPayoutPaidAction(bookingId: string) {
     await assertAdminCaller();
 
     const supabaseAdmin = createAdminClient();
+
+    const { data: booking, error: fetchError } = await supabaseAdmin
+      .from("bookings")
+      .select("receipt_url")
+      .eq("id", bookingId)
+      .single();
+      
+    if (fetchError) throw fetchError;
+    
+    const newReceiptUrl = booking.receipt_url 
+      ? `${booking.receipt_url}||payout:${payoutReceiptUrl}` 
+      : `payout:${payoutReceiptUrl}`;
     const { error } = await supabaseAdmin
       .from("bookings")
-      .update({ payout_status: "paid" })
+      .update({ 
+        payout_status: "paid",
+        receipt_url: newReceiptUrl
+      })
       .eq("id", bookingId);
 
     if (error) throw error;

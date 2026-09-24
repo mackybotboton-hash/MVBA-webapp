@@ -2,19 +2,29 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { approveBookingDeposit } from "@/app/actions/admin-actions";
 import { markPayoutPaidAction } from "@/app/actions/admin-transactions";
 import { DataTable } from "./data-table";
 import { getColumns, TransactionItem, VerifyModal } from "./columns";
+import { AdminPayoutModal } from "@/components/admin/admin-payout-modal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRealtimeTransactions } from "@/hooks/use-realtime-transactions";
+import { MetricCard } from "@/components/ui/metric-card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function AdminTransactionsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = React.useState<"all" | "verifying" | "verified" | "paid" | "cancelled">("all");
+  const [activeTab, setActiveTab] = React.useState<"all" | "verifying" | "verified" | "paid" | "cancelled">("verifying");
+  const [propertyFilter, setPropertyFilter] = React.useState<string>("all");
   const [previewTransaction, setPreviewTransaction] = React.useState<TransactionItem | null>(null);
+  const [selectedPayoutTransaction, setSelectedPayoutTransaction] = React.useState<TransactionItem | null>(null);
 
   // Supabase Realtime — auto-refresh when deposits are uploaded or statuses change
   useRealtimeTransactions();
@@ -118,40 +128,67 @@ export default function AdminTransactionsPage() {
     }
   });
 
-  // Mark Paid Mutation
-  const markPaidMutation = useMutation({
-    mutationFn: (id: string) => markPayoutPaidAction(id),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast.success("Payout marked as paid!");
-        queryClient.invalidateQueries({ queryKey: ['admin-transactions'] });
-      } else {
-        toast.error("Failed to update payout status: " + res.error);
+  const handlePayoutUploadComplete = async (payload: { receiptFile: File }) => {
+    if (!selectedPayoutTransaction) return;
+    
+    try {
+      const fileExt = payload.receiptFile.name.split('.').pop();
+      const filePath = `payouts/${selectedPayoutTransaction.id}-${Date.now()}.${fileExt}`;
+
+      const supabase = createClient();
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("payment-receipts")
+        .upload(filePath, payload.receiptFile);
+
+      if (uploadError) throw uploadError;
+
+      const res = await markPayoutPaidAction(selectedPayoutTransaction.id, uploadData.path);
+      
+      if (!res.success) {
+        throw new Error(res.error || "Failed to update database");
       }
-    },
-    onError: (err: any) => {
-      toast.error("An error occurred: " + err.message);
+
+      toast.success("Payout marked as paid with receipt!");
+      queryClient.invalidateQueries({ queryKey: ['admin-transactions'] });
+    } catch (error: any) {
+      console.error("Payout upload error:", error);
+      throw error;
     }
-  });
+  };
 
   const handleVerifyClick = React.useCallback((t: TransactionItem) => {
     setPreviewTransaction(t);
   }, []);
 
-  const handleMarkPaidClick = React.useCallback((id: string) => {
-    markPaidMutation.mutate(id);
-  }, [markPaidMutation]);
+  const handleMarkPaidClick = React.useCallback((t: TransactionItem) => {
+    setSelectedPayoutTransaction(t);
+  }, []);
 
   const columns = React.useMemo(() => getColumns(handleVerifyClick, handleMarkPaidClick), [handleVerifyClick, handleMarkPaidClick]);
 
+  const properties = React.useMemo(() => {
+    const props = new Set<string>();
+    transactions.forEach(t => {
+      if (t.property_name && t.property_name !== "Property") {
+        props.add(t.property_name);
+      }
+    });
+    return Array.from(props).sort();
+  }, [transactions]);
+
   const filteredTransactions = React.useMemo(() => {
-    if (activeTab === "all") return transactions.filter(t => t.status !== "cancelled" && t.status !== "declined");
-    if (activeTab === "verifying") return transactions.filter(t => t.payment_status === "deposit_uploaded" && t.status !== "cancelled");
-    if (activeTab === "verified") return transactions.filter(t => t.payment_status === "verified" && t.payout_status !== "paid" && t.status !== "cancelled");
-    if (activeTab === "paid") return transactions.filter(t => t.payout_status === "paid" && t.status !== "cancelled");
-    if (activeTab === "cancelled") return transactions.filter(t => t.status === "cancelled" || t.status === "declined");
-    return transactions;
-  }, [transactions, activeTab]);
+    let filtered = transactions;
+    if (activeTab === "all") filtered = filtered.filter(t => t.status !== "cancelled" && t.status !== "declined");
+    else if (activeTab === "verifying") filtered = filtered.filter(t => t.payment_status === "deposit_uploaded" && t.status !== "cancelled");
+    else if (activeTab === "verified") filtered = filtered.filter(t => t.payment_status === "verified" && t.payout_status !== "paid" && t.status !== "cancelled");
+    else if (activeTab === "paid") filtered = filtered.filter(t => t.payout_status === "paid" && t.status !== "cancelled");
+    else if (activeTab === "cancelled") filtered = filtered.filter(t => t.status === "cancelled" || t.status === "declined");
+
+    if (propertyFilter !== "all") {
+      filtered = filtered.filter(t => t.property_name === propertyFilter);
+    }
+    return filtered;
+  }, [transactions, activeTab, propertyFilter]);
 
   const counts = React.useMemo(() => {
     return {
@@ -161,6 +198,13 @@ export default function AdminTransactionsPage() {
       paid: transactions.filter(t => t.payout_status === "paid" && t.status !== "cancelled").length,
       cancelled: transactions.filter(t => t.status === "cancelled" || t.status === "declined").length,
     };
+  }, [transactions]);
+
+  const metrics = React.useMemo(() => {
+    const verifiedTxs = transactions.filter(t => t.payment_status === "verified" && t.status !== "cancelled" && t.status !== "declined");
+    const totalDeposits = verifiedTxs.reduce((sum, t) => sum + (t.downpayment_amount || 0), 0);
+    const totalCommissions = verifiedTxs.reduce((sum, t) => sum + (t.commission_amount || 0), 0);
+    return { totalDeposits, totalCommissions };
   }, [transactions]);
 
   return (
@@ -175,39 +219,95 @@ export default function AdminTransactionsPage() {
         </button>
       </div>
 
-      {/* Status Segment Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide border-b border-neutral-200 pb-2">
-        {[
-          { id: "verifying", label: "To Verify", count: counts.verifying },
-          { id: "verified", label: "Ready for Payout", count: counts.verified },
-          { id: "paid", label: "Paid Out", count: counts.paid },
-          { id: "all", label: "Active Transactions", count: counts.all },
-          { id: "cancelled", label: "Cancelled", count: counts.cancelled },
-        ].map((tab) => {
-          const isSelected = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 select-none ${
-                isSelected
-                  ? "bg-black text-white shadow-xs"
-                  : "border border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  isSelected
-                    ? "bg-neutral-800 text-neutral-200"
-                    : "bg-neutral-100 text-neutral-600"
+      {/* Metrics Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <MetricCard
+          label="Total Deposits Collected"
+          value={`₱${metrics.totalDeposits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtext="From verified transactions"
+          icon={Wallet}
+          variant="emerald"
+        />
+        <MetricCard
+          label="Platform Commissions"
+          value={`₱${metrics.totalCommissions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtext="Earnings from verified transactions"
+          icon={DollarSign}
+          variant="dark"
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 border-b border-neutral-200 pb-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-neutral-500" />
+          <span className="text-sm font-medium text-neutral-700">Filter by:</span>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center justify-between min-w-[180px] px-3.5 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black">
+              <span>
+                {activeTab === "verifying" && "To Verify"}
+                {activeTab === "verified" && "Ready for Payout"}
+                {activeTab === "paid" && "Paid Out"}
+                {activeTab === "all" && "Active Transactions"}
+                {activeTab === "cancelled" && "Cancelled"}
+              </span>
+              <ChevronDown className="h-4 w-4 text-neutral-500 ml-2" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[180px] p-1.5 bg-white border border-neutral-200 rounded-xl shadow-lg">
+              {[
+                { id: "verifying", label: "To Verify", count: counts.verifying },
+                { id: "verified", label: "Ready for Payout", count: counts.verified },
+                { id: "paid", label: "Paid Out", count: counts.paid },
+                { id: "all", label: "Active Transactions", count: counts.all },
+                { id: "cancelled", label: "Cancelled", count: counts.cancelled },
+              ].map((tab) => (
+                <DropdownMenuItem 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer outline-none transition-colors ${
+                    activeTab === tab.id ? "bg-neutral-100 font-bold text-neutral-900" : "hover:bg-neutral-50 text-neutral-700"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded-full">{tab.count}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center justify-between min-w-[180px] px-3.5 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black">
+              <span className="truncate max-w-[140px]">
+                {propertyFilter === "all" ? "All Properties" : propertyFilter}
+              </span>
+              <ChevronDown className="h-4 w-4 text-neutral-500 ml-2 shrink-0" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[220px] max-h-[300px] overflow-y-auto p-1.5 bg-white border border-neutral-200 rounded-xl shadow-lg">
+              <DropdownMenuItem 
+                onClick={() => setPropertyFilter("all")}
+                className={`px-3 py-2 rounded-lg text-sm cursor-pointer outline-none transition-colors ${
+                  propertyFilter === "all" ? "bg-neutral-100 font-bold text-neutral-900" : "hover:bg-neutral-50 text-neutral-700"
                 }`}
               >
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
+                All Properties
+              </DropdownMenuItem>
+              {properties.map((prop) => (
+                <DropdownMenuItem 
+                  key={prop}
+                  onClick={() => setPropertyFilter(prop)}
+                  className={`px-3 py-2 rounded-lg text-sm cursor-pointer outline-none transition-colors ${
+                    propertyFilter === prop ? "bg-neutral-100 font-bold text-neutral-900" : "hover:bg-neutral-50 text-neutral-700"
+                  }`}
+                >
+                  <span className="truncate">{prop}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <DataTable columns={columns} data={filteredTransactions} />
@@ -217,6 +317,16 @@ export default function AdminTransactionsPage() {
         onClose={() => setPreviewTransaction(null)} 
         onVerify={async (id) => { await verifyMutation.mutateAsync(id); }}
         isVerifying={verifyMutation.isPending}
+      />
+
+      <AdminPayoutModal
+        isOpen={!!selectedPayoutTransaction}
+        onClose={() => setSelectedPayoutTransaction(null)}
+        bookingId={selectedPayoutTransaction?.id || ""}
+        hostName={selectedPayoutTransaction?.host_name || ""}
+        hostGcashNumber={selectedPayoutTransaction?.host_gcash_number || ""}
+        payoutAmount={selectedPayoutTransaction?.host_payout_amount}
+        onUploadComplete={handlePayoutUploadComplete}
       />
     </div>
   );

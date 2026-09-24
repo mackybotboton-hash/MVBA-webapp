@@ -15,6 +15,8 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/tourist/empty-state";
+import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 
 import { PropertyFormModal } from "@/components/owner/property-form-modal";
 
@@ -33,6 +35,34 @@ export default function AdminPropertiesPage() {
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingProperty, setEditingProperty] = React.useState<any>(null);
+  const [togglingId, setTogglingId] = React.useState<string | null>(null);
+
+  const handleToggleStatus = async (id: string, isChecked: boolean) => {
+    setTogglingId(id);
+    const newStatus = isChecked ? "active" : "closed";
+    
+    // Optimistic update
+    setProperties(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("properties")
+        .update({ status: newStatus })
+        .eq("id", id);
+        
+      if (error) {
+        throw error;
+      }
+      toast.success(`Property ${isChecked ? "activated" : "closed"} successfully`);
+    } catch (error: any) {
+      toast.error("Failed to update status: " + error.message);
+      // Revert optimistic update
+      setProperties(prev => prev.map(p => p.id === id ? { ...p, status: isChecked ? "closed" : "active" } : p));
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const fetchProperties = React.useCallback(async () => {
     setIsLoading(true);
@@ -152,9 +182,17 @@ export default function AdminPropertiesPage() {
                     {property.type}
                   </Badge>
 
-                  <Badge variant="success" size="sm" dot>
-                    Verified Member
-                  </Badge>
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <span className={`text-[11px] font-bold uppercase tracking-wider ${property.status === 'active' ? 'text-emerald-600' : 'text-neutral-400'}`}>
+                      {property.status === 'active' ? 'Live' : 'Closed'}
+                    </span>
+                    <Switch
+                      checked={property.status === "active"}
+                      onCheckedChange={(checked) => handleToggleStatus(property.id, checked)}
+                      disabled={togglingId === property.id}
+                      size="sm"
+                    />
+                  </div>
                 </div>
 
                 <div>
