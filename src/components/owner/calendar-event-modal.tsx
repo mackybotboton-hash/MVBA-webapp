@@ -34,7 +34,7 @@ export function CalendarEventModal({
   React.useEffect(() => {
     if (isOpen) {
       setFormData({
-        room_id: rooms.length > 0 ? rooms[0].id : "",
+        room_id: "all",
         title: "",
         description: "",
         start_date: "",
@@ -68,16 +68,32 @@ export function CalendarEventModal({
         return;
       }
 
-      const { error } = await (supabase.from("calendar_events") as any).insert({
-        owner_id: user.id,
-        property_id: propertyId,
-        room_id: formData.room_id,
-        title: formData.title.trim(),
-        description: formData.description.trim() || null,
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        event_type: formData.event_type,
-      });
+      let eventsToInsert = [];
+      if (formData.room_id === "all") {
+        eventsToInsert = rooms.map((r) => ({
+          owner_id: user.id,
+          property_id: propertyId,
+          room_id: r.id,
+          title: formData.title.trim(),
+          description: formData.description.trim() || null,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          event_type: formData.event_type,
+        }));
+      } else {
+        eventsToInsert = [{
+          owner_id: user.id,
+          property_id: propertyId,
+          room_id: formData.room_id,
+          title: formData.title.trim(),
+          description: formData.description.trim() || null,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          event_type: formData.event_type,
+        }];
+      }
+
+      const { error } = await (supabase.from("calendar_events") as any).insert(eventsToInsert);
 
       if (error) throw error;
 
@@ -123,8 +139,9 @@ export function CalendarEventModal({
               onChange={(e) => setFormData({ ...formData, room_id: e.target.value })}
               className="w-full h-10 px-3 rounded-xl border border-neutral-300 text-sm font-medium text-neutral-900 focus:ring-2 focus:ring-black outline-none"
             >
+              <option value="all">Entire Property (All Rooms)</option>
               {rooms.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
+                <option key={r.id} value={r.id}>{r.name || 'Unnamed Room'}</option>
               ))}
             </select>
           </div>

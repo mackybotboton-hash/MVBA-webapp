@@ -48,7 +48,7 @@ export default function ResortCalendarPage() {
 
         const { data: roomsData } = await supabase
           .from("rooms")
-          .select("id")
+          .select("id, name")
           .in("property_id", propIds);
 
         const roomIds = ((roomsData as any[]) || []).map((r) => r.id);
