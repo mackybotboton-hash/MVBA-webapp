@@ -247,8 +247,15 @@ export default function AdminTransactionsPage() {
         <div className="flex flex-wrap items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center justify-between min-w-[180px] px-3.5 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black">
-              <span>
-                {activeTab === "verifying" && "To Verify"}
+              <span className="flex items-center gap-2">
+                {activeTab === "verifying" && (
+                  <>
+                    To Verify
+                    {counts.verifying > 0 && (
+                      <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{counts.verifying}</span>
+                    )}
+                  </>
+                )}
                 {activeTab === "verified" && "Ready for Payout"}
                 {activeTab === "paid" && "Paid Out"}
                 {activeTab === "all" && "Active Transactions"}
@@ -272,7 +279,7 @@ export default function AdminTransactionsPage() {
                   }`}
                 >
                   <span>{tab.label}</span>
-                  <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded-full">{tab.count}</span>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${tab.id === 'verifying' && tab.count > 0 ? 'bg-red-500 text-white' : 'text-neutral-500 bg-neutral-100'}`}>{tab.count}</span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>

@@ -31,12 +31,14 @@ export interface NotificationCounts {
   unreadMessages: number;
   unseenBookings: number;      // host badge: new, unseen booking requests
   pendingTransactions: number; // admin badge: GCash receipts awaiting verification
+  unreadSystemNotifications: number;
 }
 
 const DEFAULT_COUNTS: NotificationCounts = {
   unreadMessages: 0,
   unseenBookings: 0,
   pendingTransactions: 0,
+  unreadSystemNotifications: 0,
 };
 
 const NotificationCountsContext = createContext<NotificationCounts>(DEFAULT_COUNTS);
@@ -178,6 +180,7 @@ export function NotificationCountsProvider({ children }: { children: ReactNode }
       let unreadMessages = 0;
       let unseenBookings = 0;
       let pendingTransactions = 0;
+      let unreadSystemNotifications = 0;
 
       // 1. Unread messages (all roles that have chat)
       if (role !== "admin") {
@@ -206,7 +209,14 @@ export function NotificationCountsProvider({ children }: { children: ReactNode }
         pendingTransactions = count ?? 0;
       }
 
-      setCounts({ unreadMessages, unseenBookings, pendingTransactions });
+      // 4. System notifications
+      const { count: sysCount } = await (supabase.from("notifications") as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("is_read", false);
+      unreadSystemNotifications = sysCount ?? 0;
+
+      setCounts({ unreadMessages, unseenBookings, pendingTransactions, unreadSystemNotifications });
     } catch (err) {
       console.error("[Counts] Initial fetch failed:", err);
     }
@@ -270,6 +280,41 @@ export function NotificationCountsProvider({ children }: { children: ReactNode }
       .subscribe();
 
     channels.push(msgChannel);
+
+    // ─ System notifications channel (all roles) ─────────────────────────
+    const sysChannel = supabase
+      .channel(`badge_sys_notifications_${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          setCounts((prev) => ({
+            ...prev,
+            unreadSystemNotifications: prev.unreadSystemNotifications + 1,
+          }));
+          playSound();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          fetchRef.current();
+        }
+      )
+      .subscribe();
+
+    channels.push(sysChannel);
 
     // ─ Unseen bookings channel (host roles) ──────────────────────────────
     if (role === "homestay" || role === "resort") {

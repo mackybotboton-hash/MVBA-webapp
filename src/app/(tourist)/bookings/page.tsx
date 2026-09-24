@@ -166,6 +166,37 @@ export default function TouristBookingsPage() {
 
   React.useEffect(() => {
     fetchBookings();
+    
+    // Set up Realtime listener
+    const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    const initRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      channel = supabase
+        .channel(`bookings_tourist_${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "bookings",
+            filter: `tourist_id=eq.${user.id}`,
+          },
+          () => {
+            fetchBookings();
+          }
+        )
+        .subscribe();
+    };
+    
+    initRealtime();
+    
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [fetchBookings]);
 
   const handleCancelBooking = async (bookingId: string) => {

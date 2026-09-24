@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { getInitials } from "@/lib/utils";
 import { useState, useCallback } from "react";
 import Link from "next/link";
+import { NotificationsDropdown } from "@/components/shared/notifications-dropdown";
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -105,17 +106,7 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
 
         <div className="flex items-center gap-2">
           {/* Live Bell Notification Button */}
-          <button
-            className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label={`Notifications${bellCount > 0 ? ` (${bellCount} unread)` : ""}`}
-          >
-            <Bell className="h-5 w-5 text-gray-500" />
-            {bellCount > 0 && (
-              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-[3px] rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center leading-none shadow-sm animate-in zoom-in-75 duration-200">
-                {bellCount > 99 ? "99+" : bellCount}
-              </span>
-            )}
-          </button>
+          <NotificationsDropdown />
 
           <div className="w-px h-5 bg-gray-200 mx-1" />
 

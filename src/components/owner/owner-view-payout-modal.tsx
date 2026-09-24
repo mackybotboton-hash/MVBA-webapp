@@ -22,8 +22,13 @@ export function OwnerViewPayoutModal({ isOpen, onClose, receiptPath }: OwnerView
     }
 
     const supabase = createClient();
-    const { data } = supabase.storage.from("payment-receipts").getPublicUrl(receiptPath);
-    setImageUrl(data.publicUrl);
+    const fetchSignedUrl = async () => {
+      const { data, error } = await supabase.storage.from("payment-receipts").createSignedUrl(receiptPath, 60 * 60); // 1 hour expiry
+      if (data) {
+        setImageUrl(data.signedUrl);
+      }
+    };
+    fetchSignedUrl();
   }, [isOpen, receiptPath]);
 
   return (
