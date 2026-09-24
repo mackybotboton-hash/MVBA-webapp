@@ -6,12 +6,24 @@ import {
   Ticket,
   RefreshCw,
   QrCode,
+  Wallet,
+  DollarSign,
+  Filter,
+  ChevronDown
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   OwnerBookingCard,
   type OwnerBookingItem,
 } from "@/components/owner/owner-booking-card";
+import { OwnerViewPayoutModal } from "@/components/owner/owner-view-payout-modal";
+import { MetricCard } from "@/components/ui/metric-card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/tourist/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -22,7 +34,7 @@ import { useRealtimeBookings } from "@/hooks/use-realtime-bookings";
 import { markBookingsAsSeen } from "@/hooks/use-notification-counts";
 import { notifyBookingStatusChange } from "@/app/actions/notify-actions";
 
-type BookingTab = "all" | "pending" | "accepted" | "declined" | "completed";
+type BookingTab = "all" | "pending" | "accepted" | "declined" | "cancelled" | "completed";
 
 async function fetchResortBookings(userId: string): Promise<OwnerBookingItem[]> {
   const supabase = createClient();
@@ -59,8 +71,10 @@ async function fetchResortBookings(userId: string): Promise<OwnerBookingItem[]> 
       total_price,
       downpayment_amount,
       host_payout_amount,
+      commission_amount,
       status,
       payout_status,
+      receipt_url,
       created_at,
       notes,
       profiles!tourist_id(full_name, phone_number, email),
@@ -85,8 +99,10 @@ async function fetchResortBookings(userId: string): Promise<OwnerBookingItem[]> 
     total_price: Number(b.total_price),
     downpayment_amount: b.downpayment_amount ? Number(b.downpayment_amount) : undefined,
     host_payout_amount: b.host_payout_amount ? Number(b.host_payout_amount) : undefined,
+    commission_amount: b.commission_amount ? Number(b.commission_amount) : undefined,
     status: b.status,
     payout_status: b.payout_status,
+    receipt_url: b.receipt_url,
     created_at: b.created_at,
     notes: b.notes,
   }));
@@ -97,6 +113,7 @@ export default function ResortBookingsPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState<BookingTab>("pending");
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
+  const [viewReceiptPath, setViewReceiptPath] = React.useState<string | null>(null);
 
   // React Query — data fetching with cache
   const { data: bookings = [], isLoading, refetch } = useQuery({
@@ -174,6 +191,13 @@ export default function ResortBookingsPage() {
     completed: bookings.filter((b) => b.status === "completed").length,
   }), [bookings]);
 
+  const metrics = React.useMemo(() => {
+    const validTxs = bookings.filter(b => (b.status === "accepted" || b.status === "completed") && b.payment_status !== "awaiting_deposit");
+    const totalDeposits = validTxs.reduce((sum, b) => sum + (b.downpayment_amount || 0), 0);
+    const totalCommissions = validTxs.reduce((sum, b) => sum + (b.commission_amount || 0), 0);
+    return { totalDeposits, totalCommissions };
+  }, [bookings]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -207,40 +231,67 @@ export default function ResortBookingsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide border-b border-neutral-200 pb-2">
-        {[
-          { id: "pending", label: "Pending Requests", count: counts.pending },
-          { id: "accepted", label: "Confirmed", count: counts.accepted },
-          { id: "all", label: "All Bookings", count: counts.all },
-          { id: "declined", label: "Declined", count: counts.declined },
-          { id: "cancelled", label: "Cancelled", count: counts.cancelled },
-          { id: "completed", label: "Completed", count: counts.completed },
-        ].map((tab) => {
-          const isSelected = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as BookingTab)}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 ${
-                isSelected
-                  ? "bg-black text-white shadow-xs"
-                  : "border border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                  isSelected
-                    ? "bg-neutral-800 text-neutral-200"
-                    : "bg-neutral-100 text-neutral-600"
-                }`}
-              >
-                {tab.count}
+      {/* Metrics Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <MetricCard
+          label="Total Deposits Collected (20%)"
+          value={`₱${metrics.totalDeposits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtext="From your confirmed/completed bookings"
+          icon={Wallet}
+          variant="emerald"
+        />
+        <MetricCard
+          label="Platform Commissions (8%)"
+          value={`₱${metrics.totalCommissions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          subtext="Amount allocated to the platform"
+          icon={DollarSign}
+          variant="dark"
+        />
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 border-b border-neutral-200 pb-4">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-neutral-500" />
+          <span className="text-sm font-medium text-neutral-700">Filter by:</span>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center justify-between min-w-[180px] px-3.5 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black">
+              <span>
+                {activeTab === "pending" && "Pending Requests"}
+                {activeTab === "accepted" && "Confirmed"}
+                {activeTab === "completed" && "Completed"}
+                {activeTab === "cancelled" && "Cancelled"}
+                {activeTab === "declined" && "Declined"}
+                {activeTab === "all" && "All Bookings"}
               </span>
-            </button>
-          );
-        })}
+              <ChevronDown className="h-4 w-4 text-neutral-500 ml-2" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[180px] p-1.5 bg-white border border-neutral-200 rounded-xl shadow-lg">
+              {[
+                { id: "pending", label: "Pending Requests", count: counts.pending },
+                { id: "accepted", label: "Confirmed", count: counts.accepted },
+                { id: "completed", label: "Completed", count: counts.completed },
+                { id: "cancelled", label: "Cancelled", count: counts.cancelled },
+                { id: "declined", label: "Declined", count: counts.declined },
+                { id: "all", label: "All Bookings", count: counts.all },
+              ].map((tab) => (
+                <DropdownMenuItem 
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as BookingTab)}
+                  className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm cursor-pointer outline-none transition-colors ${
+                    activeTab === tab.id ? "bg-neutral-100 font-bold text-neutral-900" : "hover:bg-neutral-50 text-neutral-700"
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className="text-[10px] font-bold text-neutral-500 bg-neutral-100 px-1.5 py-0.5 rounded-full">{tab.count}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Content */}
@@ -283,6 +334,7 @@ export default function ResortBookingsPage() {
               key={booking.id}
               booking={booking}
               onUpdateStatus={handleUpdateStatus}
+              onViewPayoutReceipt={(path) => setViewReceiptPath(path)}
               chatHrefPrefix="/resort/chat"
             />
           ))}
@@ -295,6 +347,13 @@ export default function ResortBookingsPage() {
         onClose={() => setIsScannerOpen(false)}
         onCheckinSuccess={() => refetch()}
         bookings={bookings}
+      />
+
+      {/* Payout Receipt Modal */}
+      <OwnerViewPayoutModal
+        isOpen={!!viewReceiptPath}
+        onClose={() => setViewReceiptPath(null)}
+        receiptPath={viewReceiptPath}
       />
     </div>
   );

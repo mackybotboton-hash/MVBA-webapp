@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Phone,
   PhilippinePeso,
+  Receipt
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,11 +48,14 @@ export interface OwnerBookingItem {
   created_at?: string;
   notes?: string;
   payout_status?: string;
+  receipt_url?: string;
+  commission_amount?: number;
 }
 
 export interface OwnerBookingCardProps {
   booking: OwnerBookingItem;
   onUpdateStatus: (bookingId: string, newStatus: "accepted" | "declined" | "cancelled") => Promise<void>;
+  onViewPayoutReceipt?: (receiptUrl: string) => void;
   chatHrefPrefix?: string;
   className?: string;
 }
@@ -59,6 +63,7 @@ export interface OwnerBookingCardProps {
 export function OwnerBookingCard({
   booking,
   onUpdateStatus,
+  onViewPayoutReceipt,
   chatHrefPrefix = "/homestay/chat",
   className,
 }: OwnerBookingCardProps) {
@@ -234,6 +239,21 @@ export function OwnerBookingCard({
         </span>
 
         <div className="flex items-center gap-2">
+          {booking.payout_status === "paid" && booking.receipt_url && booking.receipt_url.includes("||payout:") && onViewPayoutReceipt && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const payoutPart = booking.receipt_url!.split("||payout:")[1];
+                if (payoutPart) onViewPayoutReceipt(payoutPart);
+              }}
+              className="text-xs h-8 px-3 border-green-200 text-green-700 hover:bg-green-50"
+            >
+              <Receipt className="h-3.5 w-3.5 mr-1" />
+              View Payout Receipt
+            </Button>
+          )}
+
           <Link href={`${chatHrefPrefix}?guest=${booking.tourist_id}`}>
             <Button
               variant="outline"
