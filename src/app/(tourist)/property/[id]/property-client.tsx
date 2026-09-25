@@ -28,6 +28,7 @@ import {
   Eye,
   AlertTriangle,
   PlaySquare,
+  MessageCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingLogo } from "@/components/shared/loading-logo";
@@ -653,39 +654,51 @@ export default function PropertyStorefrontPage() {
               </p>
             </div>
 
-            {(property.facebook_url || property.tiktok_url) && (
-              <div className="space-y-3 pt-4 border-t border-neutral-100">
-                <h3 className="text-base font-bold text-neutral-900">Connect with the Host</h3>
-                <div className="flex flex-wrap gap-3">
-                  {property.facebook_url && (
-                    <a
-                      href={property.facebook_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2]/10 text-[#1877F2] font-semibold text-sm rounded-xl hover:bg-[#1877F2]/20 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                      </svg>
-                      Facebook Page
-                    </a>
-                  )}
-                  {property.tiktok_url && (
-                    <a
-                      href={property.tiktok_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black/5 text-black font-semibold text-sm rounded-xl hover:bg-black/10 transition-colors"
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 448 512">
-                        <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>
-                      </svg>
-                      TikTok
-                    </a>
-                  )}
-                </div>
+            {/* Always show Connect with the Host because of Direct Message */}
+            <div className="space-y-3 pt-4 border-t border-neutral-100">
+              <h3 className="text-base font-bold text-neutral-900">Connect with the Host</h3>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => {
+                    if (!user) {
+                      setIsAuthModalOpen(true);
+                      return;
+                    }
+                    router.push(`/chat?recipient=${property.owner_id}`);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-700 font-semibold text-sm rounded-xl hover:bg-blue-600/20 transition-colors"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Direct Message
+                </button>
+                {property.facebook_url && (
+                  <a
+                    href={property.facebook_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2]/10 text-[#1877F2] font-semibold text-sm rounded-xl hover:bg-[#1877F2]/20 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                    Facebook Page
+                  </a>
+                )}
+                {property.tiktok_url && (
+                  <a
+                    href={property.tiktok_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black/5 text-black font-semibold text-sm rounded-xl hover:bg-black/10 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 448 512">
+                      <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>
+                    </svg>
+                    TikTok
+                  </a>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Property Policies (Dynamic) */}
             {property.policies && (
