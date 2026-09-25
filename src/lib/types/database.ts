@@ -46,7 +46,7 @@ export interface Property {
   check_out_time?: string | null;
   status: PropertyStatus;
   facebook_url: string | null;
-  messenger_url: string | null;
+  tiktok_url: string | null;
   created_at: string;
   updated_at: string;
 }

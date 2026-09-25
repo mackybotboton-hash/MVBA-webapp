@@ -21,7 +21,7 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
   
   // Social Links
   const [facebookUrl, setFacebookUrl] = React.useState("");
-  const [messengerUrl, setMessengerUrl] = React.useState("");
+  const [tiktokUrl, setTiktokUrl] = React.useState("");
   
   // Policies (Checkboxes + Custom text)
   const [policies, setPolicies] = React.useState({
@@ -57,7 +57,7 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
           setCheckInTime(prop.check_in_time || "14:00");
           setCheckOutTime(prop.check_out_time || "12:00");
           setFacebookUrl(prop.facebook_url || "");
-          setMessengerUrl(prop.messenger_url || "");
+          setTiktokUrl(prop.tiktok_url || "");
 
           if (prop.policies) {
             try {
@@ -96,7 +96,7 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
           check_in_time: checkInTime,
           check_out_time: checkOutTime,
           facebook_url: facebookUrl,
-          messenger_url: messengerUrl,
+          tiktok_url: tiktokUrl,
           policies: JSON.stringify(policies),
         })
         .eq("id", property.id);
@@ -212,14 +212,14 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-neutral-800 uppercase tracking-wider">Messenger Link</label>
+            <label className="text-xs font-bold text-neutral-800 uppercase tracking-wider">TikTok Link</label>
             <div className="relative">
               <LinkIcon className="absolute left-3 top-3 h-4 w-4 text-neutral-400" />
               <input
                 type="url"
-                value={messengerUrl}
-                onChange={(e) => setMessengerUrl(e.target.value)}
-                placeholder="https://m.me/yourpage"
+                value={tiktokUrl}
+                onChange={(e) => setTiktokUrl(e.target.value)}
+                placeholder="https://tiktok.com/@yourpage"
                 className="w-full pl-9 pr-3 h-10 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all"
               />
             </div>

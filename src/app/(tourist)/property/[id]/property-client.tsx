@@ -221,7 +221,7 @@ export default function PropertyStorefrontPage() {
             check_in_time,
             check_out_time,
             facebook_url,
-            messenger_url,
+            tiktok_url,
             rooms (*, room_images(id, image_url, display_order)),
             extra_services (*),
             reviews (
@@ -653,7 +653,7 @@ export default function PropertyStorefrontPage() {
               </p>
             </div>
 
-            {(property.facebook_url || property.messenger_url) && (
+            {(property.facebook_url || property.tiktok_url) && (
               <div className="space-y-3 pt-4 border-t border-neutral-100">
                 <h3 className="text-base font-bold text-neutral-900">Connect with the Host</h3>
                 <div className="flex flex-wrap gap-3">
@@ -670,17 +670,17 @@ export default function PropertyStorefrontPage() {
                       Facebook Page
                     </a>
                   )}
-                  {property.messenger_url && (
+                  {property.tiktok_url && (
                     <a
-                      href={property.messenger_url}
+                      href={property.tiktok_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#00B2FF]/10 text-[#00B2FF] font-semibold text-sm rounded-xl hover:bg-[#00B2FF]/20 transition-colors"
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black/5 text-black font-semibold text-sm rounded-xl hover:bg-black/10 transition-colors"
                     >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 256 256">
-                        <path d="M128,24C68.9,24,21,68.6,21,123.6c0,31.7,16,61.4,43.2,80.7v27.7c0,3.6,3.6,6,7,4.7l30.9-12.2c8.2,2.3,16.8,3.5,25.8,3.5,59.1,0,107-44.6,107-99.6S187.1,24,128,24Zm9.3,131.6-26.6-28.5c-2.3-2.5-6.2-2.7-8.8-.5l-33.8,28.5c-4,3.4-9.3-1.6-6.3-5.9l29.7-42c2.3-3.2,6.7-4,9.8-1.7l26.6,28.5c2.3,2.5,6.2,2.7,8.8.5l33.8-28.5c4-3.4,9.3,1.6,6.3,5.9l-29.7,42C144.9,159,140.4,159.8,137.3,155.6Z"/>
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 448 512">
+                        <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>
                       </svg>
-                      Chat on Messenger
+                      TikTok
                     </a>
                   )}
                 </div>
