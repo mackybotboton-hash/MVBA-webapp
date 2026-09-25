@@ -1086,11 +1086,11 @@ function ChatSystemContent({
     setInputText("");
     setIsSending(true);
 
-    let uploadedImageUrl = null;
+    let uploadedImageUrl: string | undefined = undefined;
     if (imageFile) {
       setIsUploadingImage(true);
-      const path = generateFilePath(imageFile.name, "chat");
-      uploadedImageUrl = await uploadFile(imageFile, STORAGE_BUCKETS.PROPERTY_IMAGES, path);
+      const path = generateFilePath("chat", imageFile.name);
+      uploadedImageUrl = await uploadFile(STORAGE_BUCKETS.PROPERTY_IMAGES, path, imageFile);
       if (!uploadedImageUrl) {
         toast.error("Failed to upload image.");
         setIsUploadingImage(false);

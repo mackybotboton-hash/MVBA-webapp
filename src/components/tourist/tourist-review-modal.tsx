@@ -62,8 +62,8 @@ export function TouristReviewModal({ isOpen, onClose, booking, onSuccess }: Tour
       let uploadedImageUrls: string[] = [];
       if (images.length > 0) {
         for (const file of images) {
-          const path = generateFilePath(file.name, "reviews");
-          const url = await uploadFile(file, STORAGE_BUCKETS.PROPERTY_IMAGES, path);
+          const path = generateFilePath("reviews", file.name);
+          const url = await uploadFile(STORAGE_BUCKETS.PROPERTY_IMAGES, path, file);
           if (url) {
             uploadedImageUrls.push(url);
           }

@@ -64,7 +64,6 @@ interface RoomItem {
   room_images?: { id?: string; image_url: string }[];
 }
 
-}
 
 const formatGuestName = (fullName?: string) => {
   if (!fullName) return "Guest";
