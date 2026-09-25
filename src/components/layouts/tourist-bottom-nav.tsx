@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -43,17 +43,10 @@ export function TouristBottomNav() {
             const badgeCount =
               item.href === "/chat" ? unreadMessages : 0;
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all min-w-[56px]",
-                  isActive
-                    ? "text-black"
-                    : "text-gray-400 active:text-gray-600"
-                )}
-              >
+            const isHostView = user?.role === "homestay_owner" || user?.role === "resort_owner";
+
+            const innerContent = (
+              <>
                 <div className="relative">
                   <Icon
                     className={`w-6 h-6 transition-all duration-300 ${
@@ -70,6 +63,32 @@ export function TouristBottomNav() {
                 >
                   {item.label}
                 </span>
+              </>
+            );
+
+            const className = cn(
+              "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-all min-w-[56px]",
+              isActive
+                ? "text-black"
+                : "text-gray-400 active:text-gray-600",
+              isHostView && "opacity-50 cursor-not-allowed pointer-events-none"
+            );
+
+            if (isHostView) {
+              return (
+                <div key={item.href} className={className}>
+                  {innerContent}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={className}
+              >
+                {innerContent}
               </Link>
             );
           })}

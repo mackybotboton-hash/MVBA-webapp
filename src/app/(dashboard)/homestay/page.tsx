@@ -220,7 +220,7 @@ export default function HomestayDashboardPage() {
                 target="_blank"
                 className="inline-flex items-center gap-1 text-xs font-semibold text-neutral-900 border border-neutral-200 hover:bg-neutral-50 h-8 px-3 rounded-md transition-colors"
               >
-                <span>View Storefront</span>
+                <span>View Homestay front</span>
                 <ExternalLink className="h-3.5 w-3.5" />
               </Link>
             </div>

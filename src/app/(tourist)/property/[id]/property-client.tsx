@@ -92,6 +92,7 @@ export default function PropertyStorefrontPage() {
 
   // Booking Modal State
   const [user, setUser] = React.useState<any>(null);
+  const isHost = user?.id && property?.owner_id && property.owner_id === user.id;
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [pendingRoomToBook, setPendingRoomToBook] = React.useState<RoomItem | null>(null);
   const [selectedRoom, setSelectedRoom] = React.useState<RoomItem | null>(null);
@@ -504,11 +505,11 @@ export default function PropertyStorefrontPage() {
       <header className="sticky top-0 z-40 w-full border-b border-neutral-200 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link
-            href="/"
+            href={isHost ? (property.type === "resort" ? "/resort" : "/homestay") : "/"}
             className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 hover:text-black transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span>Back to Stays</span>
+            <span>{isHost ? "Back to Dashboard" : "Back to Stays"}</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -659,24 +660,27 @@ export default function PropertyStorefrontPage() {
               <h3 className="text-base font-bold text-neutral-900">Connect with the Host</h3>
               <div className="flex flex-wrap gap-3">
                 <button
+                  disabled={isHost}
                   onClick={() => {
+                    if (isHost) return;
                     if (!user) {
                       setIsAuthModalOpen(true);
                       return;
                     }
                     router.push(`/chat?recipient=${property.owner_id}`);
                   }}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-700 font-semibold text-sm rounded-xl hover:bg-blue-600/20 transition-colors"
+                  className={`inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-700 font-semibold text-sm rounded-xl transition-colors ${isHost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600/20'}`}
                 >
                   <MessageCircle className="w-4 h-4" />
                   Direct Message
                 </button>
                 {property.facebook_url && (
                   <a
-                    href={property.facebook_url}
-                    target="_blank"
+                    href={isHost ? undefined : property.facebook_url}
+                    onClick={(e) => { if (isHost) e.preventDefault(); }}
+                    target={isHost ? undefined : "_blank"}
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2]/10 text-[#1877F2] font-semibold text-sm rounded-xl hover:bg-[#1877F2]/20 transition-colors"
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2]/10 text-[#1877F2] font-semibold text-sm rounded-xl transition-colors ${isHost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#1877F2]/20'}`}
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
@@ -686,10 +690,11 @@ export default function PropertyStorefrontPage() {
                 )}
                 {property.tiktok_url && (
                   <a
-                    href={property.tiktok_url}
-                    target="_blank"
+                    href={isHost ? undefined : property.tiktok_url}
+                    onClick={(e) => { if (isHost) e.preventDefault(); }}
+                    target={isHost ? undefined : "_blank"}
                     rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black/5 text-black font-semibold text-sm rounded-xl hover:bg-black/10 transition-colors"
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 bg-black/5 text-black font-semibold text-sm rounded-xl transition-colors ${isHost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black/10'}`}
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 448 512">
                       <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>
@@ -932,7 +937,9 @@ export default function PropertyStorefrontPage() {
                       </div>
 
                       <Button
+                        disabled={isHost}
                         onClick={() => {
+                          if (isHost) return;
                           if (!user) {
                             setPendingRoomToBook(room);
                             setIsAuthModalOpen(true);
@@ -940,9 +947,9 @@ export default function PropertyStorefrontPage() {
                             setSelectedRoom(room);
                           }
                         }}
-                        className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-4 font-bold shadow-xs"
+                        className={`bg-black text-white text-xs h-9 px-4 font-bold shadow-xs ${isHost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-neutral-800'}`}
                       >
-                        Book Room
+                        {isHost ? "Your Room" : "Book Room"}
                       </Button>
                     </div>
                   </div>
