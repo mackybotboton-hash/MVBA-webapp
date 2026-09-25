@@ -24,7 +24,7 @@ export default function AdminTransactionsPage() {
   const [activeTab, setActiveTab] = React.useState<"all" | "verifying" | "verified" | "paid" | "cancelled">("verifying");
   const [propertyFilter, setPropertyFilter] = React.useState<string>("all");
   const [previewTransaction, setPreviewTransaction] = React.useState<TransactionItem | null>(null);
-  const [selectedPayoutTransaction, setSelectedPayoutTransaction] = React.useState<TransactionItem | null>(null);
+  const [selectedPayoutTransaction, setSelectedPayoutTransaction] = React.useState<{ transaction: TransactionItem; stage: "deposit" | "balance" } | null>(null);
 
   // Supabase Realtime — auto-refresh when deposits are uploaded or statuses change
   useRealtimeTransactions();
@@ -42,6 +42,7 @@ export default function AdminTransactionsPage() {
           downpayment_amount,
           commission_amount,
           host_payout_amount,
+          convenience_fee,
           payment_status,
           payout_status,
           status,
@@ -71,6 +72,7 @@ export default function AdminTransactionsPage() {
         downpayment_amount: Number(d.downpayment_amount),
         commission_amount: Number(d.commission_amount),
         host_payout_amount: Number(d.host_payout_amount),
+        convenience_fee: Number(d.convenience_fee),
         payment_status: d.payment_status || "awaiting_deposit",
         payout_status: d.payout_status || "pending",
         status: d.status,
@@ -133,7 +135,7 @@ export default function AdminTransactionsPage() {
     
     try {
       const fileExt = payload.receiptFile.name.split('.').pop();
-      const filePath = `payouts/${selectedPayoutTransaction.id}-${Date.now()}.${fileExt}`;
+      const filePath = `payouts/${selectedPayoutTransaction.transaction.id}-${selectedPayoutTransaction.stage}-${Date.now()}.${fileExt}`;
 
       const supabase = createClient();
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -142,7 +144,7 @@ export default function AdminTransactionsPage() {
 
       if (uploadError) throw uploadError;
 
-      const res = await markPayoutPaidAction(selectedPayoutTransaction.id, uploadData.path);
+      const res = await markPayoutPaidAction(selectedPayoutTransaction.transaction.id, uploadData.path, selectedPayoutTransaction.stage);
       
       if (!res.success) {
         throw new Error(res.error || "Failed to update database");
@@ -160,8 +162,8 @@ export default function AdminTransactionsPage() {
     setPreviewTransaction(t);
   }, []);
 
-  const handleMarkPaidClick = React.useCallback((t: TransactionItem) => {
-    setSelectedPayoutTransaction(t);
+  const handleMarkPaidClick = React.useCallback((t: TransactionItem, stage: "deposit" | "balance") => {
+    setSelectedPayoutTransaction({ transaction: t, stage });
   }, []);
 
   const columns = React.useMemo(() => getColumns(handleVerifyClick, handleMarkPaidClick), [handleVerifyClick, handleMarkPaidClick]);
@@ -180,8 +182,8 @@ export default function AdminTransactionsPage() {
     let filtered = transactions;
     if (activeTab === "all") filtered = filtered.filter(t => t.status !== "cancelled" && t.status !== "declined");
     else if (activeTab === "verifying") filtered = filtered.filter(t => t.payment_status === "deposit_uploaded" && t.status !== "cancelled");
-    else if (activeTab === "verified") filtered = filtered.filter(t => t.payment_status === "verified" && t.payout_status !== "paid" && t.status !== "cancelled");
-    else if (activeTab === "paid") filtered = filtered.filter(t => t.payout_status === "paid" && t.status !== "cancelled");
+    else if (activeTab === "verified") filtered = filtered.filter(t => t.payment_status === "verified" && t.payout_status !== "fully_paid" && t.status !== "cancelled");
+    else if (activeTab === "paid") filtered = filtered.filter(t => t.payout_status === "fully_paid" && t.status !== "cancelled");
     else if (activeTab === "cancelled") filtered = filtered.filter(t => t.status === "cancelled" || t.status === "declined");
 
     if (propertyFilter !== "all") {
@@ -194,8 +196,8 @@ export default function AdminTransactionsPage() {
     return {
       all: transactions.filter(t => t.status !== "cancelled" && t.status !== "declined").length,
       verifying: transactions.filter(t => t.payment_status === "deposit_uploaded" && t.status !== "cancelled").length,
-      verified: transactions.filter(t => t.payment_status === "verified" && t.payout_status !== "paid" && t.status !== "cancelled").length,
-      paid: transactions.filter(t => t.payout_status === "paid" && t.status !== "cancelled").length,
+      verified: transactions.filter(t => t.payment_status === "verified" && t.payout_status !== "fully_paid" && t.status !== "cancelled").length,
+      paid: transactions.filter(t => t.payout_status === "fully_paid" && t.status !== "cancelled").length,
       cancelled: transactions.filter(t => t.status === "cancelled" || t.status === "declined").length,
     };
   }, [transactions]);
@@ -329,10 +331,17 @@ export default function AdminTransactionsPage() {
       <AdminPayoutModal
         isOpen={!!selectedPayoutTransaction}
         onClose={() => setSelectedPayoutTransaction(null)}
-        bookingId={selectedPayoutTransaction?.id || ""}
-        hostName={selectedPayoutTransaction?.host_name || ""}
-        hostGcashNumber={selectedPayoutTransaction?.host_gcash_number || ""}
-        payoutAmount={selectedPayoutTransaction?.host_payout_amount}
+        bookingId={selectedPayoutTransaction?.transaction.id || ""}
+        hostName={selectedPayoutTransaction?.transaction.host_name || ""}
+        hostGcashNumber={selectedPayoutTransaction?.transaction.host_gcash_number || ""}
+        payoutStage={selectedPayoutTransaction?.stage}
+        payoutAmount={
+          selectedPayoutTransaction 
+            ? (selectedPayoutTransaction.stage === "deposit"
+                ? (selectedPayoutTransaction.transaction.downpayment_amount - selectedPayoutTransaction.transaction.convenience_fee) - (selectedPayoutTransaction.transaction.commission_amount * 0.20)
+                : selectedPayoutTransaction.transaction.host_payout_amount - ((selectedPayoutTransaction.transaction.downpayment_amount - selectedPayoutTransaction.transaction.convenience_fee) - (selectedPayoutTransaction.transaction.commission_amount * 0.20)))
+            : undefined
+        }
         onUploadComplete={handlePayoutUploadComplete}
       />
     </div>

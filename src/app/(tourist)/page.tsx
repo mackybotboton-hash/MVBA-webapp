@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { useWishlist } from "@/hooks/use-wishlist";
 import { useRouter } from "next/navigation";
 import { ROLE_HOME_ROUTES, type UserRole } from "@/lib/constants";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function TouristDiscoveryPage() {
   const router = useRouter();
@@ -53,50 +54,23 @@ export default function TouristDiscoveryPage() {
       setViewMode("feed");
     }
   }, []);
-  const [user, setUser] = React.useState<{ email?: string; fullName?: string; role?: string } | null>(null);
-
+  const { user: authUser, profile, isLoading: authLoading } = useAuth();
   const { savedSet, toggleSave, count: savedCount } = useWishlist();
 
-  // Fetch current user
-  React.useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const supabase = createClient();
-
-        // 1. Check user session
-        const {
-          data: { user: authUser },
-        } = await supabase.auth.getUser();
-
-        if (authUser) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name, email, role")
-            .eq("id", authUser.id)
-            .maybeSingle();
-
-          const role = ((profile as any)?.role || (authUser.user_metadata?.role as string) || "tourist") as UserRole;
-
-          // If non-tourist visits root tourist discovery page, automatically redirect to their dashboard
-          if (role && role !== "tourist" && ROLE_HOME_ROUTES[role]) {
-            router.replace(ROLE_HOME_ROUTES[role]);
-            return;
-          }
-
-          setUser({
-            email: authUser.email,
-            fullName: (profile as any)?.full_name || authUser.email?.split("@")[0],
-            role: role,
-          });
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("Error fetching user:", err);
-      }
+  const user = React.useMemo(() => {
+    if (!authUser) return null;
+    return {
+      email: authUser.email,
+      fullName: profile?.full_name || authUser.email?.split("@")[0],
+      role: profile?.role || "tourist",
     };
-    checkUser();
-  }, [router]);
+  }, [authUser, profile]);
+
+  React.useEffect(() => {
+    if (user?.role && user.role !== "tourist" && ROLE_HOME_ROUTES[user.role as UserRole]) {
+      router.replace(ROLE_HOME_ROUTES[user.role as UserRole]);
+    }
+  }, [user, router]);
 
   const { data: properties = [], isLoading } = useQuery({
     queryKey: ["properties"],
@@ -305,6 +279,7 @@ export default function TouristDiscoveryPage() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         user={user}
+        isLoading={authLoading}
         savedCount={savedCount}
         onLoginSuccess={fetchData}
       />

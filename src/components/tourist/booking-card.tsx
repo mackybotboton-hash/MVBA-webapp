@@ -245,16 +245,24 @@ export function BookingCard({
 
           {/* Final Total */}
           <div className="flex justify-between items-center font-bold text-neutral-900 text-sm">
-            <span>Total Payment</span>
+            <span>Total Value</span>
             <span>₱{booking.total_price.toLocaleString()}</span>
           </div>
           
+          <div className="border-t border-neutral-200/60 my-2"></div>
+          
           {/* Downpayment reminder */}
           {booking.downpayment_amount && (
-            <div className="flex justify-between items-center text-emerald-700 font-medium mt-1">
-              <span>Required Downpayment (20%)</span>
-              <span>₱{booking.downpayment_amount.toLocaleString()}</span>
-            </div>
+            <>
+              <div className="flex justify-between items-center text-emerald-700 font-bold mt-1">
+                <span>Total Due Now (Deposit + Fee)</span>
+                <span>₱{booking.downpayment_amount.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center text-neutral-800 font-bold mt-1">
+                <span>Remaining Balance (due at check-in)</span>
+                <span>₱{(booking.total_price - booking.downpayment_amount).toLocaleString()}</span>
+              </div>
+            </>
           )}
         </div>
       </div>

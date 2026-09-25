@@ -58,7 +58,7 @@ export async function verifyDepositAction(bookingId: string) {
   }
 }
 
-export async function markPayoutPaidAction(bookingId: string, payoutReceiptUrl: string) {
+export async function markPayoutPaidAction(bookingId: string, payoutReceiptUrl: string, payoutStage: "deposit" | "balance") {
   try {
     if (!bookingId) {
       return { success: false, error: "Booking ID is required." };
@@ -71,19 +71,23 @@ export async function markPayoutPaidAction(bookingId: string, payoutReceiptUrl: 
 
     const { data: booking, error: fetchError } = await supabaseAdmin
       .from("bookings")
-      .select("receipt_url")
+      .select("receipt_url, payout_status")
       .eq("id", bookingId)
       .single();
       
     if (fetchError) throw fetchError;
     
+    // We can append multiple receipts using the pipe delimiter
     const newReceiptUrl = booking.receipt_url 
-      ? `${booking.receipt_url}||payout:${payoutReceiptUrl}` 
-      : `payout:${payoutReceiptUrl}`;
+      ? `${booking.receipt_url}||${payoutStage}_payout:${payoutReceiptUrl}` 
+      : `${payoutStage}_payout:${payoutReceiptUrl}`;
+      
+    const nextStatus = payoutStage === "deposit" ? "deposit_paid" : "fully_paid";
+
     const { error } = await supabaseAdmin
       .from("bookings")
       .update({ 
-        payout_status: "paid",
+        payout_status: nextStatus,
         receipt_url: newReceiptUrl
       })
       .eq("id", bookingId);

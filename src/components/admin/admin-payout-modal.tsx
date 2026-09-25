@@ -15,6 +15,7 @@ interface AdminPayoutModalProps {
   hostName?: string;
   hostGcashNumber?: string;
   payoutAmount?: number;
+  payoutStage?: "deposit" | "balance";
   onUploadComplete: (payload: { receiptFile: File }) => Promise<void>;
 }
 
@@ -25,6 +26,7 @@ export function AdminPayoutModal({
   hostName, 
   hostGcashNumber, 
   payoutAmount, 
+  payoutStage,
   onUploadComplete 
 }: AdminPayoutModalProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -104,9 +106,9 @@ export function AdminPayoutModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] border-zinc-200 p-0 overflow-hidden bg-white">
         <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="text-xl font-medium">Verify Payout Paid</DialogTitle>
+          <DialogTitle className="text-xl font-medium">Verify {payoutStage === "balance" ? "Balance" : "Deposit"} Payout Paid</DialogTitle>
           <DialogDescription className="text-zinc-500">
-            Upload the GCash receipt showing you have disbursed the funds to the host.
+            Upload the GCash receipt showing you have disbursed the {payoutStage === "balance" ? "remaining balance" : "deposit funds"} to the host.
           </DialogDescription>
         </DialogHeader>
 

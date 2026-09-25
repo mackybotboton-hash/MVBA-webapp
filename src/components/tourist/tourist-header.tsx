@@ -35,6 +35,7 @@ export interface TouristHeaderProps {
     role?: string;
   } | null;
   savedCount?: number;
+  isLoading?: boolean;
   onLoginSuccess?: () => void;
 }
 
@@ -47,6 +48,7 @@ export function TouristHeader({
   onViewModeChange,
   user,
   savedCount = 0,
+  isLoading = false,
   onLoginSuccess,
 }: TouristHeaderProps) {
   const pathname = usePathname();
@@ -349,6 +351,8 @@ export function TouristHeader({
                 </div>
               )}
             </div>
+          ) : isLoading ? (
+            <div className="h-8 w-16 bg-neutral-200 animate-pulse rounded-lg" />
           ) : (
             <button
               type="button"

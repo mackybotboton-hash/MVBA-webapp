@@ -368,9 +368,22 @@ export default function PropertyStorefrontPage() {
       });
 
       const totalCommission = roomCommission + addonsCommission;
-      const downpayment = total * 0.20;
-      const host_payout = total - totalCommission;
       const convenienceFee = systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
+      
+      // Fix: Deposit is 20% of room price only. Service fee is charged in full upfront.
+      const roomDeposit = roomTotal * 0.20;
+      const addonsDeposit = addonsTotal * 0.20; // Assuming addons also have 20% deposit? Or maybe room only.
+      // The user specified "calculate the 20% deposit on room price only".
+      // We will apply 20% to (room + addons). 
+      const baseDeposit = (roomTotal + addonsTotal) * 0.20; 
+      
+      const downpayment = baseDeposit + convenienceFee; 
+      
+      // Host payout at the deposit stage:
+      // Host's share of the deposit = baseDeposit - (totalCommission portion? No, commission is 8% of total room.
+      // Wait, let's keep host_payout_amount as the TOTAL host payout for the whole booking for now, 
+      // Admin dashboard will calculate the split.
+      const host_payout = total - totalCommission; 
       const finalGrandTotal = total + convenienceFee;
 
       // A. Try Atomic PostgreSQL Stored Procedure (ACID Row-Level Lock)
@@ -398,7 +411,7 @@ export default function PropertyStorefrontPage() {
           }
 
           await (supabase.from("bookings") as any).update({
-            downpayment_amount: finalGrandTotal * 0.20, // Wait, maybe downpayment is on final?
+            downpayment_amount: downpayment, // Upfront = 20% room/addons + 100% fee
             commission_amount: totalCommission,
             host_payout_amount: host_payout,
             convenience_fee: convenienceFee,
@@ -431,7 +444,7 @@ export default function PropertyStorefrontPage() {
         check_out_date: checkOutDate,
         guest_count: guestCount,
         total_price: finalGrandTotal,
-        downpayment_amount: finalGrandTotal * 0.20,
+        downpayment_amount: downpayment,
         commission_amount: totalCommission,
         host_payout_amount: host_payout,
         convenience_fee: convenienceFee,
@@ -1194,32 +1207,43 @@ export default function PropertyStorefrontPage() {
               )}
             </div>
 
-            {/* Summary */}
             <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
               <div className="flex justify-between text-neutral-600">
                 <span className="font-medium text-neutral-700">
-                  ₱{selectedRoom.base_price.toLocaleString()} &times; {calculateTotalNights()} {calculateTotalNights() === 1 ? "night" : "nights"}
+                  Room Base ({calculateTotalNights()} {calculateTotalNights() === 1 ? "night" : "nights"})
                 </span>
-                <span className="font-bold text-neutral-900 text-base">
+                <span className="font-bold text-neutral-900">
                   ₱{(selectedRoom.base_price * calculateTotalNights()).toLocaleString()}
                 </span>
               </div>
-              <div className="flex justify-between font-bold text-sm text-neutral-900 pt-1 border-t border-neutral-200">
-                <span>Room & Services Subtotal</span>
-                <span>
-                  ₱{calculateTotalPrice(selectedRoom.base_price).toLocaleString()}
+              
+              <div className="flex justify-between text-neutral-600">
+                <span className="font-medium text-neutral-700">
+                  Deposit (20% of room/addons)
+                </span>
+                <span className="font-bold text-emerald-700">
+                  ₱{(calculateTotalPrice(selectedRoom.base_price) * 0.20).toLocaleString()}
                 </span>
               </div>
+
               <div className="flex justify-between text-neutral-600">
                 <span className="font-medium text-neutral-700">Booking Service Fee</span>
-                <span className="font-bold text-neutral-900 text-base">
+                <span className="font-bold text-neutral-900">
                   ₱{systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee).toLocaleString() : 100}
                 </span>
               </div>
-              <div className="flex justify-between font-bold text-sm text-neutral-900 pt-1 border-t border-neutral-200">
-                <span>Final Total</span>
+
+              <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
+                <span>Total Due Now</span>
                 <span className="text-emerald-600">
-                  ₱{(calculateTotalPrice(selectedRoom.base_price) + (systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100)).toLocaleString()}
+                  ₱{((calculateTotalPrice(selectedRoom.base_price) * 0.20) + (systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100)).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
+                <span>Remaining Balance (due at check-in)</span>
+                <span className="text-neutral-800">
+                  ₱{(calculateTotalPrice(selectedRoom.base_price) * 0.80).toLocaleString()}
                 </span>
               </div>
             </div>

@@ -17,6 +17,7 @@ export type TransactionItem = {
   downpayment_amount: number;
   commission_amount: number;
   host_payout_amount: number;
+  convenience_fee: number;
   payment_status: "awaiting_deposit" | "deposit_uploaded" | "verified" | "completed" | "refunded";
   payout_status: string;
   status: string;
@@ -143,8 +144,13 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
               <h4 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">Disbursement Info (Host)</h4>
               <div className="space-y-4">
                 <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                  <span className="text-sm font-semibold text-blue-900">Host Payout Amount</span>
-                  <span className="text-lg font-bold text-blue-700">₱{transaction.host_payout_amount}</span>
+                  <span className="text-sm font-semibold text-blue-900">Deposit Payout (Host Share)</span>
+                  <span className="text-lg font-bold text-blue-700">₱{(transaction.downpayment_amount - transaction.convenience_fee) - (transaction.commission_amount * 0.20)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center bg-neutral-50/50 p-4 rounded-xl border border-neutral-100">
+                  <span className="text-sm font-semibold text-neutral-600">Balance Payout (Future)</span>
+                  <span className="text-sm font-bold text-neutral-700">₱{transaction.host_payout_amount - ((transaction.downpayment_amount - transaction.convenience_fee) - (transaction.commission_amount * 0.20))}</span>
                 </div>
                 
                 <div className="space-y-2">
@@ -201,7 +207,7 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
 
 export const getColumns = (
   onVerifyClick: (t: TransactionItem) => void,
-  onMarkPaidClick: (t: TransactionItem) => void
+  onMarkPaidClick: (t: TransactionItem, stage: "deposit" | "balance") => void
 ): ColumnDef<TransactionItem>[] => [
   {
     accessorKey: "id",
@@ -228,14 +234,20 @@ export const getColumns = (
     cell: ({ row }) => {
       const total = row.original.total_price;
       const deposit = row.original.downpayment_amount;
+      const fee = row.original.convenience_fee;
       const commission = row.original.commission_amount;
       const payout = row.original.host_payout_amount;
+      
+      const depositHostPayout = (deposit - fee) - (commission * 0.20);
+      const balanceHostPayout = payout - depositHostPayout;
+      
       return (
         <div className="space-y-1">
           <p className="text-xs font-medium text-neutral-700">Total: ₱{total}</p>
-          <p className="text-xs text-neutral-900 font-bold">Deposit: ₱{deposit}</p>
-          <p className="text-[10px] font-medium text-green-700">Platform (8%): ₱{commission}</p>
-          <p className="text-[10px] font-medium text-blue-700">Host (12%): ₱{payout}</p>
+          <p className="text-xs text-neutral-900 font-bold">Deposit: ₱{deposit} (Fee: ₱{fee})</p>
+          <p className="text-[10px] font-medium text-green-700">Total Comm: ₱{commission}</p>
+          <p className="text-[10px] font-medium text-blue-700">Host Deposit: ₱{depositHostPayout}</p>
+          <p className="text-[10px] font-medium text-blue-700">Host Balance: ₱{balanceHostPayout}</p>
         </div>
       );
     },
@@ -258,8 +270,8 @@ export const getColumns = (
     cell: ({ row }) => {
       const status = row.getValue("payout_status") as string;
       return (
-        <Badge variant={status === "paid" ? "success" : "warning"} size="sm" className="capitalize">
-          {status}
+        <Badge variant={status === "fully_paid" ? "success" : status === "deposit_paid" ? "outline" : "warning"} size="sm" className="capitalize">
+          {status.replace("_", " ")}
         </Badge>
       );
     },
@@ -277,8 +289,13 @@ export const getColumns = (
             </Button>
           )}
           {t.payment_status === "verified" && t.payout_status === "pending" && (
-            <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t)} className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs">
-              Mark Payout Paid
+            <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t, "deposit")} className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs">
+              Mark Deposit Payout
+            </Button>
+          )}
+          {t.payment_status === "verified" && t.payout_status === "deposit_paid" && (
+            <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t, "balance")} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs mt-1">
+              Mark Balance Payout
             </Button>
           )}
         </div>

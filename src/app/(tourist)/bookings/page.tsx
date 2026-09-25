@@ -28,6 +28,7 @@ import { TouristReviewModal } from "@/components/tourist/tourist-review-modal";
 import { TouristViewPaymentModal } from "@/components/tourist/tourist-view-payment-modal";
 import { submitDepositReceiptAction } from "@/app/actions/booking-actions";
 import { useOfflineBoardingPasses } from "@/hooks/use-offline-boarding-passes";
+import { useAuth } from "@/hooks/use-auth";
 import { BoardingPassData } from "@/lib/boarding-pass-generator";
 
 type BookingFilterTab =
@@ -60,22 +61,23 @@ export default function TouristBookingsPage() {
     hasPass,
   } = useOfflineBoardingPasses();
 
+  const { user, profile, isLoading: authLoading } = useAuth();
+
   const fetchBookings = React.useCallback(async () => {
+    if (authLoading) return;
+    
+    if (!user) {
+      setBookings([]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
 
-      if (!user) {
-        setBookings([]);
-        setIsLoading(false);
-        return;
-      }
-
-      if (user.user_metadata?.full_name) {
-        setUserName(user.user_metadata.full_name);
+      if (profile?.full_name) {
+        setUserName(profile.full_name);
       } else if (user.email) {
         setUserName(user.email.split("@")[0]);
       }
@@ -176,7 +178,7 @@ export default function TouristBookingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [saveMultiplePasses]);
+  }, [saveMultiplePasses, user, profile, authLoading]);
 
   React.useEffect(() => {
     fetchBookings();
@@ -186,7 +188,6 @@ export default function TouristBookingsPage() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
     const initRealtime = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       
       channel = supabase
@@ -394,7 +395,7 @@ export default function TouristBookingsPage() {
         </div>
 
         {/* Content: Loading Skeleton, Empty State, or Booking Cards List */}
-        {isLoading ? (
+        {isLoading || authLoading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <LoadingLogo size="large" />
             <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">
