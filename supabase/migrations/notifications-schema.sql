@@ -72,6 +72,11 @@ CREATE POLICY "Users can update own notifications"
   ON public.notifications FOR UPDATE
   USING (auth.uid() = user_id);
 
+-- Users can delete their own notifications
+CREATE POLICY "Users can delete own notifications"
+  ON public.notifications FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- Only the service role (server actions) can INSERT notifications
 -- The service role bypasses RLS entirely, so no explicit INSERT policy is needed
 -- for the server. We block direct client inserts for security.

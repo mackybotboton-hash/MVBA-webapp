@@ -2,8 +2,10 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Star, X, Loader2 } from "lucide-react";
+import { Star, X, Loader2, Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
+import { STORAGE_BUCKETS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 
 interface TouristReviewModalProps {
@@ -17,7 +19,24 @@ export function TouristReviewModal({ isOpen, onClose, booking, onSuccess }: Tour
   const [rating, setRating] = React.useState(5);
   const [hoverRating, setHoverRating] = React.useState(0);
   const [comment, setComment] = React.useState("");
+  const [images, setImages] = React.useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      if (images.length + newFiles.length > 5) {
+        toast.error("You can only upload up to 5 images.");
+        return;
+      }
+      setImages((prev) => [...prev, ...newFiles]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   // Reset state when opened
   React.useEffect(() => {
@@ -25,6 +44,7 @@ export function TouristReviewModal({ isOpen, onClose, booking, onSuccess }: Tour
       setRating(5);
       setHoverRating(0);
       setComment("");
+      setImages([]);
     }
   }, [isOpen]);
 
@@ -39,6 +59,17 @@ export function TouristReviewModal({ isOpen, onClose, booking, onSuccess }: Tour
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      let uploadedImageUrls: string[] = [];
+      if (images.length > 0) {
+        for (const file of images) {
+          const path = generateFilePath(file.name, "reviews");
+          const url = await uploadFile(file, STORAGE_BUCKETS.PROPERTY_IMAGES, path);
+          if (url) {
+            uploadedImageUrls.push(url);
+          }
+        }
+      }
+
       const { error } = await (supabase.from("reviews") as any).insert({
         booking_id: booking.id,
         property_id: booking.property_id,
@@ -46,6 +77,7 @@ export function TouristReviewModal({ isOpen, onClose, booking, onSuccess }: Tour
         rating,
         comment: comment.trim() || null,
         status: "published",
+        image_urls: uploadedImageUrls,
       });
 
       if (error) {
@@ -129,6 +161,33 @@ export function TouristReviewModal({ isOpen, onClose, booking, onSuccess }: Tour
               onChange={(e) => setComment(e.target.value)}
               className="w-full p-3 text-sm rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black/5"
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-neutral-800 uppercase tracking-wider">
+              Add Photos (Max 5)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {images.map((img, i) => (
+                <div key={i} className="relative h-16 w-16 rounded-xl border border-neutral-200 overflow-hidden group">
+                  <img src={URL.createObjectURL(img)} alt="Preview" className="h-full w-full object-cover" />
+                  <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+              {images.length < 5 && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-16 w-16 rounded-xl border-2 border-dashed border-neutral-300 flex flex-col items-center justify-center text-neutral-500 hover:border-neutral-400 hover:text-neutral-700 transition-colors bg-neutral-50"
+                >
+                  <Camera className="h-5 w-5 mb-1" />
+                  <span className="text-[10px] font-medium">Add</span>
+                </button>
+              )}
+            </div>
+            <input type="file" ref={fileInputRef} accept="image/*" multiple onChange={handleFileChange} className="hidden" />
           </div>
 
           <div className="pt-2">

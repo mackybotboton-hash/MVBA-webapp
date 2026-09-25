@@ -10,6 +10,7 @@ export async function createReservationAction(payload: {
   checkInDate: string;
   checkOutDate: string;
   guestCount: number;
+  serviceIds?: string[];
   notes?: string;
 }) {
   try {
@@ -73,10 +74,10 @@ export async function createReservationAction(payload: {
       throw new Error(`Exceeds maximum capacity of ${room.max_capacity} guests.`);
     }
 
-    // Fetch the system settings to get the dynamic commission percentage
+    // Fetch the system settings to get the dynamic commission percentage and convenience fee
     const { data: systemSettings, error: settingsError } = await (supabaseUserClient as any)
       .from("system_settings")
-      .select("commission_percentage")
+      .select("commission_percentage, convenience_fee")
       .eq("id", 1)
       .single();
       
@@ -91,12 +92,44 @@ export async function createReservationAction(payload: {
     const nights = Math.ceil(timeDiff / (1000 * 3600 * 24));
     
     const totalPrice = room.base_price * nights;
-    // Downpayment is 20%
-    const downpaymentAmount = totalPrice * 0.20;
-    // Association Commission is dynamically calculated
-    const commissionAmount = totalPrice * commissionRate;
-    // Host payout is total minus commission
-    const hostPayoutAmount = totalPrice - commissionAmount;
+    
+    // Add-ons Calculation
+    let addonsTotal = 0;
+    let addonsCommission = 0;
+    let addonsData: any[] = [];
+    
+    if (payload.serviceIds && payload.serviceIds.length > 0) {
+      const { data: services } = await supabaseUserClient
+        .from("extra_services")
+        .select("id, price, commission_rate")
+        .in("id", payload.serviceIds);
+        
+      if (services) {
+        services.forEach(service => {
+          const sPrice = Number(service.price);
+          const sCommRate = service.commission_rate ? Number(service.commission_rate) / 100 : 0.08;
+          addonsTotal += sPrice;
+          addonsCommission += sPrice * sCommRate;
+          addonsData.push({
+            service_id: service.id,
+            price_at_booking: sPrice,
+            commission_amount: sPrice * sCommRate
+          });
+        });
+      }
+    }
+    
+    // Convenience fee
+    const convenienceFee = systemSettings.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
+    const finalGrandTotal = totalPrice + addonsTotal + convenienceFee;
+
+    // Downpayment is 20% of final grand total
+    const downpaymentAmount = finalGrandTotal * 0.20;
+    // Association Commission is dynamically calculated from the room price only
+    const roomCommissionAmount = totalPrice * commissionRate;
+    const commissionAmount = roomCommissionAmount + addonsCommission;
+    // Host payout is room + addons minus their respective commissions
+    const hostPayoutAmount = (totalPrice - roomCommissionAmount) + (addonsTotal - addonsCommission);
 
     // 4. Atomic Insertion via Admin Client
     const supabaseAdmin = createAdminClient();
@@ -110,10 +143,11 @@ export async function createReservationAction(payload: {
         check_in_date: payload.checkInDate,
         check_out_date: payload.checkOutDate,
         guest_count: payload.guestCount,
-        total_price: totalPrice,
+        total_price: finalGrandTotal,
         downpayment_amount: downpaymentAmount,
         commission_amount: commissionAmount,
         host_payout_amount: hostPayoutAmount,
+        convenience_fee: convenienceFee,
         payment_status: "awaiting_deposit",
         status: "pending",
         notes: (payload.notes || "").slice(0, 1000)
@@ -127,6 +161,15 @@ export async function createReservationAction(payload: {
         throw new Error("These dates are no longer available. The room was booked by someone else.");
       }
       throw new Error(`Booking failed: ${bookingError.message}`);
+    }
+
+    // Insert Add-ons if any
+    if (addonsData.length > 0 && newBooking.id) {
+      const finalAddonsData = addonsData.map(a => ({
+        ...a,
+        booking_id: newBooking.id
+      }));
+      await supabaseAdmin.from("booking_addons").insert(finalAddonsData);
     }
 
     revalidatePath("/bookings");

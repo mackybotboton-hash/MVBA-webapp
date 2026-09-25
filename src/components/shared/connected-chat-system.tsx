@@ -23,10 +23,13 @@ import {
   X,
   MessageCircleOff,
   ChevronLeft,
+  Image as ImageIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { createClient } from "@/lib/supabase/client";
+import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
+import { STORAGE_BUCKETS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -45,6 +48,7 @@ export interface ChatContact {
   lastMessageIsRead?: boolean; // True if the last message has been read by its recipient
   unreadCount?: number; // Count of unread messages for current user
   phone?: string;
+  avatarUrl?: string;
 }
 
 export interface ChatMessageItem {
@@ -54,6 +58,7 @@ export interface ChatMessageItem {
   content: string;
   created_at: string;
   is_read?: boolean;
+  image_url?: string;
 }
 
 export interface ConnectedChatSystemProps {
@@ -116,6 +121,16 @@ function ChatSystemContent({
   const [activeContact, setActiveContact] = React.useState<ChatContact | null>(null);
   const [messages, setMessages] = React.useState<ChatMessageItem[]>([]);
   const [inputText, setInputText] = React.useState("");
+  const [imageFile, setImageFile] = React.useState<File | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
+
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isLoadingContacts, setIsLoadingContacts] = React.useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = React.useState(false);
@@ -182,6 +197,40 @@ function ChatSystemContent({
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
   const isNearBottomRef = React.useRef(true);
   const shouldScrollToBottomRef = React.useRef(true);
+
+  // Online Presence State
+  const [onlineUserIds, setOnlineUserIds] = React.useState<Set<string>>(new Set());
+
+  // Track Online Presence
+  React.useEffect(() => {
+    if (!currentUser) return;
+    const supabase = createClient();
+    const presenceChannel = supabase.channel("global_presence");
+
+    presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        const state = presenceChannel.presenceState();
+        const onlineIds = new Set<string>();
+        for (const key in state) {
+          state[key].forEach((p: any) => {
+            if (p.user_id) onlineIds.add(p.user_id);
+          });
+        }
+        setOnlineUserIds(onlineIds);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track({
+            user_id: currentUser.id,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [currentUser]);
   
   // Prevent body scroll and iOS viewport pan when thread is open on mobile
   React.useEffect(() => {
@@ -233,22 +282,21 @@ function ChatSystemContent({
     setIsLoadingContacts(true);
     try {
       const supabase = createClient();
-      // Fetch all properties to resolve host property names accurately
       const { data: allProps } = await supabase
         .from("properties")
-        .select("id, name, type, owner_id");
+        .select("id, name, type, owner_id, cover_image_url");
 
-      const ownerPropertyMap = new Map<string, { name: string; type: string }>();
+      const ownerPropertyMap = new Map<string, { name: string; type: string; coverImageUrl?: string }>();
       ((allProps as any[]) || []).forEach((p: any) => {
         if (p.owner_id) {
-          ownerPropertyMap.set(p.owner_id, { name: p.name, type: p.type });
+          ownerPropertyMap.set(p.owner_id, { name: p.name, type: p.type, coverImageUrl: p.cover_image_url });
         }
       });
 
       // If Admin: Fetch all registered homestay & resort owners for member directory & outreach
       if (currentRole === "admin") {
         const { data: hosts } = await (supabase.from("profiles") as any)
-          .select("id, full_name, role, phone_number, email")
+          .select("id, full_name, role, phone_number, email, avatar_url")
           .in("role", ["homestay", "resort"])
           .order("full_name", { ascending: true });
 
@@ -263,6 +311,7 @@ function ChatSystemContent({
                 propertyName: propInfo?.name || (h.role === "resort" ? "Resort" : "Homestay"),
                 phone: h.phone_number,
                 email: h.email,
+                avatarUrl: propInfo?.coverImageUrl || h.avatar_url,
               };
             })
           );
@@ -292,7 +341,7 @@ function ChatSystemContent({
       // If Host (Homestay / Resort): Fetch MVBA Association Admin profile for direct association channel
       if (currentRole === "homestay" || currentRole === "resort") {
         const { data: admins } = await (supabase.from("profiles") as any)
-          .select("id, full_name, role, phone_number, email")
+          .select("id, full_name, role, phone_number, email, avatar_url")
           .eq("role", "admin")
           .limit(1);
 
@@ -305,6 +354,7 @@ function ChatSystemContent({
             propertyName: "MVBA Association Office",
             phone: adm.phone_number,
             email: adm.email,
+            avatarUrl: adm.avatar_url,
           });
         } else {
           setAdminProfile({
@@ -345,9 +395,10 @@ function ChatSystemContent({
           receiver_id,
           content,
           is_read,
+          image_url,
           created_at,
-          sender:profiles!sender_id (id, full_name, role, phone_number),
-          receiver:profiles!receiver_id (id, full_name, role, phone_number)
+          sender:profiles!sender_id (id, full_name, role, phone_number, avatar_url),
+          receiver:profiles!receiver_id (id, full_name, role, phone_number, avatar_url)
         `)
         .or(`sender_id.eq.${effectiveUser.id},receiver_id.eq.${effectiveUser.id}`)
         .order("created_at", { ascending: false });
@@ -403,13 +454,14 @@ function ChatSystemContent({
           propertyName: isPartnerAdmin
             ? "MVBA Association Office"
             : propInfo?.name,
-          lastMessage: latest.content,
+          lastMessage: latest.image_url && !latest.content ? "Sent an image" : latest.content,
           lastTime: formatMessageTime(latest.created_at),
           lastMessageCreatedAt: latest.created_at,
           lastMessageSenderId: latest.sender_id,
           lastMessageIsRead: Boolean(latest.is_read),
           unreadCount,
           phone: partner?.phone_number,
+          avatarUrl: propInfo?.coverImageUrl || partner?.avatar_url,
         });
       });
 
@@ -721,6 +773,17 @@ function ChatSystemContent({
             if (activeContact && partnerId === activeContact.id) {
               setMessages((prev) => {
                 if (prev.some((m) => m.id === msg.id)) return prev;
+
+                // De-duplicate optimistic UI message
+                if (!isIncoming) {
+                  const optIdx = prev.findIndex(m => m.id.startsWith("msg-") && m.content === msg.content);
+                  if (optIdx !== -1) {
+                    const next = [...prev];
+                    next[optIdx] = msg;
+                    return next;
+                  }
+                }
+
                 return [...prev, msg];
               });
               if (isIncoming) {
@@ -737,7 +800,7 @@ function ChatSystemContent({
                 const target = prev[idx];
                 const updated: ChatContact = {
                   ...target,
-                  lastMessage: msg.content,
+                  lastMessage: msg.image_url && !msg.content ? "Sent an image" : msg.content,
                   lastTime: formatMessageTime(msg.created_at),
                   lastMessageSenderId: msg.sender_id,
                   lastMessageCreatedAt: msg.created_at,
@@ -757,7 +820,8 @@ function ChatSystemContent({
             });
 
             if (isIncoming && !isViewingThis) {
-              toast.info(`New message: "${msg.content.slice(0, 35)}..."`);
+              const toastMsg = msg.image_url && !msg.content ? "Sent an image" : msg.content.slice(0, 35) + (msg.content.length > 35 ? "..." : "");
+              toast.info(`New message: "${toastMsg}"`);
             }
           }
 
@@ -855,7 +919,7 @@ function ChatSystemContent({
               }
               const updated: ChatContact = {
                 ...cur,
-                lastMessage: latest.content,
+                lastMessage: latest.image_url && !latest.content ? "Sent an image" : latest.content,
                 lastTime: formatMessageTime(latest.created_at),
                 lastMessageSenderId: latest.sender_id,
                 lastMessageCreatedAt: latest.created_at,
@@ -890,6 +954,7 @@ function ChatSystemContent({
             receiver_id,
             content,
             is_read,
+            image_url,
             created_at,
             sender:profiles!sender_id (id, full_name, role)
           `)
@@ -966,7 +1031,7 @@ function ChatSystemContent({
                 changed = true;
                 updated[idx] = {
                   ...contact,
-                  lastMessage: previewChanged ? latestMsg.content : contact.lastMessage,
+                  lastMessage: previewChanged ? (latestMsg.image_url && !latestMsg.content ? "Sent an image" : latestMsg.content) : contact.lastMessage,
                   lastTime: previewChanged
                     ? formatMessageTime(latestMsg.created_at)
                     : contact.lastTime,
@@ -1015,11 +1080,26 @@ function ChatSystemContent({
   // 6. Send Message Handler
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !activeContact) return;
+    if ((!inputText.trim() && !imageFile) || !activeContact) return;
 
     const text = inputText.trim();
     setInputText("");
     setIsSending(true);
+
+    let uploadedImageUrl = null;
+    if (imageFile) {
+      setIsUploadingImage(true);
+      const path = generateFilePath(imageFile.name, "chat");
+      uploadedImageUrl = await uploadFile(imageFile, STORAGE_BUCKETS.PROPERTY_IMAGES, path);
+      if (!uploadedImageUrl) {
+        toast.error("Failed to upload image.");
+        setIsUploadingImage(false);
+        setIsSending(false);
+        return;
+      }
+      setImageFile(null);
+      setIsUploadingImage(false);
+    }
 
     const nowIso = new Date().toISOString();
     const tempId = "msg-" + Date.now();
@@ -1030,11 +1110,14 @@ function ChatSystemContent({
       content: text,
       created_at: nowIso,
       is_read: false, // Not read yet by recipient
+      image_url: uploadedImageUrl,
     };
 
     // Immediate UI feedback & force scroll to bottom on own sent message
     shouldScrollToBottomRef.current = true;
     setMessages((prev) => [...prev, optimisticMsg]);
+
+    const displayMsg = uploadedImageUrl && !text ? "Sent an image" : text;
 
     // Update contact list immediately: preview shows "You: ..." with unread by recipient status
     setContacts((prev) => {
@@ -1043,7 +1126,7 @@ function ChatSystemContent({
         // First message in a newly started conversation: add to list at top
         const created: ChatContact = {
           ...activeContact,
-          lastMessage: text,
+          lastMessage: displayMsg,
           lastTime: "Just now",
           lastMessageSenderId: currentUser?.id,
           lastMessageCreatedAt: nowIso,
@@ -1055,7 +1138,7 @@ function ChatSystemContent({
       const cur = prev[idx];
       const updated: ChatContact = {
         ...cur,
-        lastMessage: text,
+        lastMessage: displayMsg,
         lastTime: "Just now",
         lastMessageSenderId: currentUser?.id,
         lastMessageCreatedAt: nowIso,
@@ -1073,6 +1156,7 @@ function ChatSystemContent({
           receiver_id: activeContact.id,
           content: text,
           is_read: false,
+          image_url: uploadedImageUrl,
         });
 
         // Bug D fix: notifyNewMessage was defined but never called anywhere.
@@ -1306,7 +1390,7 @@ function ChatSystemContent({
                     {/* Contact Avatar with Messenger-style Unread Status */}
                     <div className="relative shrink-0 mt-0.5">
                       <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl font-bold text-xs shadow-2xs ${
+                        className={`flex h-10 w-10 overflow-hidden items-center justify-center rounded-xl font-bold text-xs shadow-2xs ${
                           isSelected
                             ? "bg-white text-black"
                             : contact.role === "admin"
@@ -1316,7 +1400,9 @@ function ChatSystemContent({
                             : "bg-neutral-200 text-neutral-800"
                         }`}
                       >
-                        {contact.role === "admin" ? (
+                        {contact.avatarUrl ? (
+                          <img src={contact.avatarUrl} alt={contact.name} className="h-full w-full object-cover" />
+                        ) : contact.role === "admin" ? (
                           <ShieldCheck className="h-5 w-5 text-white" />
                         ) : (
                           contact.name.slice(0, 2).toUpperCase()
@@ -1495,18 +1581,25 @@ function ChatSystemContent({
                     <ChevronLeft className="h-7 w-7" />
                   </button>
                   <div
-                    className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm shadow-sm border border-neutral-100 ${
+                    className={`relative flex h-10 w-10 shrink-0 overflow-hidden items-center justify-center rounded-full font-bold text-sm shadow-sm border border-neutral-100 ${
                       activeContact.role === "admin"
                         ? "bg-amber-500 text-white"
                         : "bg-black text-white"
                     }`}
                   >
-                    {activeContact.role === "admin" ? (
+                    {activeContact.avatarUrl ? (
+                      <img src={activeContact.avatarUrl} alt={activeContact.name} className="h-full w-full object-cover" />
+                    ) : activeContact.role === "admin" ? (
                       <ShieldCheck className="h-5 w-5 text-white" />
                     ) : (
                       activeContact.name.slice(0, 2).toUpperCase()
                     )}
-                    <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-black/5" />
+                    <span 
+                      className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white ring-1 ring-black/5 ${
+                        onlineUserIds.has(activeContact.id) ? "bg-emerald-500" : "bg-gray-400"
+                      }`}
+                      title={onlineUserIds.has(activeContact.id) ? "Online" : "Offline"}
+                    />
                   </div>
                   <div className="flex-1 min-w-0 pr-2">
                     <h3 className="text-[15px] font-bold text-neutral-900 leading-tight truncate">
@@ -1596,13 +1689,18 @@ function ChatSystemContent({
                         )}
 
                         <div
-                          className={`max-w-md px-4 py-2.5 text-[15px] shadow-sm leading-relaxed ${
+                          className={`max-w-md px-4 py-2.5 text-[15px] shadow-sm leading-relaxed flex flex-col ${
                             isSelf
                               ? "bg-blue-600 text-white rounded-[20px] rounded-br-[4px]"
                               : "bg-[#E4E6EB] text-black rounded-[20px] rounded-bl-[4px]"
                           }`}
                         >
-                          <p>{msg.content}</p>
+                          {msg.image_url && (
+                            <div className="mb-2 max-w-xs rounded-xl overflow-hidden cursor-pointer">
+                              <img src={msg.image_url} alt="Attached image" className="w-full h-auto object-cover max-h-60 hover:opacity-90 transition-opacity" onClick={() => window.open(msg.image_url, "_blank")} />
+                            </div>
+                          )}
+                          {msg.content && <p>{msg.content}</p>}
                           <div
                             className={`flex items-center justify-end gap-1 text-[9px] mt-0.5 ${
                               isSelf ? "text-blue-100" : "text-neutral-500"
@@ -1631,52 +1729,67 @@ function ChatSystemContent({
               {/* Bottom Input Bar */}
               <form
                 onSubmit={handleSendMessage}
-                className="p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-neutral-100 bg-white flex items-center gap-2 shrink-0 z-10"
+                className="p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] border-t border-neutral-100 bg-white flex flex-col gap-2 shrink-0 z-10"
               >
-                <button
-                  type="button"
-                  onClick={() => toast.info("Image upload coming soon!")}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors shrink-0"
-                  aria-label="Add attachment"
-                >
-                  <Plus className="h-6 w-6" />
-                </button>
-                <div className="flex-1 relative flex items-center">
-                  <input
-                    type="text"
-                    placeholder="Aa"
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    onFocus={() => {
-                      // Small delay to let keyboard animate in
-                      setTimeout(() => scrollToBottom("smooth"), 300);
-                    }}
-                    className="w-full h-10 pl-4 pr-10 rounded-full border-none bg-neutral-100 text-[15px] text-black placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all"
-                  />
+                {imageFile && (
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-neutral-200">
+                    <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImageFile(null)}
+                      className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 hover:bg-black/70 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 w-full">
                   <button
                     type="button"
-                    onClick={() => toast.info("Stickers coming soon!")}
-                    className="absolute right-2 p-1.5 text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors shrink-0"
+                    aria-label="Add attachment"
                   >
-                    <Sparkles className="h-5 w-5" />
+                    <Plus className="h-6 w-6" />
+                  </button>
+                  <input type="file" ref={fileInputRef} accept="image/*" onChange={handleImageChange} className="hidden" />
+                  <div className="flex-1 relative flex items-center">
+                    <input
+                      type="text"
+                      placeholder="Aa"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      onFocus={() => {
+                        // Small delay to let keyboard animate in
+                        setTimeout(() => scrollToBottom("smooth"), 300);
+                      }}
+                      className="w-full h-10 pl-4 pr-10 rounded-full border-none bg-neutral-100 text-[15px] text-black placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-blue-600 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => toast.info("Stickers coming soon!")}
+                      className="absolute right-2 p-1.5 text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+                    >
+                      <Sparkles className="h-5 w-5" />
+                    </button>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={(!inputText.trim() && !imageFile) || isSending}
+                    className={`p-2 rounded-full transition-all shrink-0 ${
+                      (inputText.trim() || imageFile) && !isSending
+                        ? "text-blue-600 hover:bg-blue-50"
+                        : "text-neutral-300"
+                    }`}
+                    aria-label="Send message"
+                  >
+                    {isSending || isUploadingImage ? (
+                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                    ) : (
+                      <Send className="h-6 w-6" />
+                    )}
                   </button>
                 </div>
-                <button
-                  type="submit"
-                  disabled={!inputText.trim() || isSending}
-                  className={`p-2 rounded-full transition-all shrink-0 ${
-                    inputText.trim() && !isSending
-                      ? "text-blue-600 hover:bg-blue-50"
-                      : "text-neutral-300"
-                  }`}
-                  aria-label="Send message"
-                >
-                  {isSending ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                  ) : (
-                    <Send className="h-6 w-6" />
-                  )}
-                </button>
               </form>
             </>
           ) : null;

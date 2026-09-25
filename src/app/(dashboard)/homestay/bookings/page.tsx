@@ -77,13 +77,19 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
       downpayment_amount,
       host_payout_amount,
       commission_amount,
+      convenience_fee,
       status,
       payout_status,
       receipt_url,
       created_at,
       notes,
       profiles!tourist_id(full_name, phone_number, email),
-      rooms!room_id(name)
+      rooms!room_id(name),
+      booking_addons (
+        price_at_booking,
+        commission_amount,
+        extra_services(name)
+      )
     `)
     .in("room_id", roomIds)
     .order("created_at", { ascending: false });
@@ -105,6 +111,12 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
     downpayment_amount: b.downpayment_amount ? Number(b.downpayment_amount) : undefined,
     host_payout_amount: b.host_payout_amount ? Number(b.host_payout_amount) : undefined,
     commission_amount: b.commission_amount ? Number(b.commission_amount) : undefined,
+    convenience_fee: b.convenience_fee ? Number(b.convenience_fee) : 0,
+    addons: (b.booking_addons || []).map((a: any) => ({
+      name: a.extra_services?.name || "Add-on",
+      price: Number(a.price_at_booking || 0),
+      commission: Number(a.commission_amount || 0)
+    })),
     status: b.status,
     payout_status: b.payout_status,
     receipt_url: b.receipt_url,

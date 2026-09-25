@@ -75,6 +75,35 @@ export async function markNotificationRead(notificationId: string): Promise<void
   }
 }
 
+/**
+ * Marks all notifications as read for the current user.
+ */
+export async function markAllNotificationsRead(userId: string): Promise<void> {
+  try {
+    const supabase = createClient();
+    await (supabase.from("notifications") as any)
+      .update({ is_read: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
+  } catch (err) {
+    console.error("[Counts] Failed to mark all notifications as read:", err);
+  }
+}
+
+/**
+ * Deletes all notifications for the current user.
+ */
+export async function deleteAllNotifications(userId: string): Promise<void> {
+  try {
+    const supabase = createClient();
+    await (supabase.from("notifications") as any)
+      .delete()
+      .eq("user_id", userId);
+  } catch (err) {
+    console.error("[Counts] Failed to delete all notifications:", err);
+  }
+}
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function NotificationCountsProvider({ children }: { children: ReactNode }) {

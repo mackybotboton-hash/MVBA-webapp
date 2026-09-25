@@ -118,6 +118,7 @@ CREATE TABLE bookings (
   downpayment_amount NUMERIC(10,2) DEFAULT 0,
   commission_amount NUMERIC(10,2) DEFAULT 0,
   host_payout_amount NUMERIC(10,2) DEFAULT 0,
+  convenience_fee NUMERIC(10,2) DEFAULT 0,
   payment_status payment_status DEFAULT 'awaiting_deposit',
   receipt_url TEXT DEFAULT '',
   payout_status TEXT DEFAULT 'pending',
@@ -147,6 +148,7 @@ CREATE TABLE extra_services (
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
   price NUMERIC(10,2) NOT NULL DEFAULT 0,
+  commission_rate NUMERIC(5,2) NOT NULL DEFAULT 8.0,
   payment_type payment_type NOT NULL DEFAULT 'cash',
   image_url TEXT DEFAULT '',
   is_active BOOLEAN NOT NULL DEFAULT true,
@@ -234,6 +236,7 @@ CREATE TABLE reviews (
   property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
   rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
   comment TEXT DEFAULT '',
+  image_urls TEXT[] DEFAULT '{}',
   status review_status NOT NULL DEFAULT 'published',
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -249,6 +252,7 @@ CREATE TABLE booking_addons (
   service_id UUID NOT NULL REFERENCES extra_services(id) ON DELETE CASCADE,
   quantity INTEGER NOT NULL DEFAULT 1,
   price_at_booking NUMERIC(10,2) NOT NULL DEFAULT 0,
+  commission_amount NUMERIC(10,2) DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_booking_addons_booking ON booking_addons(booking_id);

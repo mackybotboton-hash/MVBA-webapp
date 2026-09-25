@@ -9,6 +9,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { useNotificationCounts } from "@/hooks/use-notification-counts";
+
+/** Renders a compact count badge beside a nav label */
+function NavBadge({ count }: { count: number }) {
+  if (count === 0) return null;
+  return (
+    <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
 
 export default function AdminLayout({
   children,
@@ -17,6 +28,13 @@ export default function AdminLayout({
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  // Live badge counts
+  const { pendingTransactions, unreadMessages } = useNotificationCounts();
+  const badgeMap: Record<string, number> = {
+    "/admin/transactions": pendingTransactions,
+    "/admin/chat": unreadMessages,
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -46,6 +64,8 @@ export default function AdminLayout({
                   (item.href !== "/admin" && pathname.startsWith(item.href));
                 const Icon = item.icon;
 
+                const badge = badgeMap[item.href] ?? 0;
+
                 if (item.disabled) {
                   return (
                     <div
@@ -54,6 +74,7 @@ export default function AdminLayout({
                     >
                       <Icon className="h-5 w-5 flex-shrink-0 text-gray-400" />
                       <span>{item.label}</span>
+                      <NavBadge count={badge} />
                     </div>
                   );
                 }
@@ -72,6 +93,7 @@ export default function AdminLayout({
                   >
                     <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-black" : "text-gray-400")} />
                     <span>{item.label}</span>
+                    <NavBadge count={badge} />
                   </Link>
                 );
               })}

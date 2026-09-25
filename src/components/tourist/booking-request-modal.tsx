@@ -77,9 +77,15 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
 
     const total = roomTotal + addonsTotal;
     
+    const convenienceFee = 100; // Simplified for now, or could fetch from settings
+    const grandTotal = total + convenienceFee;
+    
     return {
-      total,
-      downpayment: total * 0.20 // 20% downpayment required on the TOTAL (rooms + addons)
+      roomTotal,
+      addonsTotal,
+      convenienceFee,
+      total: grandTotal,
+      downpayment: grandTotal * 0.20 // 20% downpayment required on the TOTAL (rooms + addons + fee)
     };
   }, [selectedRoom, nights, selectedAddonIds, addons]);
 
@@ -278,12 +284,28 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
               exit={{ y: "100%" }}
               className="shrink-0 border-t border-zinc-200 bg-zinc-50 p-4 sm:p-6 pb-safe"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col gap-2 mb-4">
+                <div className="flex items-center justify-between text-sm text-zinc-600">
+                  <span>Room Base ({nights} {nights === 1 ? 'night' : 'nights'})</span>
+                  <span>₱{pricing.roomTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                {pricing.addonsTotal > 0 && (
+                  <div className="flex items-center justify-between text-sm text-zinc-600">
+                    <span>Extra Services</span>
+                    <span>₱{pricing.addonsTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-sm text-zinc-600">
+                  <span>Booking Service Fee</span>
+                  <span>₱{pricing.convenienceFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              <div className="border-t border-zinc-200 my-3"></div>
+
+              <div className="flex items-center justify-between mb-2">
                 <div>
-                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1">
-                    Total • {nights} {nights === 1 ? 'night' : 'nights'} 
-                    {selectedAddonIds.size > 0 && ` + ${selectedAddonIds.size} add-on${selectedAddonIds.size > 1 ? 's' : ''}`}
-                  </p>
+                  <p className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-1">Final Total</p>
                   <p className="text-lg font-semibold text-zinc-900">₱{pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div className="text-right">

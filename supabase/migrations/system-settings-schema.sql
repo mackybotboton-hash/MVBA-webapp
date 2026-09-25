@@ -2,14 +2,15 @@
 CREATE TABLE IF NOT EXISTS public.system_settings (
   id INT PRIMARY KEY CHECK (id = 1),
   commission_percentage NUMERIC NOT NULL DEFAULT 8.0,
+  convenience_fee NUMERIC NOT NULL DEFAULT 100.0,
   admin_gcash_number TEXT NOT NULL DEFAULT '0917-000-0000',
   admin_gcash_name TEXT NOT NULL DEFAULT 'MVBA Admin',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Insert the default seed row
-INSERT INTO public.system_settings (id, commission_percentage, admin_gcash_number, admin_gcash_name)
-VALUES (1, 8.0, '0917-000-0000', 'MVBA Admin')
+INSERT INTO public.system_settings (id, commission_percentage, convenience_fee, admin_gcash_number, admin_gcash_name)
+VALUES (1, 8.0, 100.0, '0917-000-0000', 'MVBA Admin')
 ON CONFLICT (id) DO NOTHING;
 
 -- Enable Row Level Security

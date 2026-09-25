@@ -64,6 +64,17 @@ interface RoomItem {
   room_images?: { id?: string; image_url: string }[];
 }
 
+}
+
+const formatGuestName = (fullName?: string) => {
+  if (!fullName) return "Guest";
+  const parts = fullName.trim().split(" ");
+  if (parts.length === 1) return parts[0];
+  const firstName = parts[0];
+  const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+  return `${firstName} ${lastNameInitial}.`;
+};
+
 export default function PropertyStorefrontPage() {
   const params = useParams();
   const router = useRouter();
@@ -77,6 +88,7 @@ export default function PropertyStorefrontPage() {
   const [isLoading, setIsLoading] = React.useState(true);
   const isFavorited = isSaved(propertyId);
   const [activeTab, setActiveTab] = React.useState<"overview" | "rooms" | "services" | "reviews">("overview");
+  const [systemSettings, setSystemSettings] = React.useState<any>(null);
 
   // Booking Modal State
   const [user, setUser] = React.useState<any>(null);
@@ -221,6 +233,16 @@ export default function PropertyStorefrontPage() {
           .eq("id", propertyId)
           .single();
 
+        const { data: settingsData } = await supabase
+          .from("system_settings")
+          .select("commission_percentage, convenience_fee")
+          .eq("id", 1)
+          .single();
+        
+        if (settingsData) {
+          setSystemSettings(settingsData);
+        }
+
         if (error || !data) {
           setProperty(null);
           setRooms([]);
@@ -322,10 +344,33 @@ export default function PropertyStorefrontPage() {
 
       const total = calculateTotalPrice(selectedRoom.base_price);
       const bookingNotes = arrivalTime ? `Estimated Arrival: ${arrivalTime}` : null;
+      
+      const roomTotal = selectedRoom.base_price * calculateTotalNights();
+      const roomCommissionRate = systemSettings?.commission_percentage ? Number(systemSettings.commission_percentage) / 100 : 0.08;
+      const roomCommission = roomTotal * roomCommissionRate;
+      
+      let addonsCommission = 0;
+      let addonsTotal = 0;
+      
+      const addonsDataForInsert = selectedAddons.map((addonId) => {
+        const service = services.find((s) => s.id === addonId);
+        const price = service ? Number(service.price) : 0;
+        const commRate = service && service.commission_rate ? Number(service.commission_rate) / 100 : 0.08;
+        const commAmt = price * commRate;
+        addonsTotal += price;
+        addonsCommission += commAmt;
+        return {
+          service_id: addonId,
+          price_at_booking: price,
+          commission_amount: commAmt
+        };
+      });
 
+      const totalCommission = roomCommission + addonsCommission;
       const downpayment = total * 0.20;
-      const commission = total * 0.08;
-      const host_payout = total * 0.12;
+      const host_payout = total - totalCommission;
+      const convenienceFee = systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
+      const finalGrandTotal = total + convenienceFee;
 
       // A. Try Atomic PostgreSQL Stored Procedure (ACID Row-Level Lock)
       try {
@@ -337,7 +382,7 @@ export default function PropertyStorefrontPage() {
             p_check_in: checkInDate,
             p_check_out: checkOutDate,
             p_guest_count: guestCount,
-            p_total_price: total,
+            p_total_price: finalGrandTotal,
             p_notes: bookingNotes,
           }
         );
@@ -352,23 +397,17 @@ export default function PropertyStorefrontPage() {
           }
 
           await (supabase.from("bookings") as any).update({
-            downpayment_amount: downpayment,
-            commission_amount: commission,
+            downpayment_amount: finalGrandTotal * 0.20, // Wait, maybe downpayment is on final?
+            commission_amount: totalCommission,
             host_payout_amount: host_payout,
+            convenience_fee: convenienceFee,
             payment_status: "awaiting_deposit",
           }).eq("id", rpcRes.booking_id);
 
           // Add-ons insertion
-          if (selectedAddons.length > 0) {
-            const addonsData = selectedAddons.map((addonId) => {
-              const service = services.find((s) => s.id === addonId);
-              return {
-                booking_id: rpcRes.booking_id,
-                service_id: addonId,
-                price_at_booking: service ? Number(service.price) : 0,
-              };
-            });
-            await (supabase.from("booking_addons") as any).insert(addonsData);
+          if (addonsDataForInsert.length > 0) {
+            const finalAddons = addonsDataForInsert.map(a => ({ ...a, booking_id: rpcRes.booking_id }));
+            await (supabase.from("booking_addons") as any).insert(finalAddons);
           }
 
           toast.success("Reservation request sent!", {
@@ -390,10 +429,11 @@ export default function PropertyStorefrontPage() {
         check_in_date: checkInDate,
         check_out_date: checkOutDate,
         guest_count: guestCount,
-        total_price: total,
-        downpayment_amount: downpayment,
-        commission_amount: commission,
+        total_price: finalGrandTotal,
+        downpayment_amount: finalGrandTotal * 0.20,
+        commission_amount: totalCommission,
         host_payout_amount: host_payout,
+        convenience_fee: convenienceFee,
         status: "pending",
         payment_status: "awaiting_deposit",
         notes: bookingNotes,
@@ -407,16 +447,9 @@ export default function PropertyStorefrontPage() {
       }
 
       // Add-ons insertion for standard fallback
-      if (selectedAddons.length > 0 && newBooking) {
-        const addonsData = selectedAddons.map((addonId) => {
-          const service = services.find((s) => s.id === addonId);
-          return {
-            booking_id: newBooking.id,
-            service_id: addonId,
-            price_at_booking: service ? Number(service.price) : 0,
-          };
-        });
-        await (supabase.from("booking_addons") as any).insert(addonsData);
+      if (addonsDataForInsert.length > 0 && newBooking) {
+        const finalAddons = addonsDataForInsert.map(a => ({ ...a, booking_id: newBooking.id }));
+        await (supabase.from("booking_addons") as any).insert(finalAddons);
       }
 
       toast.success("Reservation request sent!", {
@@ -987,7 +1020,7 @@ export default function PropertyStorefrontPage() {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-neutral-900">{review.tourist?.full_name || "Guest"}</p>
+                        <p className="text-sm font-bold text-neutral-900">{formatGuestName(review.tourist?.full_name)}</p>
                         <p className="text-[11px] text-neutral-500">
                           {new Date(review.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
                         </p>
@@ -1002,6 +1035,15 @@ export default function PropertyStorefrontPage() {
                       <p className="text-sm text-neutral-700 leading-relaxed">
                         {review.comment}
                       </p>
+                    )}
+                    {review.image_urls && review.image_urls.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        {review.image_urls.map((url: string, i: number) => (
+                          <div key={i} className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl overflow-hidden border border-neutral-200">
+                            <img src={url} alt={`Review photo ${i + 1}`} className="h-full w-full object-cover hover:scale-105 transition-transform cursor-pointer" />
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -1144,9 +1186,21 @@ export default function PropertyStorefrontPage() {
                 </span>
               </div>
               <div className="flex justify-between font-bold text-sm text-neutral-900 pt-1 border-t border-neutral-200">
-                <span>Estimated Total</span>
+                <span>Room & Services Subtotal</span>
                 <span>
                   ₱{calculateTotalPrice(selectedRoom.base_price).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-neutral-600">
+                <span className="font-medium text-neutral-700">Booking Service Fee</span>
+                <span className="font-bold text-neutral-900 text-base">
+                  ₱{systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee).toLocaleString() : 100}
+                </span>
+              </div>
+              <div className="flex justify-between font-bold text-sm text-neutral-900 pt-1 border-t border-neutral-200">
+                <span>Final Total</span>
+                <span className="text-emerald-600">
+                  ₱{(calculateTotalPrice(selectedRoom.base_price) + (systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100)).toLocaleString()}
                 </span>
               </div>
             </div>

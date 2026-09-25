@@ -27,6 +27,10 @@ const systemSettingsSchema = z.object({
     .number()
     .min(0, "Must be at least 0%")
     .max(100, "Cannot exceed 100%"),
+  convenienceFee: z
+    .number()
+    .min(80, "Fee must be at least ₱80")
+    .max(120, "Fee cannot exceed ₱120"),
   adminGcashNumber: z
     .string()
     .regex(/^09\d{9}$/, "Must be an 11-digit number starting with 09 (e.g. 09171234567)"),
@@ -44,6 +48,7 @@ export default function AdminSettingsPage() {
     resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
       commissionPercentage: 8.0,
+      convenienceFee: 100.0,
       adminGcashNumber: "",
       adminGcashName: "",
     },
@@ -64,6 +69,7 @@ export default function AdminSettingsPage() {
     if (settingsData) {
       form.reset({
         commissionPercentage: Number(settingsData.commission_percentage),
+        convenienceFee: Number(settingsData.convenience_fee || 100),
         adminGcashNumber: settingsData.admin_gcash_number,
         adminGcashName: settingsData.admin_gcash_name,
       });
@@ -163,6 +169,33 @@ export default function AdminSettingsPage() {
                           </FormControl>
                           <FormDescription>
                             The percentage cut the MVBA association takes from the total booking price.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="convenienceFee"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Guest Convenience Fee (₱)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input 
+                                type="number" 
+                                step="1" 
+                                placeholder="100" 
+                                className="pl-9 h-11 bg-neutral-50 focus-visible:ring-emerald-500"
+                                {...field} 
+                                onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                              />
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 font-bold">₱</span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Flat fee charged to the tourist at checkout (₱80–120). Goes entirely to the platform.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

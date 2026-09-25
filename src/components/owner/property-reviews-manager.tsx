@@ -8,6 +8,15 @@ import { EmptyState } from "@/components/tourist/empty-state";
 import { format } from "date-fns";
 
 export function PropertyReviewsManager({ propertyType }: { propertyType: "homestay" | "resort" }) {
+  const formatGuestName = (fullName?: string) => {
+    if (!fullName) return "Anonymous Guest";
+    const parts = fullName.trim().split(" ");
+    if (parts.length === 1) return parts[0];
+    const firstName = parts[0];
+    const lastNameInitial = parts[parts.length - 1].charAt(0).toUpperCase();
+    return `${firstName} ${lastNameInitial}.`;
+  };
+
   const [property, setProperty] = React.useState<any>(null);
   const [reviews, setReviews] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -126,7 +135,7 @@ export function PropertyReviewsManager({ propertyType }: { propertyType: "homest
                 <div className="flex-1 space-y-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-sm font-bold text-neutral-900">{review.tourist?.full_name || "Anonymous Guest"}</p>
+                      <p className="text-sm font-bold text-neutral-900">{formatGuestName(review.tourist?.full_name)}</p>
                       <p className="text-[11px] text-neutral-500">{format(new Date(review.created_at), "MMM d, yyyy")}</p>
                     </div>
                     <div className="flex text-amber-500">
@@ -139,6 +148,15 @@ export function PropertyReviewsManager({ propertyType }: { propertyType: "homest
                     <p className="text-sm text-neutral-700 leading-relaxed bg-white p-3 rounded-lg border border-neutral-100">
                       &ldquo;{review.comment}&rdquo;
                     </p>
+                  )}
+                  {review.image_urls && review.image_urls.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {review.image_urls.map((url: string, i: number) => (
+                        <div key={i} className="h-16 w-16 sm:h-20 sm:w-20 rounded-xl overflow-hidden border border-neutral-200">
+                          <img src={url} alt={`Review photo ${i + 1}`} className="h-full w-full object-cover hover:scale-105 transition-transform cursor-pointer" />
+                        </div>
+                      ))}
+                    </div>
                   )}
                   {review.status === "hidden" && (
                     <Badge variant="destructive" size="sm">Hidden by Admin</Badge>

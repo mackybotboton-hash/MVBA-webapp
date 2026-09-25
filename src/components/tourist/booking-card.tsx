@@ -47,6 +47,9 @@ export interface BookingData {
   status: "pending" | "accepted" | "declined" | "cancelled" | "completed";
   created_at?: string;
   owner_id?: string;
+  commission_amount?: number;
+  convenience_fee?: number;
+  addons?: { name: string; price: number; commission: number }[];
 }
 
 export interface BookingCardProps {
@@ -201,6 +204,58 @@ export function BookingCard({
           <span className="text-[10px] text-neutral-500">
             Taxes & fees included
           </span>
+        </div>
+      </div>
+
+      {/* Itemized Breakdown Section */}
+      <div className="bg-neutral-50/50 border-t border-b border-neutral-100 px-5 py-4 text-xs mt-2 mb-2">
+        <h4 className="font-semibold text-neutral-800 mb-3 flex items-center gap-1.5">
+          <Receipt className="h-4 w-4 text-neutral-500" />
+          Price Breakdown
+        </h4>
+        <div className="space-y-2">
+          {/* Room Base */}
+          <div className="flex justify-between items-center text-neutral-600">
+            <span>Room Base Price ({diffDays} {diffDays === 1 ? "night" : "nights"})</span>
+            <span>₱{((booking.total_price - (booking.convenience_fee || 0)) - (booking.addons?.reduce((sum, a) => sum + a.price, 0) || 0)).toLocaleString()}</span>
+          </div>
+
+          {/* Add-ons */}
+          {booking.addons && booking.addons.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-neutral-500 font-medium block mt-1">Extra Services:</span>
+              {booking.addons.map((addon, idx) => (
+                <div key={idx} className="flex justify-between items-center text-neutral-600 pl-2">
+                  <span>- {addon.name}</span>
+                  <span>₱{addon.price.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-neutral-200/60 my-2"></div>
+          
+          {/* Guest Fee */}
+          <div className="flex justify-between items-center text-neutral-600">
+            <span>Booking Service Fee</span>
+            <span>₱{booking.convenience_fee?.toLocaleString() || 100}</span>
+          </div>
+
+          <div className="border-t border-neutral-200/60 my-2"></div>
+
+          {/* Final Total */}
+          <div className="flex justify-between items-center font-bold text-neutral-900 text-sm">
+            <span>Total Payment</span>
+            <span>₱{booking.total_price.toLocaleString()}</span>
+          </div>
+          
+          {/* Downpayment reminder */}
+          {booking.downpayment_amount && (
+            <div className="flex justify-between items-center text-emerald-700 font-medium mt-1">
+              <span>Required Downpayment (20%)</span>
+              <span>₱{booking.downpayment_amount.toLocaleString()}</span>
+            </div>
+          )}
         </div>
       </div>
 

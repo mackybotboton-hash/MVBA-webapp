@@ -50,6 +50,8 @@ export interface OwnerBookingItem {
   payout_status?: string;
   receipt_url?: string;
   commission_amount?: number;
+  convenience_fee?: number;
+  addons?: { name: string; price: number; commission: number }[];
 }
 
 export interface OwnerBookingCardProps {
@@ -230,6 +232,61 @@ export function OwnerBookingCard({
             </p>
           </div>
         )}
+      </div>
+
+      {/* Itemized Breakdown Section */}
+      <div className="bg-neutral-50/50 border-t border-b border-neutral-100 px-5 py-4 text-xs">
+        <h4 className="font-semibold text-neutral-800 mb-3 flex items-center gap-1.5">
+          <Receipt className="h-4 w-4 text-neutral-500" />
+          Financial Breakdown
+        </h4>
+        <div className="space-y-2">
+          {/* Room Base */}
+          <div className="flex justify-between items-center text-neutral-600">
+            <span>Room Base Price ({diffDays} {diffDays === 1 ? "night" : "nights"})</span>
+            <span>₱{((booking.total_price - (booking.convenience_fee || 0)) - (booking.addons?.reduce((sum, a) => sum + a.price, 0) || 0)).toLocaleString()}</span>
+          </div>
+
+          {/* Add-ons */}
+          {booking.addons && booking.addons.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-neutral-500 font-medium block mt-1">Extra Services:</span>
+              {booking.addons.map((addon, idx) => (
+                <div key={idx} className="flex justify-between items-center text-neutral-600 pl-2">
+                  <span>- {addon.name}</span>
+                  <span>₱{addon.price.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="border-t border-neutral-200/60 my-2"></div>
+          
+          <div className="flex justify-between items-center font-medium text-neutral-700">
+            <span>Subtotal (Room + Services)</span>
+            <span>₱{(booking.total_price - (booking.convenience_fee || 0)).toLocaleString()}</span>
+          </div>
+
+          {/* Platform Deductions */}
+          <div className="flex justify-between items-center text-red-600/80">
+            <span>Platform Commission (-{Math.round(((booking.commission_amount || 0) / (booking.total_price - (booking.convenience_fee || 0))) * 100)}%)</span>
+            <span>- ₱{booking.commission_amount?.toLocaleString()}</span>
+          </div>
+
+          {/* Guest Fee */}
+          <div className="flex justify-between items-center text-neutral-500">
+            <span>Guest Convenience Fee (Paid to Platform)</span>
+            <span>₱{booking.convenience_fee?.toLocaleString() || 100}</span>
+          </div>
+
+          <div className="border-t border-neutral-200/60 my-2"></div>
+
+          {/* Final Payout */}
+          <div className="flex justify-between items-center font-bold text-neutral-900 text-sm">
+            <span>Net Earnings (Your Payout)</span>
+            <span className="text-emerald-700">₱{booking.host_payout_amount?.toLocaleString() || 0}</span>
+          </div>
+        </div>
       </div>
 
       {/* Action Footer */}

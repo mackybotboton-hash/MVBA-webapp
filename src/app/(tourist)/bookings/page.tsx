@@ -92,8 +92,15 @@ export default function TouristBookingsPage() {
           status,
           payment_status,
           downpayment_amount,
+          commission_amount,
+          convenience_fee,
           receipt_url,
           created_at,
+          booking_addons (
+            price_at_booking,
+            commission_amount,
+            extra_services(name)
+          ),
           rooms (
             id,
             name,
@@ -126,6 +133,13 @@ export default function TouristBookingsPage() {
           guest_count: b.guest_count,
           total_price: Number(b.total_price),
           downpayment_amount: Number(b.downpayment_amount),
+          commission_amount: Number(b.commission_amount || 0),
+          convenience_fee: Number(b.convenience_fee || 0),
+          addons: (b.booking_addons || []).map((a: any) => ({
+            name: a.extra_services?.name || "Add-on",
+            price: Number(a.price_at_booking || 0),
+            commission: Number(a.commission_amount || 0)
+          })),
           payment_status: b.payment_status,
           receipt_url: b.receipt_url,
           status: b.status,

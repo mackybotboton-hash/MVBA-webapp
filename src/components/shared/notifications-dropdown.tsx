@@ -8,14 +8,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNotificationCounts, markNotificationRead } from "@/hooks/use-notification-counts";
+import { useNotificationCounts, markNotificationRead, markAllNotificationsRead, deleteAllNotifications } from "@/hooks/use-notification-counts";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 
 export function NotificationsDropdown() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const role = profile?.role;
   const counts = useNotificationCounts();
   const bellCount = counts.unreadMessages + counts.unseenBookings + counts.pendingTransactions + counts.unreadSystemNotifications;
   const router = useRouter();
@@ -32,9 +33,24 @@ export function NotificationsDropdown() {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(30);
     if (data) {
-      setNotifications(data);
+      // Grouping logic for 'new_message'
+      const processed: any[] = [];
+      const seenMessageTitles = new Set<string>();
+
+      data.forEach((notif: any) => {
+        if (notif.type === "new_message") {
+          if (!seenMessageTitles.has(notif.title)) {
+            seenMessageTitles.add(notif.title);
+            processed.push(notif);
+          }
+        } else {
+          processed.push(notif);
+        }
+      });
+      
+      setNotifications(processed.slice(0, 10)); // keep only top 10 after grouping
     }
     setLoading(false);
   };
@@ -56,6 +72,20 @@ export function NotificationsDropdown() {
       router.push(notif.url);
     }
   };
+
+  const handleMarkAllAsRead = async () => {
+    if (!user) return;
+    await markAllNotificationsRead(user.id);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+  };
+
+  const handleDeleteAll = async () => {
+    if (!user) return;
+    await deleteAllNotifications(user.id);
+    setNotifications([]);
+  };
+
+  const hasUnread = notifications.some(n => !n.is_read);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -84,13 +114,26 @@ export function NotificationsDropdown() {
           </span>
         )}
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-80 p-0 mr-4 mt-2 rounded-xl shadow-xl overflow-hidden" align="end">
+      <DropdownMenuContent className="w-80 p-0 mr-4 mt-2 rounded-xl shadow-xl overflow-hidden bg-white z-50 border border-neutral-200/60" align="end">
         <div className="bg-neutral-50 px-4 py-3 border-b border-neutral-100 flex items-center justify-between">
-          <h3 className="font-bold text-sm">Notifications</h3>
-          {bellCount > 0 && (
-            <span className="text-xs bg-black text-white px-2 py-0.5 rounded-full font-medium">
-              {bellCount} New
-            </span>
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-sm">Notifications</h3>
+            {bellCount > 0 && (
+              <span className="text-[10px] bg-black text-white px-1.5 py-0.5 rounded-full font-medium">
+                {bellCount}
+              </span>
+            )}
+          </div>
+          {notifications.length > 0 && (
+            hasUnread ? (
+              <button onClick={handleMarkAllAsRead} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                Mark all read
+              </button>
+            ) : (
+              <button onClick={handleDeleteAll} className="text-xs text-red-600 hover:text-red-800 font-medium">
+                Delete all
+              </button>
+            )
           )}
         </div>
         
@@ -98,13 +141,28 @@ export function NotificationsDropdown() {
         {(counts.unreadMessages > 0 || counts.unseenBookings > 0 || counts.pendingTransactions > 0) && (
           <div className="p-2 border-b border-neutral-100 bg-blue-50/50">
             {counts.unreadMessages > 0 && (
-              <DropdownMenuItem onClick={() => router.push('/messages')} className="cursor-pointer text-xs font-medium text-blue-700 py-2">
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (role === 'admin') router.push('/admin/chat');
+                  else if (role === 'resort') router.push('/resort/chat');
+                  else if (role === 'homestay') router.push('/homestay/chat');
+                  else router.push('/chat');
+                }} 
+                className="cursor-pointer text-xs font-medium text-blue-700 py-2"
+              >
                 <MessageSquare className="w-3.5 h-3.5 mr-2" />
                 You have {counts.unreadMessages} unread message(s)
               </DropdownMenuItem>
             )}
             {counts.unseenBookings > 0 && (
-              <DropdownMenuItem onClick={() => router.push('/resort/bookings')} className="cursor-pointer text-xs font-medium text-blue-700 py-2">
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (role === 'resort') router.push('/resort/bookings');
+                  else if (role === 'homestay') router.push('/homestay/bookings');
+                  else router.push('/bookings');
+                }} 
+                className="cursor-pointer text-xs font-medium text-blue-700 py-2"
+              >
                 <Calendar className="w-3.5 h-3.5 mr-2" />
                 You have {counts.unseenBookings} unseen booking request(s)
               </DropdownMenuItem>
