@@ -37,6 +37,7 @@ export function PushInitializer() {
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
+    let initPromise: Promise<void> | null = null;
 
     const initSdkOnce = async () => {
       if (sdkInitialized.current) return;
@@ -85,6 +86,11 @@ export function PushInitializer() {
 
     const bindUser = async (userId: string, attempt = 0): Promise<void> => {
       if (boundUserId.current === userId) return; // already bound, avoid redundant calls
+      
+      if (initPromise) {
+        await initPromise;
+      }
+      
       try {
         await OneSignal.login(userId);
         boundUserId.current = userId;
@@ -111,7 +117,8 @@ export function PushInitializer() {
     };
 
     const run = async () => {
-      await initSdkOnce();
+      initPromise = initSdkOnce();
+      await initPromise;
       if (cancelled) return;
 
       // Handle whatever session is already hydrated at this point (may be

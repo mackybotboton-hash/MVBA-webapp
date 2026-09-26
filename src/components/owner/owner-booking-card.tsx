@@ -181,7 +181,7 @@ export function OwnerBookingCard({
           {booking.downpayment_amount ? (
             <div className="flex flex-col items-end mt-1 space-y-0.5">
               <span className="text-[11px] text-green-700 font-medium">
-                Deposit (Your Share): ₱{booking.host_payout_amount?.toLocaleString() || 0}
+                Deposit (GCash Transfer): ₱{((booking.downpayment_amount || 0) - (booking.commission_amount || 0) - (booking.convenience_fee || 0)).toLocaleString()}
                 {booking.payout_status === "paid" && " (Paid to GCash)"}
               </span>
               <span className="text-[11px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded">
