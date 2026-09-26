@@ -196,10 +196,14 @@ export default function PropertyStorefrontPage() {
   }, [checkInDate, checkOutDate, bookedRanges]);
 
   const disabledDates = React.useMemo(() => {
-    return bookedRanges.map(range => ({
-      from: new Date(range.check_in_date),
-      to: new Date(range.check_out_date)
-    }));
+    return bookedRanges.map(range => {
+      const [inYear, inMonth, inDay] = range.check_in_date.split("-").map(Number);
+      const [outYear, outMonth, outDay] = range.check_out_date.split("-").map(Number);
+      return {
+        from: new Date(inYear, inMonth - 1, inDay),
+        to: new Date(outYear, outMonth - 1, outDay)
+      };
+    });
   }, [bookedRanges]);
 
   // Fetch property details from Supabase with graceful sample fallback
