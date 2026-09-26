@@ -127,8 +127,10 @@ export async function createReservationAction(payload: {
     const convenienceFee = systemSettings.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
     const finalGrandTotal = totalPrice + addonsTotal + convenienceFee;
 
-    // Downpayment is 20% of final grand total
-    const downpaymentAmount = finalGrandTotal * 0.20;
+    // Downpayment is 20% of room/addons + 100% of the convenience fee
+    const baseDeposit = (totalPrice + addonsTotal) * 0.20;
+    const downpaymentAmount = baseDeposit + convenienceFee;
+
     // Association Commission is dynamically calculated from the room price only
     const roomCommissionAmount = totalPrice * commissionRate;
     const commissionAmount = roomCommissionAmount + addonsCommission;
