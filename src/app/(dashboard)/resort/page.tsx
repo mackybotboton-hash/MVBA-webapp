@@ -108,7 +108,8 @@ export default function ResortDashboardPage() {
   }, [fetchData]);
 
   // Compute key analytics
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const confirmedBookings = bookings.filter((b) => b.status === "accepted" || b.status === "completed");
   const pendingBookings = bookings.filter((b) => b.status === "pending");
 

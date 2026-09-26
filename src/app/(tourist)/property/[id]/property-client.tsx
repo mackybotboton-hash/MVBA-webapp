@@ -112,8 +112,15 @@ export default function PropertyStorefrontPage() {
     to: addDays(new Date(), 2),
   });
   
-  const checkInDate = dateRange?.from ? dateRange.from.toISOString().split("T")[0] : "";
-  const checkOutDate = dateRange?.to ? dateRange.to.toISOString().split("T")[0] : "";
+  const formatLocalDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+  
+  const checkInDate = dateRange?.from ? formatLocalDate(dateRange.from) : "";
+  const checkOutDate = dateRange?.to ? formatLocalDate(dateRange.to) : "";
   
   const [guestCount, setGuestCount] = React.useState(2);
   const [arrivalTime, setArrivalTime] = React.useState("");

@@ -102,7 +102,8 @@ export default function HomestayDashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const todayCheckIns = bookings.filter(
     (b) => b.check_in_date === today && b.status === "accepted"
