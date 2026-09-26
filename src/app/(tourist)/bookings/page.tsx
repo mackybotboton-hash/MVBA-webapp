@@ -429,7 +429,7 @@ export default function TouristBookingsPage() {
             {filteredBookings.map((booking) => (
               <div key={booking.id} className="relative">
                 {/* Visual indicator tag on card if pass is cached offline */}
-                {hasPass(booking.id) && (
+                {(booking.status === "accepted" || booking.status === "completed") && hasPass(booking.id) && (
                   <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
                     <ShieldCheck className="h-3 w-3" />
                     Offline Ready

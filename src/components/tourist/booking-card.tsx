@@ -274,7 +274,7 @@ export function BookingCard({
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
-          {onViewBoardingPass && (
+          {(booking.status === "accepted" || booking.status === "completed") && onViewBoardingPass && (
             <Button
               variant="outline"
               size="sm"
