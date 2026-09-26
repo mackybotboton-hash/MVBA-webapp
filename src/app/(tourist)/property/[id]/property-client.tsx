@@ -140,49 +140,49 @@ export default function PropertyStorefrontPage() {
   }, []);
 
   // Fetch active booked dates for selected room to block conflicting dates
-  React.useEffect(() => {
+  const fetchRoomAvailability = React.useCallback(async () => {
     if (!selectedRoom) {
       setBookedRanges([]);
       return;
     }
 
     const targetRoomId = selectedRoom.id;
+    setIsLoadingAvailability(true);
+    try {
+      const supabase = createClient();
+      const { data: bookingsData } = await supabase
+        .from("bookings")
+        .select("id, check_in_date, check_out_date, status")
+        .eq("room_id", targetRoomId)
+        .in("status", ["accepted", "pending", "completed"]);
 
-    async function fetchRoomAvailability() {
-      setIsLoadingAvailability(true);
-      try {
-        const supabase = createClient();
-        const { data: bookingsData } = await supabase
-          .from("bookings")
-          .select("id, check_in_date, check_out_date, status")
-          .eq("room_id", targetRoomId)
-          .in("status", ["accepted", "pending", "completed"]);
+      const { data: eventsData } = await supabase
+        .from("calendar_events")
+        .select("id, start_date, end_date")
+        .eq("room_id", targetRoomId);
 
-        const { data: eventsData } = await supabase
-          .from("calendar_events")
-          .select("id, start_date, end_date")
-          .eq("room_id", targetRoomId);
+      const mergedRanges = [
+        ...(bookingsData || []),
+        ...(eventsData || []).map((e: any) => ({
+          id: e.id,
+          check_in_date: e.start_date,
+          check_out_date: e.end_date,
+          status: "accepted", // Force block
+        }))
+      ];
 
-        const mergedRanges = [
-          ...(bookingsData || []),
-          ...(eventsData || []).map((e: any) => ({
-            id: e.id,
-            check_in_date: e.start_date,
-            check_out_date: e.end_date,
-            status: "accepted", // Force block
-          }))
-        ];
-
-        setBookedRanges(mergedRanges);
-      } catch {
-        // Graceful fallback
-      } finally {
-        setIsLoadingAvailability(false);
-      }
+      setBookedRanges(mergedRanges);
+    } catch {
+      // Graceful fallback
+    } finally {
+      setIsLoadingAvailability(false);
     }
-
-    fetchRoomAvailability();
   }, [selectedRoom]);
+
+  // Fetch active booked dates for selected room to block conflicting dates
+  React.useEffect(() => {
+    fetchRoomAvailability();
+  }, [fetchRoomAvailability]);
 
   // High-performance memoized date conflict checker
   // Interval overlap: (A.start < B.end) AND (A.end > B.start)
@@ -407,6 +407,10 @@ export default function PropertyStorefrontPage() {
               description: rpcRes.message || "These dates are already reserved.",
             });
             setIsSubmittingBooking(false);
+            // Refresh calendar availability so the dates become unclickable immediately
+            fetchRoomAvailability();
+            // Clear the selected dates so the button disables and they must choose again
+            setDateRange(undefined);
             return;
           }
 
