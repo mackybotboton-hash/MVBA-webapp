@@ -230,7 +230,9 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
       {/* Policies Section */}
       <section className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-6 shadow-sm">
         <div className="border-b border-neutral-100 pb-4">
-          <h2 className="text-lg font-bold text-neutral-900">House Rules & Policies</h2>
+          <h2 className="text-lg font-bold text-neutral-900">
+            {propertyType === "resort" ? "Resort Rules & Policies" : "House Rules & Policies"}
+          </h2>
           <p className="text-xs text-neutral-500 mt-1">Set clear expectations for tourists booking your property.</p>
         </div>
 

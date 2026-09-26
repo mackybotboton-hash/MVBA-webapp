@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Plus, RefreshCw, Palmtree, Utensils, Sailboat } from "lucide-react";
+import { Plus, RefreshCw, Palmtree, Utensils, Sailboat, Search, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ export default function ResortServicesPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [propertyId, setPropertyId] = React.useState<string | null>(null);
+  
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   // Fetch Owner's Services
   const { data: services = [], isLoading, refetch } = useQuery({
@@ -57,6 +59,15 @@ export default function ResortServicesPage() {
       return data as ExtraService[];
     }
   });
+
+  const filteredServices = React.useMemo(() => {
+    if (!searchQuery.trim()) return services;
+    const q = searchQuery.toLowerCase();
+    return services.filter(s => 
+      s.name?.toLowerCase().includes(q) || 
+      s.service_type?.toLowerCase().includes(q)
+    );
+  }, [services, searchQuery]);
 
   // Toggle Status Mutation (Optimistic)
   const toggleMutation = useMutation({
@@ -147,6 +158,28 @@ export default function ResortServicesPage() {
         </div>
       </div>
 
+      {/* Search */}
+      {services.length > 0 && (
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Search services..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-9 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-black bg-white"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 text-neutral-500 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="rounded-2xl border border-neutral-200 bg-white overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -163,8 +196,12 @@ export default function ResortServicesPage() {
                 <tr>
                   <td colSpan={4} className="py-16 text-center text-neutral-500 text-xs">No services found. Click &quot;Create Package&quot; to add one.</td>
                 </tr>
+              ) : filteredServices.length === 0 && searchQuery.trim() !== "" ? (
+                <tr>
+                  <td colSpan={4} className="py-16 text-center text-neutral-500 text-xs">No services found matching &quot;{searchQuery}&quot;</td>
+                </tr>
               ) : (
-                services.map((service) => (
+                filteredServices.map((service) => (
                   <tr key={service.id} className="hover:bg-neutral-50/60 transition-colors">
                     <td className="px-5 py-4">
                       <p className="font-bold text-neutral-900 text-sm">{service.name}</p>

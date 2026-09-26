@@ -11,6 +11,8 @@ import {
   Users,
   RefreshCw,
   Building2,
+  Search,
+  X
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +30,14 @@ export default function ResortRoomsPage() {
   const [isRoomModalOpen, setIsRoomModalOpen] = React.useState(false);
   const [editingRoom, setEditingRoom] = React.useState<any>(null);
   const [isPropertyModalOpen, setIsPropertyModalOpen] = React.useState(false);
+  
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  const filteredRooms = React.useMemo(() => {
+    if (!searchQuery.trim()) return rooms;
+    const q = searchQuery.toLowerCase();
+    return rooms.filter(r => r.name?.toLowerCase().includes(q));
+  }, [rooms, searchQuery]);
 
   const fetchRooms = React.useCallback(async () => {
     setIsLoading(true);
@@ -140,6 +150,28 @@ export default function ResortRoomsPage() {
         </div>
       </div>
 
+      {/* Search */}
+      {property && rooms.length > 0 && (
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Search rooms..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-9 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-black bg-white"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 text-neutral-500 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       {!property ? (
         <EmptyState
           icon={Building2}
@@ -159,9 +191,13 @@ export default function ResortRoomsPage() {
             setIsRoomModalOpen(true);
           }}
         />
+      ) : filteredRooms.length === 0 && searchQuery.trim() !== "" ? (
+        <div className="py-16 text-center text-neutral-500 text-sm">
+          No rooms found matching &quot;{searchQuery}&quot;
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms.map((room) => {
+          {filteredRooms.map((room) => {
             const roomImage =
               room.room_images?.[0]?.image_url ||
               room.image_url ||

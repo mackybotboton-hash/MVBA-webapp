@@ -13,6 +13,7 @@ import {
   Loader2,
   RefreshCw,
   Building2,
+  Search
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,8 @@ export default function HomestayServicesPage() {
   const [services, setServices] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+  
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   // Form State
   const [serviceName, setServiceName] = React.useState("");
@@ -75,6 +78,15 @@ export default function HomestayServicesPage() {
   React.useEffect(() => {
     fetchServices();
   }, [fetchServices]);
+
+  const filteredServices = React.useMemo(() => {
+    if (!searchQuery.trim()) return services;
+    const q = searchQuery.toLowerCase();
+    return services.filter(s => 
+      s.name?.toLowerCase().includes(q) || 
+      s.service_type?.toLowerCase().includes(q)
+    );
+  }, [services, searchQuery]);
 
   const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +184,28 @@ export default function HomestayServicesPage() {
         </div>
       </div>
 
+      {/* Search */}
+      {property && services.length > 0 && (
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Search services..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-9 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-black bg-white"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 text-neutral-500 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       {!property ? (
         <EmptyState
           icon={Building2}
@@ -188,9 +222,13 @@ export default function HomestayServicesPage() {
           actionLabel="Add First Service"
           onAction={() => setIsModalOpen(true)}
         />
+      ) : filteredServices.length === 0 && searchQuery.trim() !== "" ? (
+        <div className="py-16 text-center text-neutral-500 text-sm">
+          No services found matching &quot;{searchQuery}&quot;
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {services.map((service) => {
+          {filteredServices.map((service) => {
             const Icon = typeIcons[service.service_type] || Ship;
             return (
               <div

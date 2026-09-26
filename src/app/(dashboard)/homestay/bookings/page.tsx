@@ -9,7 +9,9 @@ import {
   Wallet,
   DollarSign,
   Filter,
-  ChevronDown
+  ChevronDown,
+  Search,
+  X
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -129,6 +131,7 @@ export default function HomestayBookingsPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = React.useState<BookingTab>("pending");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
   const [viewReceiptPath, setViewReceiptPath] = React.useState<string | null>(null);
 
@@ -195,9 +198,16 @@ export default function HomestayBookingsPage() {
   }, [bookings, queryClient, user]);
 
   const filteredBookings = React.useMemo(() => {
-    if (activeTab === "all") return bookings;
-    return bookings.filter((b) => b.status === activeTab);
-  }, [bookings, activeTab]);
+    let filtered = activeTab === "all" ? bookings : bookings.filter((b) => b.status === activeTab);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((b) => 
+        b.tourist_name?.toLowerCase().includes(q) || 
+        b.room_name?.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }, [bookings, activeTab, searchQuery]);
 
   const counts = React.useMemo(() => ({
     all: bookings.length,
@@ -266,14 +276,14 @@ export default function HomestayBookingsPage() {
         />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 border-b border-neutral-200 pb-4">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-neutral-500" />
-          <span className="text-sm font-medium text-neutral-700">Filter by:</span>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Filters & Search */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-neutral-500" />
+            <span className="text-sm font-medium text-neutral-700">Filter by:</span>
+          </div>
+          
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center justify-between min-w-[180px] px-3.5 py-2 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-black">
               <span>
@@ -308,6 +318,25 @@ export default function HomestayBookingsPage() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Search tourist or room..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-9 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-black bg-white"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-neutral-100 text-neutral-500 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

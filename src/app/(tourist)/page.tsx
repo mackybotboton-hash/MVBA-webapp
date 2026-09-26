@@ -86,9 +86,15 @@ export default function TouristDiscoveryPage() {
           address,
           cover_image_url,
           status,
+          policies,
           rooms (
             base_price,
-            max_capacity
+            max_capacity,
+            description
+          ),
+          extra_services (
+            name,
+            service_type
           )
         `)
         .eq("status", "active");
@@ -103,6 +109,46 @@ export default function TouristDiscoveryPage() {
           const minPrice = roomPrices.length > 0 ? Math.min(...roomPrices) : 0;
           const maxCap = Math.max(...(p.rooms || []).map((r: any) => Number(r.max_capacity) || 2), 2);
 
+          let parsedAmenities: string[] = [];
+          if (p.policies) {
+            try {
+              const pol = JSON.parse(p.policies);
+              if (pol.petsAllowed) parsedAmenities.push("Pet Friendly");
+              if (pol.partiesAllowed) parsedAmenities.push("Parties Allowed");
+            } catch (e) {}
+          }
+
+          const textToSearch = [
+            p.name || "",
+            p.description || "",
+            p.address || "",
+            ...(p.rooms || []).map((r: any) => r.description || ""),
+            ...(p.extra_services || []).map((s: any) => `${s.name || ""} ${s.service_type || ""}`)
+          ].join(" ").toLowerCase();
+
+          if (textToSearch.includes("beachfront") || textToSearch.includes("beach front")) {
+            parsedAmenities.push("Beachfront");
+          }
+          if (textToSearch.includes("aircon") || textToSearch.includes("air condition") || textToSearch.includes("ac")) {
+            parsedAmenities.push("Air Conditioning");
+          }
+          if (textToSearch.includes("wifi") || textToSearch.includes("wi-fi") || textToSearch.includes("internet")) {
+            parsedAmenities.push("Free WiFi");
+          }
+          if (textToSearch.includes("breakfast")) {
+            parsedAmenities.push("Free Breakfast");
+          }
+          if (textToSearch.includes("boat") || textToSearch.includes("island hopping") || textToSearch.includes("tour")) {
+            parsedAmenities.push("Boat Transfer / Island Tour");
+            parsedAmenities.push("Island Hopping");
+          }
+          if (textToSearch.includes("pool") || textToSearch.includes("swimming")) {
+            parsedAmenities.push("Swimming Pool");
+          }
+          if (textToSearch.includes("kitchen") || textToSearch.includes("cooking")) {
+            parsedAmenities.push("Kitchen Access");
+          }
+
           return {
             id: p.id,
             name: p.name,
@@ -115,7 +161,7 @@ export default function TouristDiscoveryPage() {
             max_capacity: maxCap,
             is_verified: true,
             status: p.status,
-            amenities: [],
+            amenities: parsedAmenities,
           };
         });
         return mapped;
