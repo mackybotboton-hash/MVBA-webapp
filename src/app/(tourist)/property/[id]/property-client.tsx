@@ -53,6 +53,7 @@ import { useWishlist } from "@/hooks/use-wishlist";
 import { cn } from "@/lib/utils";
 import { ShareButton } from "@/components/tourist/share-button";
 import { AuthModal } from "@/components/auth/auth-modal";
+import { getRoomAvailabilityAction } from "@/app/actions/booking-actions";
 
 interface RoomItem {
   id: string;
@@ -156,29 +157,12 @@ export default function PropertyStorefrontPage() {
     const targetRoomId = selectedRoom.id;
     setIsLoadingAvailability(true);
     try {
-      const supabase = createClient();
-      const { data: bookingsData } = await supabase
-        .from("bookings")
-        .select("id, check_in_date, check_out_date, status")
-        .eq("room_id", targetRoomId)
-        .in("status", ["accepted", "pending", "completed"]);
-
-      const { data: eventsData } = await supabase
-        .from("calendar_events")
-        .select("id, start_date, end_date")
-        .eq("room_id", targetRoomId);
-
-      const mergedRanges = [
-        ...(bookingsData || []),
-        ...(eventsData || []).map((e: any) => ({
-          id: e.id,
-          check_in_date: e.start_date,
-          check_out_date: e.end_date,
-          status: "accepted", // Force block
-        }))
-      ];
-
-      setBookedRanges(mergedRanges);
+      const res = await getRoomAvailabilityAction(targetRoomId);
+      if (res.success && res.data) {
+        setBookedRanges(res.data);
+      } else {
+        setBookedRanges([]);
+      }
     } catch {
       // Graceful fallback
     } finally {

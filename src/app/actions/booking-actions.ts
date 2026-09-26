@@ -278,3 +278,43 @@ export async function submitDepositReceiptAction(payload: {
     return { success: false, error: err.message || "An unexpected error occurred." };
   }
 }
+
+/**
+ * Server Action to fetch room availability (booked dates and blocked calendar events).
+ * Uses admin client to bypass RLS, allowing tourists to see booked dates by other users.
+ */
+export async function getRoomAvailabilityAction(roomId: string) {
+  try {
+    const supabaseAdmin = createAdminClient();
+    
+    const { data: bookingsData, error: bookingsError } = await supabaseAdmin
+      .from("bookings")
+      .select("id, check_in_date, check_out_date, status")
+      .eq("room_id", roomId)
+      .in("status", ["accepted", "pending", "completed"]);
+
+    if (bookingsError) throw bookingsError;
+
+    const { data: eventsData, error: eventsError } = await supabaseAdmin
+      .from("calendar_events")
+      .select("id, start_date, end_date")
+      .eq("room_id", roomId);
+
+    if (eventsError) throw eventsError;
+
+    const mergedRanges = [
+      ...(bookingsData || []),
+      ...(eventsData || []).map((e: any) => ({
+        id: e.id,
+        check_in_date: e.start_date,
+        check_out_date: e.end_date,
+        status: "accepted", // Force block
+      }))
+    ];
+    
+    return { success: true, data: mergedRanges };
+  } catch (error: any) {
+    console.error("Error in getRoomAvailabilityAction:", error);
+    return { success: false, error: error.message };
+  }
+}
