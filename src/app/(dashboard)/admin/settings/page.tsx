@@ -27,6 +27,10 @@ const systemSettingsSchema = z.object({
     .number()
     .min(0, "Must be at least 0%")
     .max(100, "Cannot exceed 100%"),
+  addonCommissionPercentage: z
+    .number()
+    .min(0, "Must be at least 0%")
+    .max(100, "Cannot exceed 100%"),
   convenienceFee: z
     .number()
     .min(80, "Fee must be at least ₱80")
@@ -48,6 +52,7 @@ export default function AdminSettingsPage() {
     resolver: zodResolver(systemSettingsSchema),
     defaultValues: {
       commissionPercentage: 8.0,
+      addonCommissionPercentage: 8.0,
       convenienceFee: 100.0,
       adminGcashNumber: "",
       adminGcashName: "",
@@ -69,6 +74,7 @@ export default function AdminSettingsPage() {
     if (settingsData) {
       form.reset({
         commissionPercentage: Number(settingsData.commission_percentage),
+        addonCommissionPercentage: Number(settingsData.addon_commission_percentage || 8.0),
         convenienceFee: Number(settingsData.convenience_fee || 100),
         adminGcashNumber: settingsData.admin_gcash_number,
         adminGcashName: settingsData.admin_gcash_name,
@@ -169,6 +175,33 @@ export default function AdminSettingsPage() {
                           </FormControl>
                           <FormDescription>
                             The percentage cut the MVBA association takes from the total booking price.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="addonCommissionPercentage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Add-on Commission (%)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input 
+                                type="number" 
+                                step="0.1" 
+                                placeholder="8.0" 
+                                className="pl-9 h-11 bg-neutral-50 focus-visible:ring-emerald-500"
+                                {...field} 
+                                onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                              />
+                              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            The percentage cut the MVBA association takes from extra services (e.g., Island Hopping).
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

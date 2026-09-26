@@ -77,7 +77,7 @@ export async function createReservationAction(payload: {
     // Fetch the system settings to get the dynamic commission percentage and convenience fee
     const { data: systemSettings, error: settingsError } = await (supabaseUserClient as any)
       .from("system_settings")
-      .select("commission_percentage, convenience_fee")
+      .select("commission_percentage, convenience_fee, addon_commission_percentage")
       .eq("id", 1)
       .single();
       
@@ -105,9 +105,13 @@ export async function createReservationAction(payload: {
         .in("id", payload.serviceIds);
         
       if (services) {
+        const defaultAddonCommissionRate = systemSettings.addon_commission_percentage 
+          ? Number(systemSettings.addon_commission_percentage) / 100 
+          : 0.08;
+
         services.forEach(service => {
           const sPrice = Number(service.price);
-          const sCommRate = service.commission_rate ? Number(service.commission_rate) / 100 : 0.08;
+          const sCommRate = service.commission_rate ? Number(service.commission_rate) / 100 : defaultAddonCommissionRate;
           addonsTotal += sPrice;
           addonsCommission += sPrice * sCommRate;
           addonsData.push({
