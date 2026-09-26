@@ -80,6 +80,7 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
       host_payout_amount,
       commission_amount,
       convenience_fee,
+      payment_status,
       status,
       payout_status,
       receipt_url,
@@ -119,6 +120,7 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
       price: Number(a.price_at_booking || 0),
       commission: Number(a.commission_amount || 0)
     })),
+    payment_status: b.payment_status,
     status: b.status,
     payout_status: b.payout_status,
     receipt_url: b.receipt_url,
