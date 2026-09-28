@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown } from "lucide-react";
+import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { approveBookingDeposit } from "@/app/actions/admin-actions";
 import { markPayoutPaidAction } from "@/app/actions/admin-transactions";
@@ -209,6 +210,68 @@ export default function AdminTransactionsPage() {
     return { totalDeposits, totalCommissions };
   }, [transactions]);
 
+  const handleExportCSV = React.useCallback(() => {
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+      toast.info("No transactions available to export in the current view.");
+      return;
+    }
+
+    const headers = [
+      "Booking Reference",
+      "Date Created",
+      "Guest Name",
+      "Property Name",
+      "Host Name",
+      "Host GCash",
+      "Total Price (PHP)",
+      "Downpayment (PHP)",
+      "Commission (PHP)",
+      "Host Payout (PHP)",
+      "Payment Status",
+      "Payout Status",
+      "Booking Status",
+    ];
+
+    const escapeCSV = (val: any) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = filteredTransactions.map((t) => [
+      escapeCSV(`MVBA-BRIT-${(t.id || "").slice(0, 4).toUpperCase()}`),
+      escapeCSV(t.created_at ? new Date(t.created_at).toLocaleDateString("en-PH") : ""),
+      escapeCSV(t.guest_name || "Guest"),
+      escapeCSV(t.property_name || "Property"),
+      escapeCSV(t.host_name || "N/A"),
+      escapeCSV(t.host_gcash_number || "N/A"),
+      escapeCSV((t.total_price || 0).toFixed(2)),
+      escapeCSV((t.downpayment_amount || 0).toFixed(2)),
+      escapeCSV((t.commission_amount || 0).toFixed(2)),
+      escapeCSV((t.host_payout_amount || 0).toFixed(2)),
+      escapeCSV(t.payment_status),
+      escapeCSV(t.payout_status),
+      escapeCSV(t.status),
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `mvba_transactions_${activeTab}_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success("Transactions exported to CSV successfully!");
+  }, [filteredTransactions, activeTab]);
+
   return (
     <div className="space-y-6 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
@@ -216,9 +279,21 @@ export default function AdminTransactionsPage() {
           <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Commissions & Payouts</h1>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">Verify GCash deposits and manage host payouts.</p>
         </div>
-        <button onClick={() => refetch()} className="p-2 rounded-xl border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors">
-          <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            onClick={handleExportCSV}
+            variant="outline"
+            size="sm"
+            className="h-9 gap-1.5 border-neutral-200 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 shadow-xs"
+          >
+            <Download className="h-3.5 w-3.5 text-neutral-500" />
+            <span>Export CSV</span>
+          </Button>
+          <button onClick={() => refetch()} className="p-2 rounded-xl border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* Metrics Dashboard */}

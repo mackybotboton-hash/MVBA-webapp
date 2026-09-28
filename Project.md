@@ -294,6 +294,20 @@ When preparing a branch to push (`feat/*`, `fix/*`, `refactor/*`):
 
 ## 8. Living Changelog & Feature Tracker
 
+### [v0.1.2] - Explore Guide CMS Alignment, Emergency Hotlines, Admin CSV Export & Query Optimization (September 2026)
+- **Explorer Guide (`/explore`)**:
+  - **CMS Query Alignment**: Fixed `explore_islands` Supabase query by removing non-existent `is_active` filter, enabling dynamic CMS-managed islands with custom descriptions, images, and highlight tags.
+  - **Emergency & Tourist Hotlines**: Connected and surfaced `system_hotlines` directly on the guide with 24/7 emergency response contacts (MDRRMO Rescue, PNP San Agustin, Philippine Coast Guard Lianga, San Agustin Tourism Office) and one-tap `tel:` dialing.
+  - **Regulated Island Hopping Tariff**: Added full breakdown for standard 4-island circuit rates (₱1,500 base, ₱50/tourist Environmental User Fee, Coast Guard life vest compliance).
+- **Admin Municipal Portal (`/admin/transactions`)**:
+  - **Auditable CSV Export**: Added `Export CSV` feature enabling municipal administrators and association leadership to export transaction ledgers (booking reference, timestamps, guest name, property, host GCash, total amount, 20% downpayment, 8% commission, host payout, and payment/payout statuses).
+- **Homepage Discovery Optimization (`/`)**:
+  - **Eliminated Redundant Invalidation**: Removed immediate mount-time `queryClient.invalidateQueries` effect in `src/app/(tourist)/page.tsx` that previously triggered duplicate network requests, wiring manual refresh buttons to `refetch`.
+- **Code Quality & Build Verification**:
+  - Corrected conditional React hook order in `qr-checkin-scanner-modal.tsx`.
+  - Resolved implicit parameter types for `html5-qrcode` callback functions.
+  - `npx tsc --noEmit`, `npm run lint`, and `npm run build` all pass cleanly with 47/47 routes generated.
+
 ### [v0.1.1] - Security Hardening & Zero-Trust Authorization (Branch: `feat/security-hardening`)
 - **Server Action Authorization**: Added mandatory session authentication and admin role verification to `createOwnerAccount`, `verifyDepositAction`, and `markPayoutPaidAction`.
 - **Edge Proxy Hardening (`src/proxy.ts`)**: Removed reliance on client-writable `user_metadata` for authorization. Hardened `mvba_user_role` cookie with `httpOnly: true`. Enforced operator approval verification.

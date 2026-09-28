@@ -55,8 +55,6 @@ export function QRCheckinScannerModal({
     setMatchedBooking(found || null);
   }, [searchInput, bookings]);
 
-  if (!isOpen) return null;
-
   React.useEffect(() => {
     if (!isOpen) return;
 
@@ -67,11 +65,11 @@ export function QRCheckinScannerModal({
     );
 
     scanner.render(
-      (text) => {
+      (text: string) => {
         setSearchInput(text);
         toast.success("QR Code scanned successfully!");
       },
-      (err) => {
+      (err: unknown) => {
         // Ignore scan failures (happens every frame when no QR is in view)
       }
     );
@@ -120,6 +118,8 @@ export function QRCheckinScannerModal({
       setIsProcessing(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div

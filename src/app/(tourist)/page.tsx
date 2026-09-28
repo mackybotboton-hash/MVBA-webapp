@@ -12,7 +12,7 @@ import {
   ArrowUpDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   TouristHeader,
 } from "@/components/tourist/tourist-header";
@@ -41,7 +41,6 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function TouristDiscoveryPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selectedCategory, setSelectedCategory] = React.useState("all");
   const [viewMode, setViewMode] = React.useState<"grid" | "feed">("grid");
@@ -72,7 +71,7 @@ export default function TouristDiscoveryPage() {
     }
   }, [user, router]);
 
-  const { data: properties = [], isLoading } = useQuery({
+  const { data: properties = [], isLoading, refetch } = useQuery({
     queryKey: ["properties"],
     queryFn: async () => {
       const supabase = createClient();
@@ -170,12 +169,8 @@ export default function TouristDiscoveryPage() {
   });
 
   const fetchData = React.useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["properties"] });
-  }, [queryClient]);
-
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    refetch();
+  }, [refetch]);
 
   // Handle favorite toggles with feedback
   const handleToggleFavorite = (propertyId: string, _current: boolean) => {
