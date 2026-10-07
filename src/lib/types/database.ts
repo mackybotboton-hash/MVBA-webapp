@@ -1,5 +1,5 @@
 // ============================================================
-// MVBA PWA — TypeScript Database Types
+// Panaw — TypeScript Database Types
 // These types mirror the Supabase SQL schema.
 // ============================================================
 

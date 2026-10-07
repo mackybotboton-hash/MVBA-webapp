@@ -15,7 +15,7 @@ export function ShareButton({ propertyName, propertyDescription, propertyId }: S
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   
   // We compute the URL here so it's guaranteed to be correct for the client
-  const shareUrl = typeof window !== "undefined" ? window.location.href : `https://mvba.app/property/${propertyId}`;
+  const shareUrl = typeof window !== "undefined" ? window.location.href : `https://panaw.app/property/${propertyId}`;
   
   const shareTitle = `Stay at ${propertyName} | Bretania`;
   const shareText = `Check out this amazing stay in Bretania! ${propertyName}. Book your trip today.`;

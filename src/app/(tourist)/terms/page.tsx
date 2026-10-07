@@ -4,9 +4,9 @@ import { ArrowLeft, FileText, CheckCircle2 } from "lucide-react";
 import { PolicyNav } from "@/components/layouts/policy-nav";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | MVBA",
+  title: "Terms of Service | Panaw",
   description:
-    "Official terms and conditions for booking accommodations and island tours through the San Agustin Resort & Homestay Association.",
+    "Official terms and conditions for booking accommodations and island tours through the Panaw.",
 };
 
 export default function TermsOfServicePage() {
@@ -39,7 +39,7 @@ export default function TermsOfServicePage() {
             Terms of Service
           </h1>
           <p className="text-sm text-neutral-600">
-            Last Updated: September 2026 | Effective for all accredited homestays, resorts, and tourist reservations in San Agustin, Surigao del Sur.
+            Last Updated: September 2026 | Effective for all independent homestays, resorts, and tourist reservations in San Agustin, Surigao del Sur.
           </p>
         </div>
 
@@ -51,14 +51,14 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">1. Acceptance of Terms</h2>
             <p>
-              By accessing, browsing, or creating a reservation through the San Agustin Resort and Homestay Association (MVBA) platform, you acknowledge that you have read, understood, and agree to be legally bound by these Terms of Service, along with our Privacy Policy, Cookie Policy, and Municipal Eco-Tourism Guidelines. If you do not accept these terms, you must refrain from using the platform.
+              By accessing, browsing, or creating a reservation through the Panaw platform, you acknowledge that you have read, understood, and agree to be legally bound by these Terms of Service, along with our Privacy Policy, Cookie Policy, and Eco-Tourism Guidelines. If you do not accept these terms, you must refrain from using the platform.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">2. Reservation and Downpayment Policy</h2>
             <p>
-              To ensure fair allocation of accredited accommodations and island-hopping services in Bretania, all reservations are governed by the following rules:
+              To ensure fair allocation of accommodations and island-hopping services in Bretania, all reservations are governed by the following rules:
             </p>
             <ul className="list-disc pl-5 space-y-2 text-neutral-700">
               <li>
@@ -68,7 +68,7 @@ export default function TermsOfServicePage() {
                 <strong>Receipt Submission:</strong> Tourists must provide a valid GCash transaction reference number and screenshot proof of payment through their portal.
               </li>
               <li>
-                <strong>Verification & Confirmation:</strong> The association administration and host verify payment legitimacy before issuing an official Digital Boarding Pass with a scannable QR code.
+                <strong>Verification & Confirmation:</strong> The platform administration and host verify payment legitimacy before issuing an official Digital Boarding Pass with a scannable QR code.
               </li>
               <li>
                 <strong>Remaining Balance:</strong> The remaining eighty percent (80%) balance, along with any optional addon services, is payable directly to the property upon check-in.
@@ -79,7 +79,7 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">3. Cancellation and Refund Policy</h2>
             <p>
-              Reservations are managed in accordance with municipal tourism fairness standards:
+              Reservations are managed in accordance with platform fairness standards:
             </p>
             <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-200 space-y-2">
               <div className="flex items-start gap-2">
@@ -112,28 +112,28 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">4. Guest Check-in and Boarding Pass</h2>
             <p>
-              Guests must present their official MVBA Digital Boarding Pass upon arrival at their accommodation or boat dispatch terminal. The pass can be displayed from your mobile device or saved to your device camera roll for offline presentation. Check-in is generally at 2:00 PM, and check-out is by 12:00 PM noon, unless special arrangements have been approved by the host.
+              Guests must present their official Panaw Boarding Pass upon arrival at their accommodation or boat dispatch terminal. The pass can be displayed from your mobile device or saved to your device camera roll for offline presentation. Check-in is generally at 2:00 PM, and check-out is by 12:00 PM noon, unless special arrangements have been approved by the host.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">5. Property Host and Operator Standards</h2>
             <p>
-              All homestay and resort listings featured on the platform must be accredited by the San Agustin Municipal Tourism Office and maintain active standing in the association. Hosts agree to honor all confirmed bookings, provide clean and secure facilities, adhere to regulated tariff rates, and comply with municipal sanitary and environmental standards.
+              All homestay and resort listings featured on the platform operate independently. Hosts agree to honor all confirmed bookings, provide clean and secure facilities, and comply with standard sanitary and environmental guidelines.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">6. Platform Limitation of Liability</h2>
             <p>
-              The MVBA web application functions as an accreditation, reservation, and dispatch clearinghouse for the municipal tourism sector. While the association vets operators, individual properties are operated independently. Guests are advised to exercise reasonable care during island-hopping and aquatic activities.
+              The Panaw web application functions as a reservation and dispatch platform. While Panaw verifies operator listings, individual properties are operated independently. Guests are advised to exercise reasonable care during island-hopping and aquatic activities.
             </p>
           </section>
 
           <section className="space-y-3 pt-4 border-t border-neutral-200">
             <h2 className="text-base font-bold text-neutral-950">Contact and Inquiries</h2>
             <p className="text-neutral-600">
-              For questions regarding these terms, please contact the San Agustin Municipal Tourism Office or the MVBA Secretariat at <strong>tourism@sanagustin.gov.ph</strong>.
+              For questions regarding these terms, please contact Panaw Support at <strong>support@panaw.test</strong>.
             </p>
           </section>
         </div>

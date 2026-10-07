@@ -4,6 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { notifyNewBooking } from "@/app/actions/notify-actions";
+import { resolveDownpaymentPercent, calculatePaymentBreakdown } from "@/lib/pricing/downpayment";
+
+const ALLOWED_TRANSITIONS = {
+  tourist: {
+    pending: ["cancelled"],
+    accepted: ["cancelled"]
+  },
+  owner: {
+    pending: ["accepted", "declined"],
+    accepted: ["cancelled", "completed"]
+  }
+} as Record<string, Record<string, string[]>>;
 
 export async function createReservationAction(payload: {
   roomId: string;
@@ -11,6 +23,7 @@ export async function createReservationAction(payload: {
   checkOutDate: string;
   guestCount: number;
   serviceIds?: string[];
+  expectedDownpayment: number;
   notes?: string;
 }) {
   try {
@@ -74,15 +87,17 @@ export async function createReservationAction(payload: {
       throw new Error(`Exceeds maximum capacity of ${room.max_capacity} guests.`);
     }
 
+    const supabaseAdmin = createAdminClient();
+    
     // Fetch the system settings to get the dynamic commission percentage and convenience fee
-    const { data: systemSettings, error: settingsError } = await (supabaseUserClient as any)
+    const { data: systemSettings, error: settingsError } = await (supabaseAdmin as any)
       .from("system_settings")
-      .select("commission_percentage, convenience_fee, addon_commission_percentage")
-      .eq("id", 1)
+      .select("commission_percentage, convenience_fee, min_downpayment_percent")
+      .limit(1)
       .single();
       
     if (settingsError || !systemSettings) {
-      throw new Error("Could not retrieve system settings.");
+      throw new Error(`Could not retrieve system settings: ${settingsError?.message || 'Not found'}`);
     }
     
     const commissionRate = Number(systemSettings.commission_percentage) / 100;
@@ -101,13 +116,16 @@ export async function createReservationAction(payload: {
     if (payload.serviceIds && payload.serviceIds.length > 0) {
       const { data: services } = await supabaseUserClient
         .from("extra_services")
-        .select("id, price, commission_rate")
+        .select("id, price, commission_rate, property_id")
         .in("id", payload.serviceIds);
         
       if (services) {
-        const defaultAddonCommissionRate = systemSettings.addon_commission_percentage 
-          ? Number(systemSettings.addon_commission_percentage) / 100 
-          : 0.08;
+        // Phase 1a: Validate addons belong to the room's property
+        const invalidAddons = services.filter((s: any) => s.property_id !== room.property_id);
+        if (invalidAddons.length > 0) {
+          throw new Error("One or more selected extra services do not belong to this property.");
+        }
+        const defaultAddonCommissionRate = 0.08;
 
         services.forEach(service => {
           const sPrice = Number(service.price);
@@ -127,9 +145,24 @@ export async function createReservationAction(payload: {
     const convenienceFee = systemSettings.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
     const finalGrandTotal = totalPrice + addonsTotal + convenienceFee;
 
-    // Downpayment is 20% of room/addons + 100% of the convenience fee
-    const baseDeposit = (totalPrice + addonsTotal) * 0.20;
-    const downpaymentAmount = baseDeposit + convenienceFee;
+    // Resolve downpayment percent and calculate amounts
+    const resolvedPercent = resolveDownpaymentPercent(
+      room.downpayment_percent,
+      room.properties?.downpayment_percent,
+      systemSettings.min_downpayment_percent
+    );
+
+    const breakdown = calculatePaymentBreakdown(totalPrice + addonsTotal, resolvedPercent, convenienceFee);
+    const downpaymentAmount = breakdown.expectedDownpayment;
+    
+    if (!payload.expectedDownpayment) {
+      throw new Error("Missing expected downpayment amount from client.");
+    }
+    
+    // Price-drift guard (allow a small epsilon for float conversion anomalies if any, though centavos math should be exact)
+    if (Math.abs(payload.expectedDownpayment - downpaymentAmount) > 0.01) {
+      throw new Error(`Nagbago ang payment terms (Expected: ₱${payload.expectedDownpayment}, Server: ₱${downpaymentAmount}). Paki-review ulit.`);
+    }
 
     // Association Commission is dynamically calculated from the room price only
     const roomCommissionAmount = totalPrice * commissionRate;
@@ -137,43 +170,41 @@ export async function createReservationAction(payload: {
     // Host payout is room + addons minus their respective commissions
     const hostPayoutAmount = (totalPrice - roomCommissionAmount) + (addonsTotal - addonsCommission);
 
-    // 4. Atomic Insertion via Admin Client
-    const supabaseAdmin = createAdminClient();
+    // 4. Atomic Insertion via Admin Client using RPC v2 (Phase 1a Fix)
     
-    const { data: insertData, error: bookingError } = await supabaseAdmin
-      .from("bookings")
-      .insert({
-        tourist_id: user.id,
-        room_id: payload.roomId,
-        owner_id: ownerId || null,
-        check_in_date: payload.checkInDate,
-        check_out_date: payload.checkOutDate,
-        guest_count: payload.guestCount,
-        total_price: finalGrandTotal,
-        downpayment_amount: downpaymentAmount,
-        commission_amount: commissionAmount,
-        host_payout_amount: hostPayoutAmount,
-        convenience_fee: convenienceFee,
-        payment_status: "awaiting_deposit",
-        status: "pending",
-        notes: (payload.notes || "").slice(0, 1000)
-      } as any)
-      .select()
-      .single();
-    const newBooking = insertData as any;
+    const { data: rpcRes, error: rpcErr } = await supabaseAdmin.rpc("request_booking_atomic_v2", {
+      p_tourist_id: user.id,
+      p_room_id: payload.roomId,
+      p_check_in: payload.checkInDate,
+      p_check_out: payload.checkOutDate,
+      p_guest_count: payload.guestCount,
+      p_total_price: finalGrandTotal,
+      p_downpayment_amount: downpaymentAmount,
+      p_downpayment_percent: breakdown.effectivePercent,
+      p_commission_amount: commissionAmount,
+      p_host_payout_amount: hostPayoutAmount,
+      p_convenience_fee: convenienceFee,
+      p_notes: (payload.notes || "").slice(0, 1000)
+    });
 
-    if (bookingError) {
-      if (bookingError.code === '23P01') {
-        throw new Error("These dates are no longer available. The room was booked by someone else.");
+    if (rpcErr) {
+      if (rpcErr.message.includes("bookings_tourist_id_fkey")) {
+        throw new Error("Your user profile is incomplete or missing. Please log out and log in again, or contact support.");
       }
-      throw new Error(`Booking failed: ${bookingError.message}`);
+      throw new Error(`Booking RPC failed: ${rpcErr.message}`);
+    }
+    
+    if (!rpcRes || !rpcRes.success) {
+      throw new Error(rpcRes?.message || "These dates are no longer available. The room was booked by someone else.");
     }
 
+    const newBookingId = rpcRes.booking_id;
+
     // Insert Add-ons if any
-    if (addonsData.length > 0 && newBooking.id) {
+    if (addonsData.length > 0 && newBookingId) {
       const finalAddonsData = addonsData.map(a => ({
         ...a,
-        booking_id: newBooking.id
+        booking_id: newBookingId
       }));
       await supabaseAdmin.from("booking_addons").insert(finalAddonsData);
     }
@@ -190,7 +221,7 @@ export async function createReservationAction(payload: {
       const touristName = (touristProfile.data as any)?.full_name || "A tourist";
 
       notifyNewBooking({
-        bookingId: newBooking.id,
+        bookingId: newBookingId,
         ownerId,
         touristName,
         propertyName,
@@ -198,7 +229,7 @@ export async function createReservationAction(payload: {
       }).catch((err) => console.error("[Notify] notifyNewBooking failed:", err));
     }
 
-    return { success: true, booking: newBooking };
+    return { success: true, booking: { id: newBookingId } };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -324,3 +355,126 @@ export async function getRoomAvailabilityAction(roomId: string) {
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Tourist can cancel their own booking.
+ */
+export async function cancelBookingAction(bookingId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const supabaseAdmin = createAdminClient();
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from("bookings")
+      .select("status, tourist_id")
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchErr || !booking) throw new Error("Booking not found");
+    if (booking.tourist_id !== user.id) throw new Error("Forbidden: Not your booking");
+
+    const allowed = ALLOWED_TRANSITIONS.tourist[booking.status] || [];
+    if (!allowed.includes("cancelled")) {
+      throw new Error(`Cannot cancel booking in ${booking.status} status`);
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from("bookings")
+      .update({ status: "cancelled" } as any)
+      .eq("id", bookingId);
+
+    if (updateErr) throw new Error(updateErr.message);
+
+    revalidatePath("/bookings");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Host/Owner can update booking status.
+ */
+export async function updateBookingStatusAction(bookingId: string, newStatus: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const supabaseAdmin = createAdminClient();
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from("bookings")
+      .select("status, rooms!inner(properties!inner(owner_id))")
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchErr || !booking) throw new Error("Booking not found");
+    
+    // Check ownership
+    const ownerId = (booking.rooms as any).properties.owner_id;
+    if (ownerId !== user.id) throw new Error("Forbidden: Not your property");
+
+    const allowed = ALLOWED_TRANSITIONS.owner[booking.status] || [];
+    if (!allowed.includes(newStatus)) {
+      throw new Error(`Invalid status transition from ${booking.status} to ${newStatus}`);
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from("bookings")
+      .update({ status: newStatus } as any)
+      .eq("id", bookingId);
+
+    if (updateErr) throw new Error(updateErr.message);
+
+    revalidatePath("/homestay/bookings");
+    revalidatePath("/resort/bookings");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Complete booking via QR check-in or manual.
+ */
+export async function completeBookingAction(bookingId: string) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Unauthorized");
+
+    const supabaseAdmin = createAdminClient();
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from("bookings")
+      .select("status, rooms!inner(properties!inner(owner_id))")
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchErr || !booking) throw new Error("Booking not found");
+    
+    // Check ownership
+    const ownerId = (booking.rooms as any).properties.owner_id;
+    if (ownerId !== user.id) throw new Error("Forbidden: Not your property");
+
+    const allowed = ALLOWED_TRANSITIONS.owner[booking.status] || [];
+    if (!allowed.includes("completed")) {
+      throw new Error(`Invalid status transition to completed from ${booking.status}`);
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from("bookings")
+      .update({ status: "completed" } as any)
+      .eq("id", bookingId);
+
+    if (updateErr) throw new Error(updateErr.message);
+
+    revalidatePath("/homestay/bookings");
+    revalidatePath("/resort/bookings");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+

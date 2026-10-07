@@ -240,7 +240,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
           <p className="text-xs sm:text-sm text-neutral-600">
             {mode === "login"
               ? "Sign in to access your bookings & operator portal"
-              : "Join the San Agustin Resort & Homestay community"}
+              : "Join Panaw — book direct with Britania's homestays and resorts"}
           </p>
         </div>
 

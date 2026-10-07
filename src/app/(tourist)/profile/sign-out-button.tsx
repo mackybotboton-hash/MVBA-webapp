@@ -28,7 +28,7 @@ export function SignOutButton() {
         <p className="text-sm font-medium text-neutral-900 group-hover:text-red-600 transition-colors">
           Sign Out
         </p>
-        <p className="text-xs text-neutral-600">Log out of your MVBA account</p>
+        <p className="text-xs text-neutral-600">Log out of your Panaw account</p>
 
       </div>
     </button>

@@ -82,7 +82,7 @@ export default function AdminDashboardPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-              MVBA Association Portal
+              Panaw Portal
             </h1>
 
             <Badge variant="default" size="sm">

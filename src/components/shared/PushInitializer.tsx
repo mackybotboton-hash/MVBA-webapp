@@ -71,7 +71,7 @@ export function PushInitializer() {
                 .eq("id", userId);
 
               if (error) {
-                console.error("[OneSignal] Failed to sync subscription ID:", error);
+                console.warn("[OneSignal] Failed to sync subscription ID:", error);
               } else {
                 toast.success("Push notifications enabled!", { duration: 2000 });
               }
@@ -80,7 +80,7 @@ export function PushInitializer() {
         );
       } catch (error) {
         // Swallowed — push init failure must never break the app.
-        console.error("[OneSignal] Initialization error:", error);
+        console.warn("[OneSignal] Initialization error:", error);
       }
     };
 
@@ -102,7 +102,7 @@ export function PushInitializer() {
           await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
           return bindUser(userId, attempt + 1);
         }
-        console.error("[OneSignal] login() failed after retries:", error);
+        console.warn("[OneSignal] login() failed after retries:", error);
       }
     };
 
@@ -112,7 +112,7 @@ export function PushInitializer() {
         await OneSignal.logout();
         boundUserId.current = null;
       } catch (error) {
-        console.error("[OneSignal] logout() failed:", error);
+        console.warn("[OneSignal] logout() failed:", error);
       }
     };
 

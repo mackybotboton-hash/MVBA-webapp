@@ -35,6 +35,10 @@ const systemSettingsSchema = z.object({
     .number()
     .min(80, "Fee must be at least ₱80")
     .max(120, "Fee cannot exceed ₱120"),
+  minDownpaymentPercent: z
+    .number()
+    .min(1, "Must be at least 1%")
+    .max(100, "Cannot exceed 100%"),
   adminGcashNumber: z
     .string()
     .regex(/^09\d{9}$/, "Must be an 11-digit number starting with 09 (e.g. 09171234567)"),
@@ -53,6 +57,7 @@ export default function AdminSettingsPage() {
     defaultValues: {
       commissionPercentage: 8.0,
       addonCommissionPercentage: 8.0,
+      minDownpaymentPercent: 20,
       convenienceFee: 100.0,
       adminGcashNumber: "",
       adminGcashName: "",
@@ -75,6 +80,7 @@ export default function AdminSettingsPage() {
       form.reset({
         commissionPercentage: Number(settingsData.commission_percentage),
         addonCommissionPercentage: Number(settingsData.addon_commission_percentage || 8.0),
+        minDownpaymentPercent: Number(settingsData.min_downpayment_percent || 20),
         convenienceFee: Number(settingsData.convenience_fee || 100),
         adminGcashNumber: settingsData.admin_gcash_number,
         adminGcashName: settingsData.admin_gcash_name,
@@ -174,7 +180,7 @@ export default function AdminSettingsPage() {
                             </div>
                           </FormControl>
                           <FormDescription>
-                            The percentage cut the MVBA association takes from the total booking price.
+                            The percentage cut the Panaw platform takes from the total booking price.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -201,7 +207,34 @@ export default function AdminSettingsPage() {
                             </div>
                           </FormControl>
                           <FormDescription>
-                            The percentage cut the MVBA association takes from extra services (e.g., Island Hopping).
+                            The percentage cut the Panaw platform takes from extra services (e.g., Island Hopping).
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="minDownpaymentPercent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Global Minimum Deposit (%)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input 
+                                type="number" 
+                                step="1" 
+                                placeholder="20" 
+                                className="pl-9 h-11 bg-neutral-50 focus-visible:ring-emerald-500"
+                                {...field} 
+                                onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                              />
+                              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            The default downpayment percentage required to secure a booking.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -239,7 +272,7 @@ export default function AdminSettingsPage() {
                   <div className="space-y-6">
                     <h3 className="font-semibold text-sm text-neutral-900 flex items-center gap-2 border-b pb-2">
                       <Phone className="h-4 w-4 text-blue-600" />
-                      MVBA GCash Account
+                      Panaw GCash Account
                     </h3>
 
                     <FormField
@@ -251,7 +284,7 @@ export default function AdminSettingsPage() {
                           <FormControl>
                             <div className="relative">
                               <Input 
-                                placeholder="e.g. MVBA Association" 
+                                placeholder="e.g. Panaw" 
                                 className="pl-9 h-11 bg-neutral-50 focus-visible:ring-blue-500"
                                 {...field} 
                               />

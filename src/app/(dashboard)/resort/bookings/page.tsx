@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/tourist/empty-state";
+import { updateBookingStatusAction } from "@/app/actions/booking-actions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import dynamic from 'next/dynamic';
@@ -159,16 +160,8 @@ export default function ResortBookingsPage() {
     newStatus: "accepted" | "declined" | "cancelled"
   ) => {
     try {
-      const supabase = createClient();
-
-      // Fetch booking details before updating (for notification)
-      const booking = bookings.find((b) => b.id === bookingId);
-
-      const { error } = await (supabase.from("bookings") as any)
-        .update({ status: newStatus })
-        .eq("id", bookingId);
-
-      if (error) throw error;
+      const res = await updateBookingStatusAction(bookingId, newStatus);
+      if (!res.success) throw new Error(res.error);
 
       // Optimistic UI update
       queryClient.setQueryData(
@@ -186,6 +179,7 @@ export default function ResortBookingsPage() {
       );
 
       // Fire-and-forget: notify the tourist
+      const booking = bookings.find((b) => b.id === bookingId);
       if (booking) {
         notifyBookingStatusChange({
           touristId: booking.tourist_id,
@@ -263,7 +257,7 @@ export default function ResortBookingsPage() {
       {/* Metrics Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <MetricCard
-          label="Total Deposits Collected (20%)"
+          label="Total Deposits Collected"
           value={`₱${metrics.totalDeposits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           subtext="From your confirmed/completed bookings"
           icon={Wallet}

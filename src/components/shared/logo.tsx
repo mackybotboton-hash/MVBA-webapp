@@ -32,7 +32,7 @@ export function Logo({
           <span
             className={`font-bold tracking-tight text-black ${sizeClasses[size]}`}
           >
-            Bretania
+            Panaw
           </span>
           {size !== "small" && (
             <span className="text-[10px] text-gray-400 leading-none -mt-0.5 tracking-widest uppercase">

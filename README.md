@@ -1,7 +1,7 @@
-# MVBA Web Application
+# Panaw Web Application
 ### San Agustin & Bretania Eco-Tourism Management System
 
-The MVBA Web Application is an enterprise Progressive Web Application (PWA) built for the San Agustin Resort and Homestay Association in Surigao del Sur, Philippines. The system serves as the single digital operating platform connecting tourists, accredited homestays, resort operators, and municipal association administrators across the 24-island Bretania archipelago.
+The Panaw Web Application is an enterprise Progressive Web Application (PWA) built for the Panaw in Surigao del Sur, Philippines. The system serves as the single digital operating platform connecting tourists, accredited homestays, resort operators, and municipal association administrators across the 24-island Bretania archipelago.
 
 ---
 
@@ -11,7 +11,7 @@ The platform delivers specialized, role-tailored workflows for four key user gro
 
 ```
                                ┌───────────────────────────────────────────────┐
-                               │           MVBA Municipal Platform             │
+                               │           Panaw Municipal Platform             │
                                └──────────────────────┬────────────────────────┘
                                                       │
          ┌─────────────────────────┬──────────────────┴──────────────┬─────────────────────────┐
@@ -50,7 +50,7 @@ The tourist portal provides visitors with a comprehensive booking and travel uti
 - **Status Lifecycle Tracker**: Real-time visibility into booking progression (`awaiting_deposit`, `deposit_uploaded`, `verified`, `completed`, `cancelled`).
 
 ### Offline-Ready Digital Boarding Pass
-- **Camera-Scannable ISO QR Code**: Client-side ISO/IEC 18004 QR code generated offline in device memory matching municipal host scanners (`MVBA-BRIT-XXXX`).
+- **Camera-Scannable ISO QR Code**: Client-side ISO/IEC 18004 QR code generated offline in device memory matching municipal host scanners (`Panaw-BRIT-XXXX`).
 - **High-Definition Ticket Canvas**: Renders a 640x1000px branded boarding pass with booking codes, room stay details, guest counts, and verification seals.
 - **1-Tap Save to Photos**: Integrated Web Share API (`navigator.share`) allows tourists on iOS Safari and Android Chrome to save their pass directly to their Photos / Camera Roll.
 - **Instant PNG Download**: Downloadable image file fallback for offline archiving and printing.
@@ -97,7 +97,7 @@ Engineered for larger multi-room resorts, beachfront complexes, and commercial b
 
 ## 4. Association Administration & Municipal Governance (`/admin`)
 
-Designed for the leadership of the San Agustin Resort and Homestay Association (MVBA) and the Municipal Tourism Office.
+Designed for the leadership of the Panaw (Panaw) and the Platform Administration.
 
 - **Municipal Capacity Oversight**: Executive dashboard monitoring aggregate tourist influx, occupancy density, and booking activity across the municipality.
 - **Host & Property Accreditation Queue (`/admin/properties`)**: Review and approve new homestay registrations, resort listings, and room additions before they appear in public search results.
@@ -140,7 +140,7 @@ Designed for the leadership of the San Agustin Resort and Homestay Association (
 ## 7. Directory Structure
 
 ```
-MVBA-webapp/
+Panaw-webapp/
 ├── public/
 │   ├── icons/                      # PWA application icons
 │   ├── manifest.json               # Web App Manifest (standalone display)
@@ -197,8 +197,8 @@ MVBA-webapp/
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/mackybotboton-hash/MVBA-webapp.git
-   cd MVBA-webapp
+   git clone https://github.com/mackybotboton-hash/Panaw-webapp.git
+   cd Panaw-webapp
    ```
 
 2. Install dependencies:
@@ -248,6 +248,6 @@ MVBA-webapp/
 
 ## Administrative Inquiries and License
 
-This software is developed for the **San Agustin Resort & Homestay Association (MVBA)** and the **Municipal Tourism Office of San Agustin, Surigao del Sur**. Unauthorized redistribution or deployment outside accredited municipal operations is prohibited.
+This software is developed for the **Panaw** and the **Platform Administration of San Agustin, Surigao del Sur**. Unauthorized redistribution or deployment outside independent operations is prohibited.
 
 Aurora Alliance 2026

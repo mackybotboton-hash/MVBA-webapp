@@ -172,7 +172,7 @@ function ChatSystemContent({
       role: "homestay",
       propertyName: "Poy-an Homestay",
       phone: "+63 912 000 0002",
-      email: "homestay@mvba.test",
+      email: "homestay@panaw.test",
     },
     {
       id: "678e0d9b-640a-429a-8c90-ef07dc6d4567",
@@ -180,18 +180,18 @@ function ChatSystemContent({
       role: "resort",
       propertyName: "Bretania Sands Beach Resort",
       phone: "+63 912 345 6788",
-      email: "resort@mvba.test",
+      email: "resort@panaw.test",
     },
   ]);
   const [isHostPickerOpen, setIsHostPickerOpen] = React.useState(false);
   const [hostPickerSearch, setHostPickerSearch] = React.useState("");
   const [adminProfile, setAdminProfile] = React.useState<any>({
     id: "c603667a-8f10-4951-88be-76b29c3fe068",
-    name: "MVBA Association Admin",
+    name: "Panaw Admin",
     role: "admin",
-    propertyName: "MVBA Association Office",
+    propertyName: "Panaw Office",
     phone: "+63 912 000 0001",
-    email: "admin@mvba.test",
+    email: "admin@panaw.test",
   });
 
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
@@ -324,7 +324,7 @@ function ChatSystemContent({
               role: "homestay",
               propertyName: "Poy-an Homestay",
               phone: "+63 912 000 0002",
-              email: "homestay@mvba.test",
+              email: "homestay@panaw.test",
             },
             {
               id: "678e0d9b-640a-429a-8c90-ef07dc6d4567",
@@ -332,13 +332,13 @@ function ChatSystemContent({
               role: "resort",
               propertyName: "Bretania Sands Beach Resort",
               phone: "+63 912 345 6788",
-              email: "resort@mvba.test",
+              email: "resort@panaw.test",
             },
           ]);
         }
       }
 
-      // If Host (Homestay / Resort): Fetch MVBA Association Admin profile for direct association channel
+      // If Host (Homestay / Resort): Fetch Panaw Admin profile for direct association channel
       if (currentRole === "homestay" || currentRole === "resort") {
         const { data: admins } = await (supabase.from("profiles") as any)
           .select("id, full_name, role, phone_number, email, avatar_url")
@@ -349,9 +349,9 @@ function ChatSystemContent({
           const adm = admins[0];
           setAdminProfile({
             id: adm.id,
-            name: adm.full_name ? `Admin (${adm.full_name})` : "MVBA Association Admin",
+            name: adm.full_name ? `Admin (${adm.full_name})` : "Panaw Admin",
             role: "admin",
-            propertyName: "MVBA Association Office",
+            propertyName: "Panaw Office",
             phone: adm.phone_number,
             email: adm.email,
             avatarUrl: adm.avatar_url,
@@ -359,11 +359,11 @@ function ChatSystemContent({
         } else {
           setAdminProfile({
             id: "c603667a-8f10-4951-88be-76b29c3fe068",
-            name: "MVBA Association Admin",
+            name: "Panaw Admin",
             role: "admin",
-            propertyName: "MVBA Association Office",
+            propertyName: "Panaw Office",
             phone: "+63 912 000 0001",
-            email: "admin@mvba.test",
+            email: "admin@panaw.test",
           });
         }
       }
@@ -375,8 +375,8 @@ function ChatSystemContent({
       const effectiveUser =
         user ||
         (currentRole === "admin"
-          ? { id: "c603667a-8f10-4951-88be-76b29c3fe068", email: "admin@mvba.test" }
-          : { id: "2853057a-9c5e-490e-8c3a-49330721b57b", email: "homestay@mvba.test" });
+          ? { id: "c603667a-8f10-4951-88be-76b29c3fe068", email: "admin@panaw.test" }
+          : { id: "2853057a-9c5e-490e-8c3a-49330721b57b", email: "homestay@panaw.test" });
 
       if (!effectiveUser) {
         setIsLoadingContacts(false);
@@ -448,11 +448,11 @@ function ChatSystemContent({
         contactMap.set(partnerId, {
           id: partnerId,
           name: isPartnerAdmin
-            ? partner?.full_name ? `Admin (${partner.full_name})` : "MVBA Association Admin"
+            ? partner?.full_name ? `Admin (${partner.full_name})` : "Panaw Admin"
             : partner?.full_name || propInfo?.name || "Host",
           role: partner?.role || propInfo?.type || "homestay",
           propertyName: isPartnerAdmin
-            ? "MVBA Association Office"
+            ? "Panaw Office"
             : propInfo?.name,
           lastMessage: latest.image_url && !latest.content ? "Sent an image" : latest.content,
           lastTime: formatMessageTime(latest.created_at),
@@ -485,10 +485,10 @@ function ChatSystemContent({
             const newContact: ChatContact = {
               id: targetProfile.id,
               name: isTargetAdmin
-                ? targetProfile.full_name ? `Admin (${targetProfile.full_name})` : "MVBA Association Admin"
+                ? targetProfile.full_name ? `Admin (${targetProfile.full_name})` : "Panaw Admin"
                 : targetProfile.full_name || propInfo?.name || "Host",
               role: targetProfile.role || propInfo?.type || "homestay",
-              propertyName: isTargetAdmin ? "MVBA Association Office" : propInfo?.name,
+              propertyName: isTargetAdmin ? "Panaw Office" : propInfo?.name,
               lastMessage: "Start a conversation...",
               lastTime: "New",
               lastMessageIsRead: true,
@@ -1285,7 +1285,7 @@ function ChatSystemContent({
                     <ShieldCheck className="h-4 w-4" />
                   </div>
                   <div className="text-left min-w-0">
-                    <p className="font-bold text-neutral-900 leading-tight truncate">MVBA Association Admin</p>
+                    <p className="font-bold text-neutral-900 leading-tight truncate">Panaw Admin</p>
                     <p className="text-[10px] text-amber-800 font-medium truncate">Official notices, dues & permits</p>
                   </div>
                 </div>
@@ -1806,7 +1806,7 @@ function ChatSystemContent({
                     ? "Pick a conversation from the left, or visit a homestay/resort page to message a host directly."
                     : currentRole === "admin"
                     ? "Select a host conversation from the left, or click 'Message Property Host' to contact an accredited resort or homestay owner."
-                    : "Select a conversation from the left panel, or click 'Contact Association Admin' to communicate directly with MVBA leadership."}
+                    : "Select a conversation from the left panel, or click 'Contact Admin' to communicate directly with Panaw leadership."}
                 </p>
               </div>
               {currentRole === "tourist" && (

@@ -26,7 +26,7 @@ import { DigitalBoardingPassModal } from "@/components/tourist/digital-boarding-
 import { GCashDepositModal } from "@/components/tourist/gcash-deposit-modal";
 import { TouristReviewModal } from "@/components/tourist/tourist-review-modal";
 import { TouristViewPaymentModal } from "@/components/tourist/tourist-view-payment-modal";
-import { submitDepositReceiptAction } from "@/app/actions/booking-actions";
+import { submitDepositReceiptAction, cancelBookingAction } from "@/app/actions/booking-actions";
 import { useOfflineBoardingPasses } from "@/hooks/use-offline-boarding-passes";
 import { useAuth } from "@/hooks/use-auth";
 import { BoardingPassData } from "@/lib/boarding-pass-generator";
@@ -162,7 +162,7 @@ export default function TouristBookingsPage() {
             guests_count: b.guest_count,
             total_price: b.total_price,
             status: b.status,
-            reference_code: `MVBA-BRIT-${b.id.slice(0, 4).toUpperCase()}`,
+            reference_code: `PANAW-${b.id.slice(0, 4).toUpperCase()}`,
           }));
 
         if (passesToCache.length > 0) {
@@ -216,11 +216,10 @@ export default function TouristBookingsPage() {
 
   const handleCancelBooking = async (bookingId: string) => {
     try {
-      const supabase = createClient();
-      await (supabase.from("bookings") as any)
-        .update({ status: "cancelled" })
-        .eq("id", bookingId);
-
+      const res = await cancelBookingAction(bookingId);
+      if (!res.success) {
+        throw new Error(res.error);
+      }
       setBookings((prev) =>
         prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
       );
@@ -428,13 +427,6 @@ export default function TouristBookingsPage() {
           <div className="space-y-4">
             {filteredBookings.map((booking) => (
               <div key={booking.id} className="relative">
-                {/* Visual indicator tag on card if pass is cached offline */}
-                {(booking.status === "accepted" || booking.status === "completed") && hasPass(booking.id) && (
-                  <div className="absolute top-3 right-3 z-10 hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
-                    <ShieldCheck className="h-3 w-3" />
-                    Offline Ready
-                  </div>
-                )}
                 <BookingCard
                   booking={booking}
                   onCancelBooking={handleCancelBooking}
@@ -449,7 +441,7 @@ export default function TouristBookingsPage() {
                       guests_count: b.guest_count,
                       total_price: b.total_price,
                       status: b.status,
-                      reference_code: `MVBA-BRIT-${b.id.slice(0, 4).toUpperCase()}`,
+                      reference_code: `PANAW-${b.id.slice(0, 4).toUpperCase()}`,
                     })
                   }
                   onViewPayment={(b) => setSelectedPaymentBooking(b)}

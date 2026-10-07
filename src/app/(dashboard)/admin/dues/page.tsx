@@ -150,10 +150,10 @@ export default function AdminDuesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
         <div>
           <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
-            Association Dues Tracker
+            Platform Fee Tracker
           </h1>
           <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">
-            Monitor monthly municipal and MVBA association contributions (₱500/homestay, ₱1,500/resort)
+            Monitor monthly municipal and Panaw contributions (₱500/homestay, ₱1,500/resort)
           </p>
 
         </div>

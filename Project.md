@@ -1,4 +1,4 @@
-# MVBA — San Agustin Resort & Homestay Association Web App
+# Panaw Web App
 > **Living Project Documentation & Architecture Blueprint**  
 > *Last Updated: September 2026*
 
@@ -6,13 +6,13 @@
 
 ## 1. Executive Summary & Vision
 
-**MVBA** (San Agustin Resort & Homestay Association) is a Progressive Web Application (PWA) tailored for the eco-tourism ecosystem of **Bretania, San Agustin, Surigao del Sur, Philippines** (famed for the 24-island Bretania archipelago in Lianga Bay).
+**Panaw** (San Agustin Resort & Homestay Association) is a Progressive Web Application (PWA) tailored for the eco-tourism ecosystem of **Bretania, San Agustin, Surigao del Sur, Philippines** (famed for the 24-island Bretania archipelago in Lianga Bay).
 
 The platform serves as the single digital operating system for municipal tourism, connecting four key stakeholders:
 1. **Tourists (Guests)**: Seamlessly discover verified local accommodations, book rooms, calculate regulated island-hopping boat tariffs, pay downpayments via GCash, access digital boarding passes with QR codes, and chat in realtime with hosts.
 2. **Homestay Hosts**: Manage room allocations, daily arrivals/departures, accept/decline booking requests, scan guest check-in QR codes, track association dues, and message guests or association leadership.
 3. **Resort Operators**: Comprehensive hospitality dashboard with multi-room availability calendars, analytics, addon services (boat rental, dining, spa), boat dispatch manifests, and guest reviews.
-4. **Association Administrators (MVBA Leadership & Municipal Tourism Office)**: Oversee municipal tourist capacity, approve new host accounts and property listings, audit association dues, verify GCash deposits, track 8% association commissions, disburse host payouts, and broadcast emergency advisories.
+4. **Platform Administrators (Panaw Leadership & Platform Administration)**: Oversee municipal tourist capacity, approve new host accounts and property listings, audit association dues, verify GCash deposits, track 8% association commissions, disburse host payouts, and broadcast emergency advisories.
 
 ---
 
@@ -36,7 +36,7 @@ The platform serves as the single digital operating system for municipal tourism
 ## 3. Architecture & Project Structure
 
 ```
-MVBA-webapp/
+Panaw-webapp/
 ├── .github/
 │   └── workflows/
 │       ├── production.yml          # CI QA: npm ci, tsc --noEmit, eslint
@@ -183,14 +183,14 @@ graph TD
   - Prevents double-booking via PostgreSQL atomic transaction lock.
 - **Deposit & Boarding Pass**:
   - Tourist uploads GCash reference number and receipt screenshot.
-  - Generates an official `MVBA-BRIT-XXXX` Digital Boarding Pass with dynamic QR code for host check-in.
+  - Generates an official `Panaw-BRIT-XXXX` Digital Boarding Pass with dynamic QR code for host check-in.
 - **Realtime Chat**: Direct two-way messaging with property hosts.
 
 ### 4.2 Homestay Host
 - **Daily Operations ("Today")**: Immediate view of checking-in, in-house, and checking-out guests.
 - **QR Check-in Scanner**: Camera or manual reference input to verify guest boarding passes instantly.
 - **Room Management**: Edit descriptions, maximum capacity, base pricing, and active status.
-- **Association Dues**: Review monthly dues status, send GCash payments directly to the MVBA Municipal Treasury, and upload proof of payment.
+- **Association Dues**: Review monthly dues status, send GCash payments directly to the Panaw Municipal Treasury, and upload proof of payment.
 
 ### 4.3 Resort Operator
 - **Analytics**: Key performance metrics (Occupancy rate, gross bookings, net payouts).
@@ -199,7 +199,7 @@ graph TD
 - **Boat Dispatch Management**: Track passenger manifests, vessel names, captains, and departure/return statuses adhering to maritime tourism standards.
 - **Boat Rate Calculator**: Standard Bretania 4-Island Circuit tariff computation (Base tariff, passenger tiers, environmental fees).
 
-### 4.4 Association Administrator (MVBA Leadership)
+### 4.4 Association Administrator (Panaw Leadership)
 - **Municipal Oversight**: Monitor tourist flow across all San Agustin / Bretania accommodations.
 - **Vetting & Approvals**: Review new property listings and host registrations before they appear in public search.
 - **Financial Clearinghouse**:
@@ -267,8 +267,8 @@ The system implements `request_booking_atomic` in PostgreSQL (`supabase/concurre
 
 ### Master Account Instructions for Project Leader
 When merging `feat/security-hardening` to `main`, the project leader must review:
-- 📖 **[`SECURITY_HANDOFF.md`](file:///c:/Users/nemsu/Downloads/Private/code/MVBA-webapp/SECURITY_HANDOFF.md)** (Full step-by-step master account guide)
-- 🗄️ **[`supabase/migrations/security-hardening.sql`](file:///c:/Users/nemsu/Downloads/Private/code/MVBA-webapp/supabase/migrations/security-hardening.sql)** (SQL Editor execution script)
+- 📖 **[`SECURITY_HANDOFF.md`](file:///c:/Users/nemsu/Downloads/Private/code/Panaw-webapp/SECURITY_HANDOFF.md)** (Full step-by-step master account guide)
+- 🗄️ **[`supabase/migrations/security-hardening.sql`](file:///c:/Users/nemsu/Downloads/Private/code/Panaw-webapp/supabase/migrations/security-hardening.sql)** (SQL Editor execution script)
 
 ### Development Cycle Protocol
 

@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { LoadingLogo } from "@/components/shared/loading-logo";
+import { resolveDownpaymentPercent, calculatePaymentBreakdown } from "@/lib/pricing/downpayment";
 import { Badge } from "@/components/ui/badge";
 const formatTime12Hour = (timeStr?: string) => {
   if (!timeStr) return "";
@@ -53,7 +54,7 @@ import { useWishlist } from "@/hooks/use-wishlist";
 import { cn } from "@/lib/utils";
 import { ShareButton } from "@/components/tourist/share-button";
 import { AuthModal } from "@/components/auth/auth-modal";
-import { getRoomAvailabilityAction } from "@/app/actions/booking-actions";
+import { getRoomAvailabilityAction, createReservationAction } from "@/app/actions/booking-actions";
 
 interface RoomItem {
   id: string;
@@ -231,8 +232,8 @@ export default function PropertyStorefrontPage() {
 
         const { data: settingsData } = await supabase
           .from("system_settings")
-          .select("commission_percentage, convenience_fee")
-          .eq("id", 1)
+          .select("commission_percentage, convenience_fee, min_downpayment_percent")
+          .limit(1)
           .single();
         
         if (settingsData) {
@@ -338,131 +339,38 @@ export default function PropertyStorefrontPage() {
         return;
       }
 
+      const resolvedPercent = resolveDownpaymentPercent(
+        selectedRoom.downpayment_percent,
+        property?.downpayment_percent,
+        systemSettings?.min_downpayment_percent
+      );
+      
       const total = calculateTotalPrice(selectedRoom.base_price);
-      const bookingNotes = arrivalTime ? `Estimated Arrival: ${arrivalTime}` : null;
-      
-      const roomTotal = selectedRoom.base_price * calculateTotalNights();
-      const roomCommissionRate = systemSettings?.commission_percentage ? Number(systemSettings.commission_percentage) / 100 : 0.08;
-      const roomCommission = roomTotal * roomCommissionRate;
-      
-      let addonsCommission = 0;
-      let addonsTotal = 0;
-      
-      const addonsDataForInsert = selectedAddons.map((addonId) => {
-        const service = services.find((s) => s.id === addonId);
-        const price = service ? Number(service.price) : 0;
-        const commRate = service && service.commission_rate ? Number(service.commission_rate) / 100 : 0.08;
-        const commAmt = price * commRate;
-        addonsTotal += price;
-        addonsCommission += commAmt;
-        return {
-          service_id: addonId,
-          price_at_booking: price,
-          commission_amount: commAmt
-        };
+      const breakdown = calculatePaymentBreakdown(
+        total,
+        resolvedPercent,
+        systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
+      );
+
+      // Phase 1a: Use strictly Server Action for entire flow
+      const bookingNotes = arrivalTime ? `Estimated Arrival: ${arrivalTime}` : undefined;
+      const result = await createReservationAction({
+        roomId: selectedRoom.id,
+        checkInDate: checkInDate,
+        checkOutDate: checkOutDate,
+        guestCount: guestCount,
+        serviceIds: selectedAddons,
+        expectedDownpayment: breakdown.expectedDownpayment,
+        notes: bookingNotes
       });
 
-      const totalCommission = roomCommission + addonsCommission;
-      const convenienceFee = systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
-      
-      // Fix: Deposit is 20% of room price only. Service fee is charged in full upfront.
-      const roomDeposit = roomTotal * 0.20;
-      const addonsDeposit = addonsTotal * 0.20; // Assuming addons also have 20% deposit? Or maybe room only.
-      // The user specified "calculate the 20% deposit on room price only".
-      // We will apply 20% to (room + addons). 
-      const baseDeposit = (roomTotal + addonsTotal) * 0.20; 
-      
-      const downpayment = baseDeposit + convenienceFee; 
-      
-      // Host payout at the deposit stage:
-      // Host's share of the deposit = baseDeposit - (totalCommission portion? No, commission is 8% of total room.
-      // Wait, let's keep host_payout_amount as the TOTAL host payout for the whole booking for now, 
-      // Admin dashboard will calculate the split.
-      const host_payout = total - totalCommission; 
-      const finalGrandTotal = total + convenienceFee;
-
-      // A. Try Atomic PostgreSQL Stored Procedure (ACID Row-Level Lock)
-      try {
-        const { data: rpcRes, error: rpcErr } = await (supabase.rpc as any)(
-          "request_booking_atomic",
-          {
-            p_tourist_id: user.id,
-            p_room_id: selectedRoom.id,
-            p_check_in: checkInDate,
-            p_check_out: checkOutDate,
-            p_guest_count: guestCount,
-            p_total_price: finalGrandTotal,
-            p_notes: bookingNotes,
-          }
-        );
-
-        if (!rpcErr && rpcRes) {
-          if (!rpcRes.success) {
-            toast.error("Double-Booking Conflict!", {
-              description: rpcRes.message || "These dates are already reserved.",
-            });
-            setIsSubmittingBooking(false);
-            // Refresh calendar availability so the dates become unclickable immediately
-            fetchRoomAvailability();
-            // Clear the selected dates so the button disables and they must choose again
-            setDateRange(undefined);
-            return;
-          }
-
-          await (supabase.from("bookings") as any).update({
-            downpayment_amount: downpayment, // Upfront = 20% room/addons + 100% fee
-            commission_amount: totalCommission,
-            host_payout_amount: host_payout,
-            convenience_fee: convenienceFee,
-            payment_status: "awaiting_deposit",
-          }).eq("id", rpcRes.booking_id);
-
-          // Add-ons insertion
-          if (addonsDataForInsert.length > 0) {
-            const finalAddons = addonsDataForInsert.map(a => ({ ...a, booking_id: rpcRes.booking_id }));
-            await (supabase.from("booking_addons") as any).insert(finalAddons);
-          }
-
-          toast.success("Reservation request sent!", {
-            description: "The confirmation/verification of your booking will take some time. Check your bookings tab for updates.",
-            duration: 6000,
-          });
-          setSelectedRoom(null);
-          router.push("/bookings");
-          return;
-        }
-      } catch {
-        // Fallback to client pre-flight + standard insert
-      }
-
-      // B. Fallback Standard Insert
-      const { error, data: newBooking } = await (supabase.from("bookings") as any).insert({
-        tourist_id: user.id,
-        room_id: selectedRoom.id,
-        check_in_date: checkInDate,
-        check_out_date: checkOutDate,
-        guest_count: guestCount,
-        total_price: finalGrandTotal,
-        downpayment_amount: downpayment,
-        commission_amount: totalCommission,
-        host_payout_amount: host_payout,
-        convenience_fee: convenienceFee,
-        status: "pending",
-        payment_status: "awaiting_deposit",
-        notes: bookingNotes,
-      }).select().single();
-
-      if (error) {
-        toast.error("Booking submission error", {
-          description: error.message || "Failed to create reservation request.",
+      if (!result.success) {
+        toast.error("Booking Error", {
+          description: result.error || "Failed to create reservation request.",
         });
+        setIsSubmittingBooking(false);
+        fetchRoomAvailability();
         return;
-      }
-
-      // Add-ons insertion for standard fallback
-      if (addonsDataForInsert.length > 0 && newBooking) {
-        const finalAddons = addonsDataForInsert.map(a => ({ ...a, booking_id: newBooking.id }));
-        await (supabase.from("booking_addons") as any).insert(finalAddons);
       }
 
       toast.success("Reservation request sent!", {
@@ -589,7 +497,7 @@ export default function PropertyStorefrontPage() {
             </Badge>
             <Badge variant="subtle" className="bg-white/95 text-neutral-900 border-neutral-200">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 mr-1" />
-              MVBA Verified
+              Panaw Verified
             </Badge>
           </div>
         </div>
@@ -775,7 +683,7 @@ export default function PropertyStorefrontPage() {
             {/* Association Checklist */}
             <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-5 space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-700">
-                MVBA Verified Association Standards
+                Panaw Verified Association Standards
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-neutral-700">
                 <div className="flex items-center gap-2">
@@ -1206,46 +1114,64 @@ export default function PropertyStorefrontPage() {
               )}
             </div>
 
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
-              <div className="flex justify-between text-neutral-600">
-                <span className="font-medium text-neutral-700">
-                  Room Base ({calculateTotalNights()} {calculateTotalNights() === 1 ? "night" : "nights"})
-                </span>
-                <span className="font-bold text-neutral-900">
-                  ₱{(selectedRoom.base_price * calculateTotalNights()).toLocaleString()}
-                </span>
-              </div>
-              
-              <div className="flex justify-between text-neutral-600">
-                <span className="font-medium text-neutral-700">
-                  Deposit (20% of room/addons)
-                </span>
-                <span className="font-bold text-emerald-700">
-                  ₱{(calculateTotalPrice(selectedRoom.base_price) * 0.20).toLocaleString()}
-                </span>
-              </div>
+            {(() => {
+              const total = calculateTotalPrice(selectedRoom.base_price);
+              const resolvedPercent = resolveDownpaymentPercent(
+                selectedRoom.downpayment_percent,
+                property?.downpayment_percent,
+                systemSettings?.min_downpayment_percent
+              );
+              const breakdown = calculatePaymentBreakdown(
+                total,
+                resolvedPercent,
+                systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
+              );
 
-              <div className="flex justify-between text-neutral-600">
-                <span className="font-medium text-neutral-700">Booking Service Fee</span>
-                <span className="font-bold text-neutral-900">
-                  ₱{systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee).toLocaleString() : 100}
-                </span>
-              </div>
+              return (
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
+                  <div className="flex justify-between text-neutral-600">
+                    <span className="font-medium text-neutral-700">
+                      Room Base ({calculateTotalNights()} {calculateTotalNights() === 1 ? "night" : "nights"})
+                    </span>
+                    <span className="font-bold text-neutral-900">
+                      ₱{(selectedRoom.base_price * calculateTotalNights()).toLocaleString()}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between text-neutral-600">
+                    <span className="font-medium text-neutral-700">
+                      {resolvedPercent === 100 ? "Full Payment" : `Deposit (${resolvedPercent}% of room/addons)`}
+                    </span>
+                    <span className="font-bold text-emerald-700">
+                      ₱{(total * (breakdown.effectivePercent / 100)).toLocaleString()}
+                    </span>
+                  </div>
 
-              <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
-                <span>Total Due Now</span>
-                <span className="text-emerald-600">
-                  ₱{((calculateTotalPrice(selectedRoom.base_price) * 0.20) + (systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100)).toLocaleString()}
-                </span>
-              </div>
+                  <div className="flex justify-between text-neutral-600">
+                    <span className="font-medium text-neutral-700">Booking Service Fee</span>
+                    <span className="font-bold text-neutral-900">
+                      ₱{systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee).toLocaleString() : 100}
+                    </span>
+                  </div>
 
-              <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
-                <span>Remaining Balance (due at check-in)</span>
-                <span className="text-neutral-800">
-                  ₱{(calculateTotalPrice(selectedRoom.base_price) * 0.80).toLocaleString()}
-                </span>
-              </div>
-            </div>
+                  <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
+                    <span>{resolvedPercent === 100 ? "Total Full Payment" : "Total Due Now"}</span>
+                    <span className="text-emerald-600">
+                      ₱{breakdown.expectedDownpayment.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {breakdown.expectedBalance > 0 && (
+                    <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
+                      <span>Remaining Balance (due at check-in)</span>
+                      <span className="text-neutral-800">
+                        ₱{breakdown.expectedBalance.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Footer - Fixed */}
             <div className="shrink-0 p-4 border-t border-neutral-100 bg-white">

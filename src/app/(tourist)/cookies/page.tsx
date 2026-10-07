@@ -4,9 +4,9 @@ import { ArrowLeft, Cookie, Server, HardDrive, ShieldCheck } from "lucide-react"
 import { PolicyNav } from "@/components/layouts/policy-nav";
 
 export const metadata: Metadata = {
-  title: "Cookie Policy | MVBA",
+  title: "Cookie Policy | Panaw",
   description:
-    "Information regarding cookies, session storage, and offline local caching used by the MVBA Progressive Web Application.",
+    "Information regarding cookies, session storage, and offline local caching used by the Panaw Progressive Web Application.",
 };
 
 export default function CookiePolicyPage() {
@@ -106,7 +106,7 @@ export default function CookiePolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">3. Do We Use Third-Party Advertising Cookies?</h2>
             <p>
-              <strong>No.</strong> The MVBA platform does not sell personal data, display third-party commercial advertisements, or employ tracking pixels for commercial advertising networks. We use only functional utilities, such as OneSignal for opt-in browser push notifications regarding your booking approvals and weather advisories.
+              <strong>No.</strong> The Panaw platform does not sell personal data, display third-party commercial advertisements, or employ tracking pixels for commercial advertising networks. We use only functional utilities, such as OneSignal for opt-in browser push notifications regarding your booking approvals and weather advisories.
             </p>
           </section>
 

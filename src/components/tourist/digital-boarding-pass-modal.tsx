@@ -44,7 +44,7 @@ export function DigitalBoardingPassModal({
 
   const bookingCode = booking
     ? booking.reference_code ||
-      `MVBA-BRIT-${booking.id.slice(0, 4).toUpperCase()}`
+      `PANAW-${booking.id.slice(0, 4).toUpperCase()}`
     : "";
 
   // Generate genuine ISO QR code and auto-cache booking whenever modal opens
@@ -137,7 +137,7 @@ export function DigitalBoardingPassModal({
 
           <div className="flex items-center justify-center gap-1.5 text-[11px] text-emerald-400 font-bold uppercase tracking-wider mb-1">
             <ShieldCheck className="h-3.5 w-3.5" />
-            <span>MVBA Official Boarding Pass</span>
+            <span>Panaw Boarding Pass</span>
           </div>
 
           <h2

@@ -146,7 +146,7 @@ export default function TouristExplorePage() {
             </h1>
 
             <p className="text-base sm:text-lg text-neutral-600 leading-relaxed">
-              Bretania is a secluded archipelago of 24 islands and islets scattered across Lianga Bay. From sandbars that submerge at high tide to dramatic limestone cliffs, here is your official visitor guide curated by MVBA.
+              Bretania is a secluded archipelago of 24 islands and islets scattered across Lianga Bay. From sandbars that submerge at high tide to dramatic limestone cliffs, here is your official visitor guide curated by Panaw.
             </p>
 
 

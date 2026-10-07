@@ -38,6 +38,7 @@ export interface RoomFormData {
   base_price: number;
   max_capacity: number;
   is_active: boolean;
+  downpayment_percent?: number | null;
   image_url?: string;
   images?: string[];
   room_images?: { id?: string; image_url: string; display_order?: number }[];
@@ -65,6 +66,7 @@ export function RoomFormModal({
     base_price: 1500,
     max_capacity: 2,
     is_active: true,
+    downpayment_percent: null,
   });
 
   const [images, setImages] = React.useState<string[]>([]);
@@ -99,6 +101,7 @@ export function RoomFormModal({
         base_price: 1500,
         max_capacity: 2,
         is_active: true,
+        downpayment_percent: null,
       });
       setImages([]);
     }
@@ -212,6 +215,7 @@ export function RoomFormModal({
             base_price: formData.base_price,
             max_capacity: formData.max_capacity,
             is_active: formData.is_active,
+            downpayment_percent: formData.downpayment_percent || null,
           })
           .eq("id", formData.id)
           .select()
@@ -246,6 +250,7 @@ export function RoomFormModal({
             base_price: formData.base_price,
             max_capacity: formData.max_capacity,
             is_active: formData.is_active,
+            downpayment_percent: formData.downpayment_percent || null,
           })
           .select()
           .single();
@@ -554,6 +559,32 @@ export function RoomFormModal({
               }
               className="w-full p-3.5 rounded-xl border border-neutral-300 text-neutral-900 font-medium placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-black resize-none leading-relaxed"
             />
+          </div>
+
+          {/* Downpayment Setting */}
+          <div>
+            <label className="text-xs font-semibold text-neutral-900 block mb-1.5">
+              Room Deposit / Downpayment
+            </label>
+            <select
+              value={formData.downpayment_percent?.toString() || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  downpayment_percent: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+              className="w-full h-10 px-3 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:ring-1 focus:ring-black bg-white"
+            >
+              <option value="">Use Default</option>
+              <option value="20">20% Deposit</option>
+              <option value="30">30% Deposit</option>
+              <option value="50">50% Deposit</option>
+              <option value="100">100% (Full Payment)</option>
+            </select>
+            <p className="text-[10px] text-neutral-500 mt-1">
+              Override the default deposit rule for this specific room.
+            </p>
           </div>
 
           {/* Active Checkbox */}

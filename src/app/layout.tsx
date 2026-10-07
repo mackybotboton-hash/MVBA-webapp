@@ -16,9 +16,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Bretania Travel — Resort & Homestay Bookings",
-  description:
-    "Discover and book stays in Bretania, San Agustin, Surigao del Sur. Browse resorts, homestays, island hopping tours, and more.",
+  title: "Panaw — book direct sa Britania, San Agustin",
+  description: "Panaw — book direct sa Britania, San Agustin",
   keywords: [
     "Bretania",
     "San Agustin",
@@ -34,7 +33,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Bretania",
+    title: "Panaw",
   },
   icons: {
     apple: [

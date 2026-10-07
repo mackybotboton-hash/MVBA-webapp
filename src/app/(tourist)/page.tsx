@@ -466,7 +466,7 @@ export default function TouristDiscoveryPage() {
               Stays in Bretania Islands
             </h1>
             <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
-              Accredited by the San Agustin Resort & Homestay Association (MVBA)
+              Panaw — book direct sa Britania, San Agustin
             </p>
           </div>
 

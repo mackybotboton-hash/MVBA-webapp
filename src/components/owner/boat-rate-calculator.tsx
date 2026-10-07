@@ -25,7 +25,7 @@ export function BoatRateCalculator({ onDispatchCreated }: BoatRateCalculatorProp
   const [includeEnvironmentalFee, setIncludeEnvironmentalFee] = React.useState(true);
   const [includeLunchPack, setIncludeLunchPack] = React.useState(false);
 
-  // Rate constants (MVBA Standard Bretania 4-Island Circuit)
+  // Rate constants (Panaw Standard Bretania 4-Island Circuit)
   const BASE_PRICE = 1500; // Covers 1-8 pax
   const EXTRA_PERSON_RATE = 150; // Per pax beyond 8
   const SNORKEL_RATE = 150; // Per pax
@@ -49,7 +49,7 @@ export function BoatRateCalculator({ onDispatchCreated }: BoatRateCalculatorProp
               <Ship className="h-4 w-4" />
             </div>
             <h3 className="font-bold text-base text-neutral-900">
-              MVBA Standardized Island Hopping Rate Calculator
+              Panaw Standardized Island Hopping Rate Calculator
             </h3>
           </div>
           <p className="text-xs text-neutral-600 mt-1">
@@ -58,7 +58,7 @@ export function BoatRateCalculator({ onDispatchCreated }: BoatRateCalculatorProp
         </div>
 
         <Badge variant="success" size="sm" dot>
-          MVBA Regulated Tariff
+          Panaw Regulated Tariff
         </Badge>
       </div>
 

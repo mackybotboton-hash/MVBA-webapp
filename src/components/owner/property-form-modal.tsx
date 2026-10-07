@@ -27,6 +27,7 @@ export interface PropertyFormData {
   cover_image_url: string;
   promo_video_url: string;
   status: "active" | "renovating" | "full" | "closed";
+  downpayment_percent?: number | null;
 }
 
 export interface PropertyFormModalProps {
@@ -54,6 +55,7 @@ export function PropertyFormModal({
     cover_image_url: "",
     promo_video_url: "",
     status: "active",
+    downpayment_percent: null,
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
@@ -71,6 +73,7 @@ export function PropertyFormModal({
         cover_image_url: "",
         promo_video_url: "",
         status: "active",
+        downpayment_percent: null,
       });
     }
   }, [initialData, defaultType, isOpen]);
@@ -154,6 +157,7 @@ export function PropertyFormModal({
             cover_image_url: formData.cover_image_url.trim(),
             promo_video_url: formData.promo_video_url?.trim() || "",
             status: formData.status,
+            downpayment_percent: formData.downpayment_percent || null,
           })
           .eq("id", formData.id)
           .select()
@@ -180,13 +184,14 @@ export function PropertyFormModal({
                 : "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=1200&q=80"),
             promo_video_url: formData.promo_video_url?.trim() || "",
             status: formData.status,
+            downpayment_percent: formData.downpayment_percent || null,
           })
           .select()
           .single();
 
         if (error) throw error;
         toast.success("Property listed successfully!", {
-          description: "Visible in the MVBA tourist discovery marketplace.",
+          description: "Visible in the Panaw tourist discovery marketplace.",
         });
         onSuccess(data);
       }
@@ -399,6 +404,32 @@ export function PropertyFormModal({
             </p>
           </div>
 
+          {/* Default Listing Deposit */}
+          <div className="space-y-1.5">
+            <label className="font-bold text-neutral-900 uppercase tracking-wider text-[11px] block">
+              Default Deposit / Downpayment
+            </label>
+            <select
+              value={formData.downpayment_percent?.toString() || ""}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  downpayment_percent: e.target.value ? Number(e.target.value) : null,
+                })
+              }
+              className="w-full h-10 px-3 rounded-xl border border-neutral-300 text-neutral-900 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="">Use System Default</option>
+              <option value="20">20% Deposit</option>
+              <option value="30">30% Deposit</option>
+              <option value="50">50% Deposit</option>
+              <option value="100">100% (Full Payment)</option>
+            </select>
+            <p className="text-[10px] text-neutral-600">
+              Set the default downpayment rule for all rooms in this property.
+            </p>
+          </div>
+
           {/* Listing Status */}
           <div className="space-y-1.5">
             <label className="font-bold text-neutral-900 uppercase tracking-wider text-[11px] block">
@@ -422,7 +453,7 @@ export function PropertyFormModal({
         {/* Sticky Action Footer (Always visible!) */}
         <div className="px-6 py-3.5 border-t border-neutral-200 bg-neutral-50/90 shrink-0 flex items-center justify-between gap-3">
           <p className="text-[11px] text-neutral-600 font-medium hidden sm:block">
-            {formData.id ? "Changes take effect immediately" : "Lists stay on MVBA marketplace"}
+            {formData.id ? "Changes take effect immediately" : "Lists stay on Panaw marketplace"}
           </p>
 
           <div className="flex items-center gap-2 ml-auto">

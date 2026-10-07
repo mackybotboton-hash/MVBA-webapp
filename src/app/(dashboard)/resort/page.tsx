@@ -343,7 +343,7 @@ export default function ResortDashboardPage() {
               </Button>
             </Link>
 
-            {/* Association Dues Quick Card */}
+            {/* Platform Fee Quick Card */}
             <div
               className="rounded-xl border border-neutral-200 p-5 bg-white flex items-center justify-between group opacity-50 cursor-not-allowed pointer-events-none"
             >
@@ -351,7 +351,7 @@ export default function ResortDashboardPage() {
                 <div className="flex items-center gap-2">
                   <Receipt className="h-4 w-4 text-neutral-800" />
                   <h3 className="font-bold text-sm text-neutral-900">
-                    Association Dues
+                    Platform Fee
                   </h3>
                   <Badge variant="subtle" size="sm">₱1,500/mo</Badge>
                 </div>
@@ -385,7 +385,7 @@ export default function ResortDashboardPage() {
         />
       )}
 
-      {/* Association Dues Payment Modal */}
+      {/* Platform Fee Payment Modal */}
       <DuesPaymentModal
         isOpen={isDuesModalOpen}
         onClose={() => setIsDuesModalOpen(false)}
