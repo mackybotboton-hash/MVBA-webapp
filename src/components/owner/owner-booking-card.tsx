@@ -178,17 +178,32 @@ export function OwnerBookingCard({
           <span className="text-lg font-bold text-neutral-900 block">
             ₱{booking.total_price.toLocaleString()}
           </span>
-          {booking.downpayment_amount ? (
-            <div className="flex flex-col items-end mt-1 space-y-0.5">
-              <span className="text-[11px] text-green-700 font-medium">
-                Deposit (GCash Transfer): ₱{((booking.downpayment_amount || 0) - (booking.commission_amount || 0) - (booking.convenience_fee || 0)).toLocaleString()}
-                {booking.payout_status === "paid" && " (Paid to GCash)"}
-              </span>
-              <span className="text-[11px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded">
-                Collect at Check-in: ₱{(booking.total_price - booking.downpayment_amount).toLocaleString()}
-              </span>
-            </div>
-          ) : (
+          {booking.downpayment_amount ? (() => {
+            const fee = booking.convenience_fee || 0;
+            const commissionRate = booking.commission_amount && (booking.total_price - fee) > 0
+              ? (booking.commission_amount / (booking.total_price - fee))
+              : 0;
+            // Room deposit = what tourist paid upfront minus the convenience fee
+            const roomDeposit = booking.downpayment_amount - fee;
+            // Commission on the deposit portion only
+            const commOnDeposit = Math.round(roomDeposit * commissionRate);
+            // What host actually receives from the upfront payment
+            const hostDeposit = roomDeposit - commOnDeposit;
+            // Remaining balance host collects at check-in
+            const hostPayout = booking.host_payout_amount || (booking.total_price - fee - (booking.commission_amount || 0));
+            const collectAtCheckin = hostPayout - hostDeposit;
+            return (
+              <div className="flex flex-col items-end mt-1 space-y-0.5">
+                <span className="text-[11px] text-green-700 font-medium">
+                  Deposit (GCash Transfer): ₱{hostDeposit.toLocaleString()}
+                  {booking.payout_status === "paid" && " (Paid to GCash)"}
+                </span>
+                <span className="text-[11px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded">
+                  Collect at Check-in: ₱{collectAtCheckin.toLocaleString()}
+                </span>
+              </div>
+            );
+          })() : (
             <span className="text-[11px] font-medium text-neutral-600">
               {diffDays} {diffDays === 1 ? "night" : "nights"} stay
             </span>
