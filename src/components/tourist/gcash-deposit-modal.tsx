@@ -146,7 +146,7 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
                     GCash: {adminSettings?.admin_gcash_number || "0917-000-0000"}
                   </p>
                   <p className="text-xs font-medium text-blue-700/80">
-                    Account Name: {adminSettings?.admin_gcash_name || "MVBA Admin"}
+                    Account Name: {adminSettings?.admin_gcash_name || "Panaw Admin"}
                   </p>
                 </div>
               )}

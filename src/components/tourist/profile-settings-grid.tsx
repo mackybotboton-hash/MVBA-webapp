@@ -432,7 +432,7 @@ export function ProfileSettingsGrid({
               <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 text-blue-900 space-y-1 text-xs">
                 <span className="font-bold block">How Booking Payments Work:</span>
                 <p className="text-[11px] leading-relaxed text-blue-800">
-                  MVBA operates a secure municipal clearinghouse. Once a host accepts your booking, a <strong>20% downpayment</strong> is sent via GCash. Saving your GCash credentials here pre-fills your receipts automatically.
+                  Panaw operates a secure municipal clearinghouse. Once a host accepts your booking, a <strong>20% downpayment</strong> is sent via GCash. Saving your GCash credentials here pre-fills your receipts automatically.
                 </p>
               </div>
 

@@ -29,7 +29,7 @@ export async function generateQRCodeDataURL(text: string): Promise<string> {
 }
 
 /**
- * Draws a high-definition (2x Retina) official MVBA Digital Boarding Pass
+ * Draws a high-definition (2x Retina) official Panaw Digital Boarding Pass
  * onto an HTML5 Canvas completely in client memory.
  */
 export async function renderBoardingPassToCanvas(
@@ -37,7 +37,7 @@ export async function renderBoardingPassToCanvas(
 ): Promise<HTMLCanvasElement> {
   const bookingCode =
     booking.reference_code ||
-    `MVBA-BRIT-${booking.id.slice(0, 4).toUpperCase()}`;
+    `PANAW-${booking.id.slice(0, 4).toUpperCase()}`;
 
   const qrDataUrl = await generateQRCodeDataURL(bookingCode);
 
@@ -319,7 +319,7 @@ export async function downloadBoardingPassImage(
   const url = URL.createObjectURL(blob);
   const bookingCode =
     booking.reference_code ||
-    `MVBA-BRIT-${booking.id.slice(0, 4).toUpperCase()}`;
+    `PANAW-${booking.id.slice(0, 4).toUpperCase()}`;
 
   const link = document.createElement("a");
   link.href = url;
@@ -339,7 +339,7 @@ export async function shareBoardingPass(
 ): Promise<{ success: boolean; method: "share" | "download" }> {
   const bookingCode =
     booking.reference_code ||
-    `MVBA-BRIT-${booking.id.slice(0, 4).toUpperCase()}`;
+    `PANAW-${booking.id.slice(0, 4).toUpperCase()}`;
 
   try {
     const blob = await exportBoardingPassBlob(booking);
@@ -353,7 +353,7 @@ export async function shareBoardingPass(
       navigator.canShare({ files: [file] })
     ) {
       await navigator.share({
-        title: `MVBA Boarding Pass (${bookingCode})`,
+        title: `Panaw Boarding Pass (${bookingCode})`,
         text: `Digital check-in ticket for ${booking.property_name || "Bretania Stay"}.`,
         files: [file],
       });

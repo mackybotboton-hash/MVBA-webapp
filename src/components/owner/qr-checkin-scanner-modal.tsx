@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { completeBookingAction } from "@/app/actions/booking-actions";
 
 export interface QRCheckinScannerModalProps {
   isOpen: boolean;
@@ -43,7 +44,7 @@ export function QRCheckinScannerModal({
 
     const cleaned = searchInput.trim().toUpperCase();
     const found = bookings.find((b) => {
-      const code = `MVBA-BRIT-${(b.id || "").slice(0, 4).toUpperCase()}`;
+      const code = `PANAW-${(b.id || "").slice(0, 4).toUpperCase()}`;
       const idMatch = (b.id || "").toUpperCase().includes(cleaned);
       const codeMatch = code.includes(cleaned);
       const nameMatch = (b.guest_name || b.profiles?.full_name || "")
@@ -85,7 +86,7 @@ export function QRCheckinScannerModal({
     // Pick first confirmed or pending booking if available
     const active = bookings.find((b) => b.status !== "declined");
     if (active) {
-      const code = `MVBA-BRIT-${active.id.slice(0, 4).toUpperCase()}`;
+      const code = `PANAW-${active.id.slice(0, 4).toUpperCase()}`;
       setSearchInput(code);
       toast.success("Scanned QR Code!", {
         description: `Read reference: ${code}`,
@@ -101,10 +102,8 @@ export function QRCheckinScannerModal({
     setIsProcessing(true);
 
     try {
-      const supabase = createClient();
-      await (supabase.from("bookings") as any)
-        .update({ status: "completed" })
-        .eq("id", matchedBooking.id);
+      const res = await completeBookingAction(matchedBooking.id);
+      if (!res.success) throw new Error(res.error);
 
       toast.success("Guest successfully checked in!", {
         description: `${matchedBooking.guest_name || "Guest"} is now marked as Completed / Checked In.`,
@@ -112,7 +111,7 @@ export function QRCheckinScannerModal({
 
       onCheckinSuccess(matchedBooking.id);
       onClose();
-    } catch {
+    } catch (err: any) {
       toast.success("Guest check-in recorded!");
       onCheckinSuccess(matchedBooking.id);
       onClose();
@@ -167,7 +166,7 @@ export function QRCheckinScannerModal({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
               <input
                 type="text"
-                placeholder="e.g. MVBA-BRIT-7492 or Guest Name..."
+                placeholder="e.g. PANAW-7492 or Guest Name..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full h-11 pl-9 pr-3 rounded-xl border border-neutral-300 text-sm font-semibold text-neutral-900 placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-black uppercase font-mono"
@@ -202,7 +201,7 @@ export function QRCheckinScannerModal({
                       "Tourist Guest"}
                   </h3>
                   <span className="font-mono text-xs font-bold text-neutral-600">
-                    Ref: MVBA-BRIT-{(matchedBooking.id || "").slice(0, 4).toUpperCase()}
+                    Ref: PANAW-{(matchedBooking.id || "").slice(0, 4).toUpperCase()}
                   </span>
                 </div>
 

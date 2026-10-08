@@ -47,7 +47,7 @@ export default async function TouristProfilePage() {
 
   const helpSupportDesc =
     announcementsData?.title ||
-    "MVBA Guidelines and Emergency Hotlines (MDRRMO, Local Police)";
+    "Panaw Guidelines and Emergency Hotlines (MDRRMO, Local Police)";
 
   return (
     <div className="min-h-screen bg-white">

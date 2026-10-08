@@ -13,12 +13,8 @@ export function Footer() {
           <div className="space-y-3 md:col-span-1">
             <Logo size="default" />
             <p className="text-neutral-500 leading-relaxed">
-              Official booking and dispatch platform for accredited homestays, resorts, and eco-tourism operators across the 24 islands of Bretania.
+              Booking platform for homestays, resorts, and eco-tourism operators across the 24 islands of Bretania.
             </p>
-            <div className="flex items-center gap-1.5 text-neutral-700 font-semibold pt-1">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <span>San Agustin Municipal Tourism</span>
-            </div>
           </div>
 
           {/* Quick Navigation */}
@@ -82,7 +78,7 @@ export function Footer() {
           {/* Tourism Office Information */}
           <div className="space-y-2.5">
             <h4 className="font-bold text-neutral-900 uppercase tracking-wider text-[11px]">
-              Tourism Information Center
+              Contact Us
             </h4>
             <ul className="space-y-2 text-neutral-500">
               <li className="flex items-start gap-2">
@@ -104,7 +100,7 @@ export function Footer() {
         {/* Bottom Copyright */}
         <div className="pt-6 border-t border-neutral-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-neutral-400 text-[11px]">
           <p>
-            © 2026 San Agustin Resort & Homestay Association (MVBA). All rights reserved.
+            © 2026 Panaw. All rights reserved.
           </p>
           <p className="font-medium text-neutral-500">
             Aurora Alliance 2026

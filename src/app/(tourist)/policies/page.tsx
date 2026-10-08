@@ -13,9 +13,9 @@ import {
 import { PolicyNav } from "@/components/layouts/policy-nav";
 
 export const metadata: Metadata = {
-  title: "Eco-Tourism & Safety Policies | MVBA",
+  title: "Eco-Tourism & Safety Policies | Panaw",
   description:
-    "Official municipal eco-tourism regulations, maritime safety rules, and environmental protection guidelines for Bretania 24 Islands, San Agustin.",
+    "Independent eco-tourism guidelines, maritime safety rules, and environmental protection guidelines for Bretania 24 Islands, San Agustin.",
 };
 
 export default function PoliciesHubPage() {
@@ -32,7 +32,7 @@ export default function PoliciesHubPage() {
             <span>Back to Discovery</span>
           </Link>
           <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-            Municipal Ordinances
+            Platform Guidelines
           </span>
         </div>
       </header>
@@ -48,7 +48,7 @@ export default function PoliciesHubPage() {
             Eco-Tourism & Safety Policies
           </h1>
           <p className="text-sm text-neutral-600">
-            San Agustin Municipal Tourism Office & Maritime Police Regulations governing island excursions and sustainable tourism in Lianga Bay.
+            Platform guidelines governing island excursions and sustainable tourism in Lianga Bay.
           </p>
         </div>
 
@@ -64,7 +64,7 @@ export default function PoliciesHubPage() {
               <h2>1. Maritime Safety and Passenger Manifests</h2>
             </div>
             <p>
-              Under Philippine Coast Guard (PCG) and Municipal Maritime Council mandates, every tourist vessel departing the Bretania mainland port must strictly adhere to the following safety criteria:
+              Every tourist vessel departing the Bretania mainland port must strictly adhere to the following safety criteria:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-1.5">
@@ -94,7 +94,7 @@ export default function PoliciesHubPage() {
               <h2>2. Environmental Stewardship & Marine Conservation</h2>
             </div>
             <p>
-              The 24 islands of Bretania are recognized as vital biodiversity sanctuaries. To protect this fragile marine ecosystem, visitors and operators are bound by municipal environmental ordinances:
+              The 24 islands of Bretania are recognized as vital biodiversity sanctuaries. To protect this fragile marine ecosystem, visitors and operators are expected to adhere to environmental standards:
             </p>
             <div className="rounded-2xl border border-neutral-200 divide-y divide-neutral-100 bg-neutral-50/50">
               <div className="p-4 flex items-start gap-3">
@@ -104,7 +104,7 @@ export default function PoliciesHubPage() {
                     Clean As You Go (CLAYGO) & Zero Plastic Waste
                   </h3>
                   <p className="text-xs text-neutral-600 mt-0.5">
-                    Single-use plastic bags and styrofoam containers are strictly prohibited on all island tours. All trash generated must be brought back to the mainland for municipal sorting.
+                    Single-use plastic bags and styrofoam containers are strictly prohibited on all island tours. All trash generated must be brought back to the mainland for proper sorting.
                   </p>
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function PoliciesHubPage() {
                     No Coral Touching or Sand/Shell Harvesting
                   </h3>
                   <p className="text-xs text-neutral-600 mt-0.5">
-                    Stepping on live coral formations, anchoring boats in coral beds, and collecting white sand or marine organisms as souvenirs is unlawful and subject to municipal fines.
+                    Stepping on live coral formations, anchoring boats in coral beds, and collecting white sand or marine organisms as souvenirs is unlawful and subject to local fines or platform ban.
                   </p>
                 </div>
               </div>
@@ -152,14 +152,14 @@ export default function PoliciesHubPage() {
               <h2>4. Regulated Boat Tariffs and Island Hopping Circuits</h2>
             </div>
             <p>
-              All motorized boat rates are regulated by the Municipal Government of San Agustin and the MVBA Association. No operator may charge rates in excess of the official municipal matrix for the Standard 4-Island Circuit (Boslon Island, Hagonoy Island, Naked Island, and Busay Falls / Ironwood Sanctuary).
+              Motorized boat rates for island-hopping activities are regulated by the Municipal Government of San Agustin. Panaw displays and encourages compliance with the official municipal rate matrix as a courtesy to guests and hosts, but operators remain independently responsible for adhering to municipal regulations. Panaw does not set, enforce, or hold regulatory authority over boat rates.
             </p>
           </section>
 
           <section className="space-y-3 pt-4 border-t border-neutral-200">
             <h2 className="text-base font-bold text-neutral-950">Report Violations</h2>
             <p className="text-neutral-600">
-              To report maritime violations, excessive tariffs, or environmental abuse, contact the Municipal Tourism Hotline or approach the Tourism Information Desk at the Bretania Pier.
+              To report maritime violations, excessive tariffs, or environmental abuse, contact local authorities or the Philippine Coast Guard.
             </p>
           </section>
         </div>

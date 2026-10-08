@@ -4,9 +4,9 @@ import { ArrowLeft, Shield, Lock, Eye, FileCheck } from "lucide-react";
 import { PolicyNav } from "@/components/layouts/policy-nav";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | MVBA",
+  title: "Privacy Policy | Panaw",
   description:
-    "Data privacy and protection policy of the San Agustin Resort & Homestay Association under the Philippine Data Privacy Act of 2012 (RA 10173).",
+    "Data privacy and protection policy of the Panaw under the Philippine Data Privacy Act of 2012 (RA 10173).",
 };
 
 export default function PrivacyPolicyPage() {
@@ -51,7 +51,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">1. Commitment to Privacy</h2>
             <p>
-              The San Agustin Resort and Homestay Association (MVBA), in coordination with the Municipal Tourism Office of San Agustin, Surigao del Sur, is committed to safeguarding your personal data in accordance with Republic Act No. 10173, otherwise known as the <em>Philippine Data Privacy Act of 2012 (DPA)</em>, and its Implementing Rules and Regulations.
+              Panaw is committed to safeguarding your personal data in accordance with Republic Act No. 10173, otherwise known as the <em>Philippine Data Privacy Act of 2012 (DPA)</em>, and its Implementing Rules and Regulations.
             </p>
           </section>
 
@@ -106,11 +106,11 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">3. Purpose of Data Processing</h2>
             <p>
-              Your personal data is processed solely for legitimate municipal tourism purposes:
+              Your personal data is processed solely for legitimate tourism purposes:
             </p>
             <ul className="list-disc pl-5 space-y-1.5 text-neutral-700">
               <li>Facilitating accommodation reservations and issuing official Digital Boarding Passes.</li>
-              <li>Reconciling downpayments with host records and the association treasury.</li>
+              <li>Reconciling downpayments with host records and the platform payments team.</li>
               <li>Complying with maritime safety regulations and official passenger manifests for boat transfers.</li>
               <li>Sending transactional updates, booking confirmations, and urgent weather advisories.</li>
               <li>Preventing fraudulent bookings and unauthorized operator activity.</li>
@@ -127,7 +127,7 @@ export default function PrivacyPolicyPage() {
                 <strong>Private Storage Buckets:</strong> GCash receipts and sensitive verification documents are stored in private cloud storage. They are never exposed publicly and can only be accessed through short-lived, cryptographically signed URLs.
               </li>
               <li>
-                <strong>Row Level Security (RLS):</strong> Database-level access rules guarantee that tourists can only view their own reservations, and hosts can only access bookings associated with their accredited properties.
+                <strong>Row Level Security (RLS):</strong> Database-level access rules guarantee that tourists can only view their own reservations, and hosts can only access bookings associated with their properties.
               </li>
               <li>
                 <strong>Encrypted Communications:</strong> All network communication is encrypted in transit using Transport Layer Security (TLS 1.3).
@@ -151,7 +151,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3 pt-4 border-t border-neutral-200">
             <h2 className="text-base font-bold text-neutral-950">Data Protection Officer</h2>
             <p className="text-neutral-600">
-              To exercise your data privacy rights or file an inquiry, contact our Data Protection Officer at <strong>dpo@sanagustin.gov.ph</strong> or visit the Municipal Tourism Information Center, San Agustin, Surigao del Sur.
+              To exercise your data privacy rights or file an inquiry, contact our Data Protection Officer at <strong>dpo@panaw.test</strong>.
             </p>
           </section>
         </div>

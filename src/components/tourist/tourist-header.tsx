@@ -111,7 +111,7 @@ export function TouristHeader({
       : user?.role === "homestay"
       ? "Homestay Host"
       : user?.role === "admin"
-      ? "MVBA Admin"
+      ? "Panaw Admin"
       : "Tourist Guest";
 
 

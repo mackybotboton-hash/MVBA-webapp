@@ -1,7 +1,7 @@
 {
-  "name": "Bretania Travel",
-  "short_name": "Bretania",
-  "description": "Bretania Stays and Tours",
+  "name": "Panaw",
+  "short_name": "Panaw",
+  "description": "Panaw — book direct sa Britania, San Agustin",
 
   "start_url": "/",
   "display": "standalone",

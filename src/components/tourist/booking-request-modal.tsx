@@ -9,6 +9,7 @@ import { differenceInDays } from "date-fns";
 import { User, CalendarIcon, CheckCircle2, Palmtree, Sailboat, Utensils } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { resolveDownpaymentPercent, calculatePaymentBreakdown } from "@/lib/pricing/downpayment";
 
 interface Room {
   id: string;
@@ -29,7 +30,7 @@ interface BookingRequestModalProps {
   onClose: () => void;
   propertyId: string;
   rooms: Room[];
-  onSubmit: (payload: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number; serviceIds: string[] }) => void;
+  onSubmit: (payload: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number; serviceIds: string[]; expectedDownpayment: number }) => void;
   isSubmitting?: boolean;
 }
 
@@ -56,6 +57,22 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
     enabled: !!propertyId && isOpen
   });
 
+  // Fetch system settings for dynamic downpayment percent and convenience fee
+  const { data: systemSettings } = useQuery({
+    queryKey: ['system-settings-modal'],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("system_settings")
+        .select("convenience_fee, default_downpayment_percent, min_downpayment_percent")
+        .limit(1)
+        .single();
+      return data as { convenience_fee: number; default_downpayment_percent: number | null; min_downpayment_percent: number | null } | null;
+    },
+    enabled: isOpen,
+    staleTime: 5 * 60 * 1000, // 5 min cache
+  });
+
   const selectedRoom = useMemo(() => rooms.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
 
   const nights = useMemo(() => {
@@ -75,19 +92,28 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
       .filter(addon => selectedAddonIds.has(addon.id))
       .reduce((sum, addon) => sum + Number(addon.price), 0);
 
-    const total = roomTotal + addonsTotal;
-    
-    const convenienceFee = 100; // Simplified for now, or could fetch from settings
-    const grandTotal = total + convenienceFee;
+    const baseTotal = roomTotal + addonsTotal;
+
+    // Use dynamic settings; the modal receives simplified Room objects without
+    // downpayment_percent, so room/property params are null — falls through to platformDefault.
+    const convenienceFee = systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
+    const resolvedPercent = resolveDownpaymentPercent(
+      null,
+      null,
+      systemSettings?.default_downpayment_percent ?? null,
+      systemSettings?.min_downpayment_percent ?? null
+    );
+    const breakdown = calculatePaymentBreakdown(baseTotal, resolvedPercent, convenienceFee);
     
     return {
       roomTotal,
       addonsTotal,
       convenienceFee,
-      total: grandTotal,
-      downpayment: grandTotal * 0.20 // 20% downpayment required on the TOTAL (rooms + addons + fee)
+      total: breakdown.expectedDownpayment + breakdown.expectedBalance,
+      downpayment: breakdown.expectedDownpayment,
+      resolvedPercent,
     };
-  }, [selectedRoom, nights, selectedAddonIds, addons]);
+  }, [selectedRoom, nights, selectedAddonIds, addons, systemSettings]);
 
   // Adjust guest count if room changes
   if (selectedRoom && guestCount > selectedRoom.max_capacity) {
@@ -111,7 +137,8 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
       checkInDate: formatLocalDate(dateRange.from),
       checkOutDate: formatLocalDate(dateRange.to),
       guestCount,
-      serviceIds: Array.from(selectedAddonIds)
+      serviceIds: Array.from(selectedAddonIds),
+      expectedDownpayment: pricing?.downpayment ?? 0,
     });
   };
 
@@ -316,7 +343,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                   <p className="text-lg font-semibold text-zinc-900">₱{pricing.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-medium text-blue-600 uppercase tracking-wider mb-1">Required Deposit (20%)</p>
+                  <p className="text-xs font-medium text-blue-600 uppercase tracking-wider mb-1">Required Deposit ({pricing.resolvedPercent}%)</p>
                   <p className="text-lg font-semibold text-blue-700">₱{pricing.downpayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
               </div>

@@ -54,7 +54,7 @@ export default function AdminAnnouncementsPage() {
           content: a.content,
           target_audience: (a.target_role || a.target_audience || "all") as "all" | "homestay" | "resort",
           created_at: a.created_at,
-          admin_name: "MVBA Admin",
+          admin_name: "Panaw Admin",
         }));
         setAnnouncements(mapped);
       }
@@ -108,7 +108,7 @@ export default function AdminAnnouncementsPage() {
           content: content.trim(),
           target_audience: targetAudience,
           created_at: new Date().toISOString(),
-          admin_name: "MVBA Admin",
+          admin_name: "Panaw Admin",
         };
         setAnnouncements((prev) => [localAnn, ...prev]);
       } else {
@@ -214,7 +214,7 @@ export default function AdminAnnouncementsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setTitle("MVBA Monthly General Assembly & Coastal Clean-up");
+                  setTitle("Panaw Monthly General Assembly & Coastal Clean-up");
                   setContent("Reminder to all homestay and resort operators: Our monthly association meeting and coastal clean-up will take place this Saturday at 8:00 AM at the San Agustin Municipal Tourism Center. Attendance is required for accreditation compliance.");
                   setTargetAudience("all");
                   toast.info("Assembly Notice preset loaded");
@@ -222,7 +222,7 @@ export default function AdminAnnouncementsPage() {
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-neutral-300 bg-neutral-100 hover:bg-neutral-200 text-neutral-900 text-xs font-semibold transition-colors"
               >
                 <Megaphone className="h-3.5 w-3.5" />
-                Association Assembly Notice
+                Platform Announcements
               </button>
             </div>
           </div>
@@ -378,7 +378,7 @@ export default function AdminAnnouncementsPage() {
               </p>
 
               <div className="pt-1 text-[10px] text-neutral-500 font-medium">
-                Issued by: {ann.admin_name || "MVBA Administration"}
+                Issued by: {ann.admin_name || "Panaw Administration"}
               </div>
             </div>
           ))}

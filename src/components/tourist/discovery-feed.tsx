@@ -143,7 +143,8 @@ export function DiscoveryFeed() {
       checkInDate: payload.checkInDate,
       checkOutDate: payload.checkOutDate,
       guestCount: payload.guestCount,
-      notes: payload.serviceIds?.length ? `Extra Services: ${payload.serviceIds.join(", ")}` : undefined,
+      serviceIds: payload.serviceIds,
+      expectedDownpayment: payload.expectedDownpayment,
     });
   };
 

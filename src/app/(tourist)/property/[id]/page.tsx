@@ -15,7 +15,7 @@ export async function generateMetadata(
 
   if (!propertyId) {
     return {
-      title: "Stay Details | MVBA",
+      title: "Stay Details | Panaw",
       description: "Explore accredited homestays and resorts in Bretania, San Agustin.",
     };
   }
@@ -35,12 +35,12 @@ export async function generateMetadata(
 
     if (!property) {
       return {
-        title: "Stay Details | MVBA",
+        title: "Stay Details | Panaw",
         description: "Explore accredited homestays and resorts in Bretania, San Agustin.",
       };
     }
 
-    const title = `${property.name} | Bretania Stays | MVBA`;
+    const title = `${property.name} | Bretania Stays | Panaw`;
     const description = property.description
       ? property.description.substring(0, 160) + "..."
       : `Book your accredited stay at ${property.name} in Bretania, San Agustin, Surigao del Sur.`;
@@ -53,7 +53,7 @@ export async function generateMetadata(
         title,
         description,
         url: `https://mvba-webapp.vercel.app/property/${propertyId}`,
-        siteName: "MVBA San Agustin",
+        siteName: "Panaw",
         images: [
           {
             url: imageUrl,
@@ -73,7 +73,7 @@ export async function generateMetadata(
     };
   } catch (_error) {
     return {
-      title: "Stay Details | MVBA",
+      title: "Stay Details | Panaw",
       description: "Explore accredited homestays and resorts in Bretania, San Agustin.",
     };
   }

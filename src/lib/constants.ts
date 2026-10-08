@@ -63,7 +63,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Properties", href: "/admin/properties", icon: Building2 },
-  { label: "Dues Tracker", href: "/admin/dues", icon: Receipt, disabled: true },
+  { label: "Platform Fee", href: "/admin/dues", icon: Receipt, disabled: true },
   { label: "Transactions", href: "/admin/transactions", icon: Briefcase },
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
   { label: "Chat", href: "/admin/chat", icon: MessageSquare },

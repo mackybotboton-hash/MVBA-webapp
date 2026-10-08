@@ -280,11 +280,11 @@ export default function HomestayDashboardPage() {
               </span>
             </div>
 
-            {/* Association Dues Widget */}
+            {/* Platform Fee Widget */}
             <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-2 opacity-50 cursor-not-allowed pointer-events-none">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Association Dues
+                  Platform Fee
                 </span>
                 <Receipt className="h-4 w-4 text-neutral-600" />
               </div>
@@ -409,7 +409,7 @@ export default function HomestayDashboardPage() {
         />
       )}
 
-      {/* Association Dues Payment Modal */}
+      {/* Platform Fee Payment Modal */}
       <DuesPaymentModal
         isOpen={isDuesModalOpen}
         onClose={() => setIsDuesModalOpen(false)}

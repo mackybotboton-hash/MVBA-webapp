@@ -18,7 +18,7 @@ Below is the step-by-step checklist of security items that must be executed usin
 ## 1. Supabase SQL Migration (Critical)
 
 In this PR, we prepared a turnkey SQL migration file:
-📁 **[`supabase/migrations/security-hardening.sql`](file:///c:/Users/nemsu/Downloads/Private/code/MVBA-webapp/supabase/migrations/security-hardening.sql)**
+📁 **[`supabase/migrations/security-hardening.sql`](file:///c:/Users/nemsu/Downloads/Private/code/Panaw-webapp/supabase/migrations/security-hardening.sql)**
 
 ### Actions Required:
 1. Open the **[Supabase Dashboard](https://supabase.com/dashboard)**.
@@ -48,7 +48,7 @@ UPDATE public.profiles
 SET 
   role = 'admin',
   is_approved = true,
-  full_name = 'MVBA System Administrator'
+  full_name = 'Panaw System Administrator'
 WHERE id IN (
   SELECT id FROM auth.users WHERE email = 'your-admin-email@example.com'
 );
