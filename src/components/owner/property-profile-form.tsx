@@ -102,6 +102,12 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
         .eq("id", property.id);
 
       if (error) throw error;
+      
+      // Feature: Sync host's profile photo with the property's cover photo
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user?.id) {
+        await (supabase.from("profiles") as any).update({ avatar_url: coverImageUrl || null }).eq("id", userData.user.id);
+      }
       toast.success("Property profile and policies saved!");
     } catch (err: any) {
       toast.error(err.message || "Failed to save profile");

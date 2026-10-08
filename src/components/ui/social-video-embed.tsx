@@ -10,7 +10,7 @@ interface SocialVideoEmbedProps {
 
 export function SocialVideoEmbed({ url, className = "" }: SocialVideoEmbedProps) {
   const [embedUrl, setEmbedUrl] = React.useState<string | null>(null);
-  const [platform, setPlatform] = React.useState<"youtube" | "tiktok" | null>(null);
+  const [platform, setPlatform] = React.useState<"youtube" | "tiktok" | "facebook" | null>(null);
 
   React.useEffect(() => {
     if (!url) return;
@@ -44,6 +44,12 @@ export function SocialVideoEmbed({ url, className = "" }: SocialVideoEmbedProps)
           setEmbedUrl(`https://www.tiktok.com/embed/v2/${videoId}`);
         }
       }
+      // Facebook
+      else if (urlObj.hostname.includes("facebook.com") || urlObj.hostname.includes("fb.watch")) {
+        setPlatform("facebook");
+        // Use Facebook's video plugin
+        setEmbedUrl(`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=auto`);
+      }
     } catch (e) {
       console.error("Invalid URL format for video embed", e);
     }
@@ -58,8 +64,14 @@ export function SocialVideoEmbed({ url, className = "" }: SocialVideoEmbedProps)
     );
   }
 
+  // Determine aspect ratio based on platform and URL format
+  let aspectRatio = "16/9";
+  if (platform === "tiktok" || (platform === "youtube" && url.includes("/shorts/")) || (platform === "facebook" && (url.includes("/reel/") || url.includes("/reels/")))) {
+    aspectRatio = "9/16";
+  }
+
   return (
-    <div className={`relative w-full rounded-xl overflow-hidden bg-black ${className}`} style={{ aspectRatio: platform === "youtube" && url.includes("/shorts/") ? "9/16" : platform === "tiktok" ? "9/16" : "16/9" }}>
+    <div className={`relative w-full rounded-xl overflow-hidden bg-black ${className}`} style={{ aspectRatio }}>
       <iframe
         src={embedUrl}
         className="absolute top-0 left-0 w-full h-full border-0"

@@ -187,6 +187,12 @@ export function PropertyFormModal({
           .single();
 
         if (error) throw error;
+
+        // Feature: Sync host's profile photo with the property's cover photo
+        if (data.owner_id) {
+          await (supabase.from("profiles") as any).update({ avatar_url: data.cover_image_url || null }).eq("id", data.owner_id);
+        }
+
         toast.success("Property updated successfully!");
         onSuccess(data);
       } else {
@@ -213,6 +219,12 @@ export function PropertyFormModal({
           .single();
 
         if (error) throw error;
+
+        // Feature: Sync host's profile photo with the property's cover photo
+        if (data.owner_id) {
+          await (supabase.from("profiles") as any).update({ avatar_url: data.cover_image_url || null }).eq("id", data.owner_id);
+        }
+
         toast.success("Property listed successfully!", {
           description: "Visible in the Panaw tourist discovery marketplace.",
         });
