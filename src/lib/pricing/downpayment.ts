@@ -2,26 +2,39 @@
  * Pure function to determine the resolved downpayment percentage based on hierarchy:
  * 1. Room-level override (if set and >= 1)
  * 2. Property-level default (if set and >= 1)
- * 3. Platform default (from system_settings)
- * 
- * Falls back to 20% if system setting is somehow missing.
+ * 3. Platform default (system_settings.default_downpayment_percent)
+ *
+ * Then clamp upward to the platform minimum (system_settings.min_downpayment_percent).
+ * Falls back to 20% if both system settings are somehow missing.
+ *
+ * @param roomDownpaymentPercent      Room-level override (nullable)
+ * @param propertyDownpaymentPercent  Property-level default (nullable)
+ * @param platformDefaultPercent      system_settings.default_downpayment_percent (nullable)
+ * @param platformMinPercent          system_settings.min_downpayment_percent (nullable)
  */
 export function resolveDownpaymentPercent(
   roomDownpaymentPercent?: number | null,
   propertyDownpaymentPercent?: number | null,
-  systemMinDownpaymentPercent?: number | null
+  platformDefaultPercent?: number | null,
+  platformMinPercent?: number | null
 ): number {
+  // Step 1: pick the most specific override in hierarchy
+  let resolved: number;
   if (typeof roomDownpaymentPercent === "number" && roomDownpaymentPercent >= 1) {
-    return roomDownpaymentPercent;
+    resolved = roomDownpaymentPercent;
+  } else if (typeof propertyDownpaymentPercent === "number" && propertyDownpaymentPercent >= 1) {
+    resolved = propertyDownpaymentPercent;
+  } else if (typeof platformDefaultPercent === "number" && platformDefaultPercent >= 1) {
+    resolved = platformDefaultPercent;
+  } else {
+    resolved = 20; // Absolute fallback if system settings are missing
   }
-  if (typeof propertyDownpaymentPercent === "number" && propertyDownpaymentPercent >= 1) {
-    return propertyDownpaymentPercent;
-  }
-  
-  return (typeof systemMinDownpaymentPercent === "number" && systemMinDownpaymentPercent >= 1) 
-    ? systemMinDownpaymentPercent 
-    : 20; // Absolute fallback
+
+  // Step 2: clamp upward to the platform minimum (the floor set by admin)
+  const min = (typeof platformMinPercent === "number" && platformMinPercent >= 1) ? platformMinPercent : 1;
+  return Math.max(resolved, min);
 }
+
 
 /**
  * Pure function to calculate payment breakdown using integer centavos to avoid floating point drift.

@@ -22,6 +22,9 @@ import { Badge } from "@/components/ui/badge";
 import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
 import { STORAGE_BUCKETS } from "@/lib/constants";
 
+/** Fetched once when the modal opens; cached in component state */
+let _cachedPlatformDefault: number | null = null;
+
 const SAMPLE_ANGLE_PRESETS = [
   { label: "Main Bed Angle", url: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80" },
   { label: "Bathroom / Ensuite", url: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80" },
@@ -73,7 +76,27 @@ export function RoomFormModal({
   const [urlInput, setUrlInput] = React.useState("");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
+  const [platformDefaultPercent, setPlatformDefaultPercent] = React.useState<number | null>(_cachedPlatformDefault);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Fetch platform default downpayment percent once when modal opens
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (_cachedPlatformDefault !== null) {
+      setPlatformDefaultPercent(_cachedPlatformDefault);
+      return;
+    }
+    createClient()
+      .from("system_settings")
+      .select("default_downpayment_percent")
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        const val = (data as any)?.default_downpayment_percent ? Number((data as any).default_downpayment_percent) : 20;
+        _cachedPlatformDefault = val;
+        setPlatformDefaultPercent(val);
+      });
+  }, [isOpen]);
 
   React.useEffect(() => {
     if (initialData) {
@@ -576,7 +599,9 @@ export function RoomFormModal({
               }
               className="w-full h-10 px-3 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:ring-1 focus:ring-black bg-white"
             >
-              <option value="">Use Default</option>
+              <option value="">
+                {platformDefaultPercent !== null ? `Use Default (${platformDefaultPercent}%)` : "Use Default"}
+              </option>
               <option value="20">20% Deposit</option>
               <option value="30">30% Deposit</option>
               <option value="50">50% Deposit</option>

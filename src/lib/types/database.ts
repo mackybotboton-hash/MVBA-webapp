@@ -47,6 +47,8 @@ export interface Property {
   status: PropertyStatus;
   facebook_url: string | null;
   tiktok_url: string | null;
+  /** Optional property-level downpayment override (1–100). Falls back to system setting if null. */
+  downpayment_percent?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -59,8 +61,22 @@ export interface Room {
   base_price: number;
   max_capacity: number;
   is_active: boolean;
+  /** Optional room-level downpayment override (1–100). Falls back to property then system setting if null. */
+  downpayment_percent?: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface SystemSettings {
+  id?: string;
+  commission_percentage: number;
+  convenience_fee: number;
+  /** Platform-wide minimum/default downpayment percentage (1–100). */
+  min_downpayment_percent: number;
+  /** Alias for min_downpayment_percent used in some admin forms. */
+  default_downpayment_percent?: number | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface RoomImage {

@@ -67,7 +67,7 @@ export async function createReservationAction(payload: {
     // Fetch the room and its property (owner) for pricing + denormalization
     const { data, error: roomError } = await supabaseUserClient
       .from("rooms")
-      .select("base_price, max_capacity, is_active, property_id, properties!property_id(owner_id, name)")
+      .select("base_price, max_capacity, is_active, property_id, downpayment_percent, properties!property_id(owner_id, name, downpayment_percent)")
       .eq("id", payload.roomId)
       .single();
     const room = data as any;
@@ -92,7 +92,7 @@ export async function createReservationAction(payload: {
     // Fetch the system settings to get the dynamic commission percentage and convenience fee
     const { data: systemSettings, error: settingsError } = await (supabaseAdmin as any)
       .from("system_settings")
-      .select("commission_percentage, convenience_fee, min_downpayment_percent")
+      .select("commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent")
       .limit(1)
       .single();
       
@@ -146,9 +146,11 @@ export async function createReservationAction(payload: {
     const finalGrandTotal = totalPrice + addonsTotal + convenienceFee;
 
     // Resolve downpayment percent and calculate amounts
+    // Hierarchy: room override → property default → platform default → clamped to platform min
     const resolvedPercent = resolveDownpaymentPercent(
       room.downpayment_percent,
       room.properties?.downpayment_percent,
+      systemSettings.default_downpayment_percent,
       systemSettings.min_downpayment_percent
     );
 

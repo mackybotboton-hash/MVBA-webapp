@@ -17,6 +17,9 @@ import { Button } from "@/components/ui/button";
 import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
 import { STORAGE_BUCKETS } from "@/lib/constants";
 
+/** Module-level cache so we don't refetch on every modal open */
+let _cachedPropertyFormPlatformDefault: number | null = null;
+
 export interface PropertyFormData {
   id?: string;
   owner_id?: string;
@@ -59,7 +62,27 @@ export function PropertyFormModal({
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
+  const [platformDefaultPercent, setPlatformDefaultPercent] = React.useState<number | null>(_cachedPropertyFormPlatformDefault);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Fetch platform default downpayment percent once when modal opens
+  React.useEffect(() => {
+    if (!isOpen) return;
+    if (_cachedPropertyFormPlatformDefault !== null) {
+      setPlatformDefaultPercent(_cachedPropertyFormPlatformDefault);
+      return;
+    }
+    createClient()
+      .from("system_settings")
+      .select("default_downpayment_percent")
+      .limit(1)
+      .single()
+      .then(({ data }) => {
+        const val = (data as any)?.default_downpayment_percent ? Number((data as any).default_downpayment_percent) : 20;
+        _cachedPropertyFormPlatformDefault = val;
+        setPlatformDefaultPercent(val);
+      });
+  }, [isOpen]);
 
   React.useEffect(() => {
     if (initialData) {
@@ -419,7 +442,9 @@ export function PropertyFormModal({
               }
               className="w-full h-10 px-3 rounded-xl border border-neutral-300 text-neutral-900 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-black"
             >
-              <option value="">Use System Default</option>
+              <option value="">
+                {platformDefaultPercent !== null ? `Use System Default (${platformDefaultPercent}%)` : "Use System Default"}
+              </option>
               <option value="20">20% Deposit</option>
               <option value="30">30% Deposit</option>
               <option value="50">50% Deposit</option>

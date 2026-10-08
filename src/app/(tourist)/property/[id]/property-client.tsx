@@ -63,6 +63,7 @@ interface RoomItem {
   base_price: number;
   max_capacity: number;
   is_active: boolean;
+  downpayment_percent?: number | null;
   image_url?: string;
   room_images?: { id?: string; image_url: string }[];
 }
@@ -220,6 +221,7 @@ export default function PropertyStorefrontPage() {
             check_out_time,
             facebook_url,
             tiktok_url,
+            downpayment_percent,
             rooms (*, room_images(id, image_url, display_order)),
             extra_services (*),
             reviews (
@@ -232,7 +234,7 @@ export default function PropertyStorefrontPage() {
 
         const { data: settingsData } = await supabase
           .from("system_settings")
-          .select("commission_percentage, convenience_fee, min_downpayment_percent")
+          .select("commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent")
           .limit(1)
           .single();
         
@@ -339,9 +341,11 @@ export default function PropertyStorefrontPage() {
         return;
       }
 
+      // Hierarchy: room override → property default → platform default → clamped to platform min
       const resolvedPercent = resolveDownpaymentPercent(
         selectedRoom.downpayment_percent,
         property?.downpayment_percent,
+        systemSettings?.default_downpayment_percent,
         systemSettings?.min_downpayment_percent
       );
       
@@ -1116,9 +1120,11 @@ export default function PropertyStorefrontPage() {
 
             {(() => {
               const total = calculateTotalPrice(selectedRoom.base_price);
+              // Hierarchy: room override → property default → platform default → clamped to platform min
               const resolvedPercent = resolveDownpaymentPercent(
                 selectedRoom.downpayment_percent,
                 property?.downpayment_percent,
+                systemSettings?.default_downpayment_percent,
                 systemSettings?.min_downpayment_percent
               );
               const breakdown = calculatePaymentBreakdown(
