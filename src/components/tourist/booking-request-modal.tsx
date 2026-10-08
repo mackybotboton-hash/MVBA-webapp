@@ -229,10 +229,14 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                   onSelect={(range) => setDateRange(range as any)}
                   numberOfMonths={1}
                   disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    // Disable past days
-                    if (date < today) return true;
+                    const earliestBookingDate = new Date();
+                    // Add 2 days lead time (disable today and tomorrow)
+                    earliestBookingDate.setDate(earliestBookingDate.getDate() + 2);
+                    earliestBookingDate.setHours(0, 0, 0, 0);
+                    
+                    // Disable any date before the 2-day lead time
+                    if (date < earliestBookingDate) return true;
+                    
                     // Disable dates before check-in when picking check-out
                     if (dateRange?.from && !dateRange?.to && date < dateRange.from) {
                       return true;

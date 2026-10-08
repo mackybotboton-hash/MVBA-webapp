@@ -49,7 +49,7 @@ function Calendar({
         range_start: "range_start",
         range_end: "range_end",
         selected: "bg-black text-white hover:bg-black hover:text-white focus:bg-black focus:text-white",
-        today: "bg-neutral-100 text-neutral-900",
+        today: "bg-neutral-100 text-neutral-900 aria-selected:bg-black aria-selected:text-white",
         outside: "outside text-neutral-500 aria-selected:bg-neutral-100/50 aria-selected:text-neutral-600",
         disabled: "text-neutral-300 opacity-50 cursor-not-allowed hover:bg-transparent bg-neutral-50/50 line-through decoration-red-400 decoration-2",
         range_middle: "aria-selected:bg-neutral-100 aria-selected:text-neutral-900",
