@@ -111,8 +111,8 @@ export default function PropertyStorefrontPage() {
     currentIndex: 0,
   });
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
-    from: new Date(),
-    to: addDays(new Date(), 2),
+    from: addDays(new Date(), 2),
+    to: addDays(new Date(), 4),
   });
   
   const formatLocalDate = (date: Date) => {
@@ -1035,7 +1035,21 @@ export default function PropertyStorefrontPage() {
                   selected={dateRange}
                   onSelect={setDateRange}
                   numberOfMonths={1}
-                  disabled={[{ before: new Date() }, ...disabledDates]}
+                  disabled={(date) => {
+                    const earliestAllowed = addDays(new Date(), 2);
+                    earliestAllowed.setHours(0, 0, 0, 0);
+                    
+                    // 1. Strictly enforce 2-day advance booking (disable today and tomorrow)
+                    if (date < earliestAllowed) return true;
+                    
+                    // 2. Once a check-in date is selected, PERMANENTLY disable all dates before it.
+                    if (dateRange?.from && date < dateRange.from) return true;
+                    
+                    // 3. Disable dates already booked
+                    return disabledDates.some(
+                      (range) => date >= range.from && date <= range.to
+                    );
+                  }}
                   className="w-full max-w-[280px] sm:max-w-none flex justify-center"
                 />
               </div>
