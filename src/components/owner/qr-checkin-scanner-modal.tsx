@@ -252,7 +252,6 @@ export function QRCheckinScannerModal({
                     }
                   }}
                   components={{
-                    audio: false,
                     onOff: true,
                     torch: true,
                     zoom: true,
