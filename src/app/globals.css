@@ -11,6 +11,15 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
+  /* Desktop: use 14px base so rem-based Tailwind classes are compact on larger screens */
+  font-size: 14px;
+}
+
+/* Mobile: bump back up to 16px for easy tapping */
+@media (max-width: 767px) {
+  html {
+    font-size: 16px;
+  }
 }
 
 body {
@@ -20,7 +29,6 @@ body {
   font-feature-settings: "cv11", "ss01", "ss03", "cv02";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  @apply text-base leading-relaxed;
 }
 
 /* ---------- Typography Overrides (Highly Visible Approach) ---------- */
