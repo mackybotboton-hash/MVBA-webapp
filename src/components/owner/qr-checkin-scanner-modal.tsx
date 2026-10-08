@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import {
-  QrCode,
   X,
   Search,
   CheckCircle2,
@@ -21,7 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Html5QrcodeScanner } from "html5-qrcode";
 import { completeBookingAction } from "@/app/actions/booking-actions";
 import type { OwnerBookingItem } from "@/components/owner/owner-booking-card";
 
@@ -44,7 +42,8 @@ export function QRCheckinScannerModal({
   const [searchInput, setSearchInput] = React.useState("");
   const [matchedBooking, setMatchedBooking] = React.useState<OwnerBookingItem | null>(null);
   const [isProcessing, setIsProcessing] = React.useState(false);
-  const scannerRef = React.useRef<Html5QrcodeScanner | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const scannerRef = React.useRef<any>(null);
 
   // --- Search / QR match logic ---
   // Uses correct OwnerBookingItem field names: tourist_name, tourist_phone, room_name
@@ -69,12 +68,23 @@ export function QRCheckinScannerModal({
   }, [searchInput, bookings]);
 
   // --- Scanner lifecycle ---
+  // Lazy-load html5-qrcode ONLY inside the effect so it never runs at module load
+  // time. This prevents mobile browser crashes caused by the library accessing
+  // navigator.mediaDevices during import.
   React.useEffect(() => {
     if (!isOpen || activeTab !== "scanner") return;
 
+    let cancelled = false;
+
     // Small delay to ensure the DOM element is mounted
-    const timer = setTimeout(() => {
-      if (!scannerRef.current) {
+    const timer = setTimeout(async () => {
+      if (cancelled || scannerRef.current) return;
+
+      try {
+        const { Html5QrcodeScanner } = await import("html5-qrcode");
+
+        if (cancelled) return;
+
         scannerRef.current = new Html5QrcodeScanner(
           "qr-reader",
           { fps: 10, qrbox: { width: 220, height: 220 } },
@@ -82,18 +92,22 @@ export function QRCheckinScannerModal({
         );
 
         scannerRef.current.render(
-          (text) => {
+          (text: string) => {
             setSearchInput(text);
-            toast.success("QR Code scanned successfully!");
+            toast.success("QR Code scanned!");
           },
-          (_err) => {
+          (_err: unknown) => {
             // Ignore scan failures silently
           }
         );
+      } catch (err) {
+        console.error("[QR] Failed to load scanner:", err);
+        toast.error("Camera scanner failed to load. Use Manual Lookup instead.");
       }
-    }, 200);
+    }, 300);
 
     return () => {
+      cancelled = true;
       clearTimeout(timer);
       if (scannerRef.current) {
         scannerRef.current.clear().catch(console.error);
