@@ -11,8 +11,8 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
-  /* Base typography - uniform size approach */
-  font-size: 14px;
+  /* Scaled up typography for better visibility (Accessibility) */
+  font-size: 16px; /* Base 16px makes all rem units larger */
 }
 
 body {
@@ -22,26 +22,26 @@ body {
   font-feature-settings: "cv11", "ss01", "ss03", "cv02";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Uniform base size */
-  @apply text-[14px] leading-relaxed;
+  /* Highly visible base text */
+  @apply text-base leading-relaxed;
 }
 
-/* ---------- Typography Overrides (Uniform approach) ---------- */
+/* ---------- Typography Overrides (Highly Visible Approach) ---------- */
 h1, h2, h3, h4, h5, h6 {
-  /* Control hierarchy with weight and tracking instead of massive size differences */
-  font-size: 1rem; /* 14px */
-  font-weight: 600;
+  /* Larger headings for clearer hierarchy */
+  font-size: 1.25rem; /* 20px */
+  font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .text-hero {
-  font-size: 1.15rem; /* 16px - slight bump for absolute top level */
-  font-weight: 700;
+  font-size: 1.5rem; /* 24px - Big and bold for main titles */
+  font-weight: 800;
   letter-spacing: -0.03em;
 }
 
 .text-caption {
-  font-size: 0.85rem; /* 12px for minor details */
+  font-size: 0.9375rem; /* 15px for minor details, still highly readable */
   color: var(--muted-foreground);
   font-weight: 500;
 }
