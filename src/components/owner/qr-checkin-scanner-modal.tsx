@@ -23,6 +23,13 @@ import { toast } from "sonner";
 import { completeBookingAction } from "@/app/actions/booking-actions";
 import type { OwnerBookingItem } from "@/components/owner/owner-booking-card";
 
+// Lazy load the scanner to avoid SSR issues or premature camera access
+import dynamic from "next/dynamic";
+
+const Scanner = dynamic(() => import("@yudiel/react-qr-scanner").then(mod => mod.Scanner), {
+  ssr: false,
+});
+
 export interface QRCheckinScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -42,8 +49,7 @@ export function QRCheckinScannerModal({
   const [searchInput, setSearchInput] = React.useState("");
   const [matchedBooking, setMatchedBooking] = React.useState<OwnerBookingItem | null>(null);
   const [isProcessing, setIsProcessing] = React.useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const scannerRef = React.useRef<any>(null);
+  const [cameraError, setCameraError] = React.useState<string | null>(null);
 
   // --- Search / QR match logic ---
   // Uses correct OwnerBookingItem field names: tourist_name, tourist_phone, room_name
@@ -67,72 +73,15 @@ export function QRCheckinScannerModal({
     setMatchedBooking(found || null);
   }, [searchInput, bookings]);
 
-  // --- Scanner lifecycle ---
-  // Lazy-load html5-qrcode ONLY inside the effect so it never runs at module load
-  // time. This prevents mobile browser crashes caused by the library accessing
-  // navigator.mediaDevices during import.
-  React.useEffect(() => {
-    if (!isOpen || activeTab !== "scanner") return;
-
-    let cancelled = false;
-
-    // Small delay to ensure the DOM element is mounted
-    const timer = setTimeout(async () => {
-      if (cancelled || scannerRef.current) return;
-
-      try {
-        const { Html5QrcodeScanner } = await import("html5-qrcode");
-
-        if (cancelled) return;
-
-        scannerRef.current = new Html5QrcodeScanner(
-          "qr-reader",
-          { fps: 10, qrbox: { width: 220, height: 220 } },
-          false
-        );
-
-        scannerRef.current.render(
-          (text: string) => {
-            setSearchInput(text);
-            toast.success("QR Code scanned!");
-          },
-          (_err: unknown) => {
-            // Ignore scan failures silently
-          }
-        );
-      } catch (err) {
-        console.error("[QR] Failed to load scanner:", err);
-        toast.error("Camera scanner failed to load. Use Manual Lookup instead.");
-      }
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
-        scannerRef.current = null;
-      }
-    };
-  }, [isOpen, activeTab]);
-
-  // Cleanup scanner when switching to manual tab
-  React.useEffect(() => {
-    if (activeTab !== "scanner" && scannerRef.current) {
-      scannerRef.current.clear().catch(console.error);
-      scannerRef.current = null;
-    }
-  }, [activeTab]);
-
   // Reset state when modal closes
   React.useEffect(() => {
     if (!isOpen) {
       setSearchInput("");
       setMatchedBooking(null);
       setActiveTab("scanner");
+      setCameraError(null);
     }
   }, [isOpen]);
-
   if (!isOpen) return null;
 
   // --- Manual lookup: searchable booking list ---
@@ -180,6 +129,16 @@ export function QRCheckinScannerModal({
 
   const handleSelectManual = (booking: OwnerBookingItem) => {
     setMatchedBooking(booking);
+  };
+
+  const handleScan = (result: any) => {
+    if (result && result.length > 0) {
+      const code = result[0].rawValue;
+      if (code) {
+        setSearchInput(code);
+        toast.success("QR Code scanned!");
+      }
+    }
   };
 
   return (
@@ -271,7 +230,35 @@ export function QRCheckinScannerModal({
 
           {/* ── QR SCANNER TAB ── */}
           {activeTab === "scanner" && (
-            <div id="qr-reader" className="w-full overflow-hidden rounded-xl border border-neutral-200" />
+            <div className="w-full overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 relative min-h-[250px] flex items-center justify-center">
+              {cameraError ? (
+                <div className="text-center p-4">
+                  <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                  <p className="text-neutral-700 font-medium">Camera access failed.</p>
+                  <p className="text-neutral-500 text-[10px] mt-1">{cameraError}</p>
+                </div>
+              ) : (
+                <Scanner
+                  onScan={handleScan}
+                  onError={(error) => {
+                    console.error("Scanner error:", error);
+                    if (error && (error as Error).name !== "NotFoundException") {
+                      setCameraError((error as Error).message || "Unable to access camera");
+                    }
+                  }}
+                  components={{
+                    audio: false,
+                    onOff: true,
+                    torch: true,
+                    zoom: true,
+                    finder: true
+                  }}
+                  styles={{
+                    container: { width: "100%", height: "100%" }
+                  }}
+                />
+              )}
+            </div>
           )}
 
           {/* ── MANUAL LOOKUP TAB ── */}
