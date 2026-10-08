@@ -169,3 +169,30 @@ export async function updateAccountPasswordAction(newPassword: string) {
     return { success: false, error: err.message || "Failed to update password" };
   }
 }
+
+export async function syncProfileAvatar(avatarUrl: string) {
+  try {
+    const supabase = (await createClient()) as any;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Unauthorized" };
+    
+    // Update auth metadata so useAuth session hook updates instantly without hard refresh
+    await supabase.auth.updateUser({ data: { avatar_url: avatarUrl } });
+
+    // Update profiles table
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: avatarUrl })
+      .eq("id", user.id);
+
+    if (error) {
+      console.error("Profile avatar sync error:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Action error:", err);
+    return { success: false, error: err.message || "Failed to sync avatar" };
+  }
+}

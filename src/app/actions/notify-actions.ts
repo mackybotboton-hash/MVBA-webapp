@@ -118,7 +118,7 @@ export async function notifyNewBooking(params: {
   await sendNotification({
     targetUserId: ownerId,
     type: "new_booking",
-    title: "🏨 New Booking Request",
+    title: "New Booking Request",
     body: `${touristName} requested a stay at ${propertyName} starting ${checkIn}.`,
     url: `/bookings`,
   });
@@ -134,7 +134,7 @@ export async function notifyNewBooking(params: {
       await sendNotification({
         targetUserId: admin.id,
         type: "new_booking",
-        title: "📋 New Booking — Deposit Pending",
+        title: "New Booking — Deposit Pending",
         body: `${touristName} booked ${propertyName}. Awaiting GCash deposit.`,
         url: `/admin/transactions`,
       });
@@ -160,7 +160,7 @@ export async function notifyBookingStatusChange(params: {
     await sendNotification({
       targetUserId: touristId,
       type: "booking_status",
-      title: "🚫 Booking Cancelled",
+      title: "Booking Cancelled",
       body: `Your booking at ${propertyName} for ${checkIn} was cancelled.`,
       url: `/bookings`,
     });
@@ -172,7 +172,7 @@ export async function notifyBookingStatusChange(params: {
   await sendNotification({
     targetUserId: touristId,
     type: "booking_status",
-    title: isAccepted ? "✅ Booking Confirmed!" : "❌ Booking Declined",
+    title: isAccepted ? "Booking Confirmed!" : "Booking Declined",
     body: isAccepted
       ? `Your stay at ${propertyName} on ${checkIn} has been confirmed! Please upload your GCash deposit to finalize.`
       : `Your booking request for ${propertyName} on ${checkIn} was declined. Browse other properties.`,
@@ -195,7 +195,7 @@ export async function notifyDepositVerified(params: {
   await sendNotification({
     targetUserId: touristId,
     type: "deposit_verified",
-    title: "💳 Deposit Verified!",
+    title: "Deposit Verified!",
     body: `Your GCash deposit for ${propertyName} has been verified by the admin. You're all set!`,
     url: `/bookings`,
   });
@@ -204,7 +204,7 @@ export async function notifyDepositVerified(params: {
   await sendNotification({
     targetUserId: ownerId,
     type: "deposit_verified",
-    title: "💰 Deposit Confirmed",
+    title: "Deposit Confirmed",
     body: `The deposit for your ${propertyName} booking has been verified. Payout is being processed.`,
     url: `/bookings`,
   });
@@ -217,17 +217,17 @@ export async function notifyDepositVerified(params: {
 export async function notifyNewMessage(params: {
   recipientId: string;
   senderName: string;
+  senderId: string;
   messagePreview: string;
-  chatUrl: string;
 }) {
-  const { recipientId, senderName, messagePreview, chatUrl } = params;
+  const { recipientId, senderName, senderId, messagePreview } = params;
 
   await sendNotification({
     targetUserId: recipientId,
     type: "new_message",
-    title: `💬 ${senderName}`,
+    title: senderName,
     body: messagePreview.length > 80 ? `${messagePreview.slice(0, 77)}...` : messagePreview,
-    url: chatUrl,
+    url: `?guest=${senderId}`,
   });
 }
 
@@ -246,7 +246,7 @@ export async function notifyBookingCancelled(params: {
   await sendNotification({
     targetUserId: ownerId,
     type: "booking_cancelled",
-    title: "🚫 Booking Cancelled",
+    title: "Booking Cancelled",
     body: `${touristName} cancelled their booking at ${propertyName} for ${checkIn}.`,
     url: `/bookings`,
   });

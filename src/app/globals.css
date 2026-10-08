@@ -11,8 +11,19 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
-  /* Scaled up typography for better visibility (Accessibility) */
-  font-size: 16px; /* Base 16px makes all rem units larger */
+  /* MASSIVE UI/UX ACCESSIBILITY BOOST: 
+     By setting the base font-size to 18.5px (instead of the standard 16px), 
+     EVERY single tailwind class using 'rem' (like text-sm, text-xs, p-4, m-2, h-10) 
+     is instantly magnified by ~15%. This creates the highly visible, 
+     easy-to-tap, TikTok/Facebook-style mobile experience. */
+  font-size: 18.5px; 
+}
+
+@media (min-width: 768px) {
+  html {
+    /* Slightly tone down the magnification on larger screens like tablets/desktop */
+    font-size: 17px;
+  }
 }
 
 body {

@@ -68,8 +68,42 @@ export function NotificationsDropdown() {
       // Update local state to reflect read status
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
     }
-    if (notif.url) {
-      router.push(notif.url);
+    
+    // Resolve dynamic URL based on role
+    let finalUrl = notif.url;
+    if (finalUrl) {
+      const isChat = notif.type === "new_message";
+      const isBooking = notif.type === "new_booking" || notif.type === "booking_status" || notif.type === "booking_cancelled" || notif.type === "deposit_verified";
+      
+      let basePath = "";
+      if (isChat) {
+        if (role === 'admin') basePath = '/admin/chat';
+        else if (role === 'resort') basePath = '/resort/chat';
+        else if (role === 'homestay') basePath = '/homestay/chat';
+        else basePath = '/chat';
+      } else if (isBooking) {
+        if (role === 'admin') basePath = '/admin/transactions';
+        else if (role === 'resort') basePath = '/resort/bookings';
+        else if (role === 'homestay') basePath = '/homestay/bookings';
+        else basePath = '/bookings';
+      }
+
+      // If the url is just query params (e.g. ?guest=123) or standard path, we construct it securely
+      if (basePath) {
+         if (finalUrl.startsWith('?')) {
+            finalUrl = basePath + finalUrl;
+         } else if (finalUrl.startsWith('/')) {
+            // Check if finalUrl already has query params, preserve them
+            const queryIndex = finalUrl.indexOf('?');
+            if (queryIndex !== -1) {
+                finalUrl = basePath + finalUrl.substring(queryIndex);
+            } else {
+                finalUrl = basePath;
+            }
+         }
+      }
+
+      router.push(finalUrl);
     }
   };
 

@@ -274,17 +274,20 @@ export function BookingCard({
         </p>
 
         <div className="flex flex-wrap items-center gap-2">
-          {(booking.status === "accepted" || booking.status === "completed") && onViewBoardingPass && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onViewBoardingPass(booking)}
-              className="text-xs h-8 px-2.5 border-neutral-300 font-semibold hover:bg-neutral-50"
-            >
-              <QrCode className="h-3.5 w-3.5 mr-1 text-neutral-700" />
-              Boarding Pass QR
-            </Button>
-          )}
+          {(booking.status === "accepted" || booking.status === "completed") &&
+            booking.payment_status !== "awaiting_deposit" &&
+            booking.payment_status !== "deposit_uploaded" &&
+            onViewBoardingPass && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onViewBoardingPass(booking)}
+                className="text-xs h-8 px-2.5 border-neutral-300 font-semibold hover:bg-neutral-50"
+              >
+                <QrCode className="h-3.5 w-3.5 mr-1 text-neutral-700" />
+                Boarding Pass QR
+              </Button>
+            )}
 
           {booking.owner_id && (
             <Link href={`/chat?recipient=${booking.owner_id}`}>

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { syncProfileAvatar } from "@/app/actions/settings-actions";
 import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
 import { STORAGE_BUCKETS } from "@/lib/constants";
 
@@ -189,8 +190,8 @@ export function PropertyFormModal({
         if (error) throw error;
 
         // Feature: Sync host's profile photo with the property's cover photo
-        if (data.owner_id) {
-          await (supabase.from("profiles") as any).update({ avatar_url: data.cover_image_url || null }).eq("id", data.owner_id);
+        if (data.owner_id === user.id && data.cover_image_url) {
+          await syncProfileAvatar(data.cover_image_url);
         }
 
         toast.success("Property updated successfully!");
@@ -221,8 +222,8 @@ export function PropertyFormModal({
         if (error) throw error;
 
         // Feature: Sync host's profile photo with the property's cover photo
-        if (data.owner_id) {
-          await (supabase.from("profiles") as any).update({ avatar_url: data.cover_image_url || null }).eq("id", data.owner_id);
+        if (data.owner_id === user.id && data.cover_image_url) {
+          await syncProfileAvatar(data.cover_image_url);
         }
 
         toast.success("Property listed successfully!", {

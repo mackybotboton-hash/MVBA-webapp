@@ -1167,15 +1167,12 @@ function ChatSystemContent({
           currentUser.user_metadata?.full_name ||
           currentUser.email?.split("@")[0] ||
           "Someone";
-        const chatUrl =
-          currentRole === "tourist"
-            ? "/chat"
-            : `/${currentRole}/chat`;
+
         notifyNewMessage({
           recipientId: activeContact.id,
           senderName,
+          senderId: currentUser.id,
           messagePreview: text,
-          chatUrl,
         }).catch((err) =>
           console.error("[Notify] notifyNewMessage failed:", err)
         );

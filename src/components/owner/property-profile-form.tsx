@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Building2, Save, Loader2, Link as LinkIcon, Camera, MapPin, Clock } from "lucide-react";
+import { syncProfileAvatar } from "@/app/actions/settings-actions";
 
 export function PropertyProfileForm({ propertyType }: { propertyType: "homestay" | "resort" }) {
   const [property, setProperty] = React.useState<any>(null);
@@ -105,8 +106,8 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
       
       // Feature: Sync host's profile photo with the property's cover photo
       const { data: userData } = await supabase.auth.getUser();
-      if (userData?.user?.id) {
-        await (supabase.from("profiles") as any).update({ avatar_url: coverImageUrl || null }).eq("id", userData.user.id);
+      if (userData?.user?.id && coverImageUrl) {
+        await syncProfileAvatar(coverImageUrl);
       }
       toast.success("Property profile and policies saved!");
     } catch (err: any) {

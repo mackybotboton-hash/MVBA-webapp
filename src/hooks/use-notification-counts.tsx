@@ -212,13 +212,11 @@ export function NotificationCountsProvider({ children }: { children: ReactNode }
       let unreadSystemNotifications = 0;
 
       // 1. Unread messages (all roles that have chat)
-      if (role !== "admin") {
-        const { count } = await (supabase.from("messages") as any)
-          .select("id", { count: "exact", head: true })
-          .eq("receiver_id", userId)
-          .eq("is_read", false);
-        unreadMessages = count ?? 0;
-      }
+      const { count } = await (supabase.from("messages") as any)
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", userId)
+        .eq("is_read", false);
+      unreadMessages = count ?? 0;
 
       // 2. Unseen booking requests (host roles only)
       if (role === "homestay" || role === "resort") {
@@ -322,10 +320,7 @@ export function NotificationCountsProvider({ children }: { children: ReactNode }
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          setCounts((prev) => ({
-            ...prev,
-            unreadSystemNotifications: prev.unreadSystemNotifications + 1,
-          }));
+          fetchRef.current();
           playSound();
         }
       )

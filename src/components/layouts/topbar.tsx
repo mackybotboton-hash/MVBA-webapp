@@ -14,6 +14,7 @@ import { getInitials } from "@/lib/utils";
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { NotificationsDropdown } from "@/components/shared/notifications-dropdown";
+import { Avatar } from "@/components/ui/avatar";
 
 interface TopbarProps {
   onMenuToggle?: () => void;
@@ -115,9 +116,7 @@ export function Topbar({ onMenuToggle, title }: TopbarProps) {
             <div
               className="flex items-center gap-2.5 p-1 rounded-xl bg-gray-50/50 border border-gray-100 cursor-default"
             >
-              <div className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center text-xs font-bold shadow-xs">
-                {initials}
-              </div>
+              <Avatar src={profile?.avatar_url} name={displayName} size="sm" />
               <div className="hidden md:flex flex-col text-left pr-3">
                 <span className="text-sm font-medium text-gray-900 leading-none">
                   {displayName}

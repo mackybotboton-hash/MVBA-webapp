@@ -58,27 +58,34 @@ export function QRCheckinScannerModal({
 
   if (!isOpen) return null;
 
+  const scannerRef = React.useRef<Html5QrcodeScanner | null>(null);
+
   React.useEffect(() => {
     if (!isOpen) return;
 
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+    if (!scannerRef.current) {
+      scannerRef.current = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      );
 
-    scanner.render(
-      (text) => {
-        setSearchInput(text);
-        toast.success("QR Code scanned successfully!");
-      },
-      (err) => {
-        // Ignore scan failures (happens every frame when no QR is in view)
-      }
-    );
+      scannerRef.current.render(
+        (text) => {
+          setSearchInput(text);
+          toast.success("QR Code scanned successfully!");
+        },
+        (err) => {
+          // Ignore scan failures
+        }
+      );
+    }
 
     return () => {
-      scanner.clear().catch(console.error);
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(console.error);
+        scannerRef.current = null;
+      }
     };
   }, [isOpen]);
 
