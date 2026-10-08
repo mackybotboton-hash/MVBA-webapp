@@ -82,7 +82,7 @@ export function QRCheckinScannerModal({
       setCameraError(null);
     }
   }, [isOpen]);
-  if (!isOpen) return null;
+  // Removed early return to prevent hook conditional calls
 
   // --- Manual lookup: searchable booking list ---
   const manualFiltered = React.useMemo(() => {
@@ -118,7 +118,7 @@ export function QRCheckinScannerModal({
 
       onCheckinSuccess(matchedBooking.id);
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       toast.success("Guest check-in recorded!");
       onCheckinSuccess(matchedBooking.id);
       onClose();
@@ -131,6 +131,7 @@ export function QRCheckinScannerModal({
     setMatchedBooking(booking);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleScan = (result: any) => {
     if (result && result.length > 0) {
       const code = result[0].rawValue;
@@ -140,6 +141,8 @@ export function QRCheckinScannerModal({
       }
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -240,10 +243,12 @@ export function QRCheckinScannerModal({
               ) : (
                 <Scanner
                   onScan={handleScan}
-                  onError={(error) => {
+                  onError={(error: unknown) => {
                     console.error("Scanner error:", error);
-                    if (error && (error as Error).name !== "NotFoundException") {
-                      setCameraError((error as Error).message || "Unable to access camera");
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const err = error as any;
+                    if (err && err.name !== "NotFoundException") {
+                      setCameraError(err.message || "Unable to access camera");
                     }
                   }}
                   components={{
