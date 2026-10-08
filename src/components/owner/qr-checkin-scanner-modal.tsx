@@ -11,6 +11,7 @@ import {
   BedDouble,
   Loader2,
   ScanLine,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -230,6 +231,18 @@ export function QRCheckinScannerModal({
               </div>
 
               <div className="space-y-1.5 text-xs text-neutral-600">
+                {matchedBooking.status === "accepted" && matchedBooking.payment_status !== "verified" && (
+                  <div className="bg-red-50 text-red-700 p-2.5 rounded-lg border border-red-200 mt-2 mb-3">
+                    <p className="font-bold flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4" />
+                      Check-In Not Allowed
+                    </p>
+                    <p className="mt-0.5 ml-5.5 opacity-90 leading-tight">
+                      This booking has not yet been confirmed via deposit verification.
+                    </p>
+                  </div>
+                )}
+                
                 <div className="flex items-center gap-2">
                   <BedDouble className="h-3.5 w-3.5 text-neutral-500" />
                   <span>
@@ -252,8 +265,8 @@ export function QRCheckinScannerModal({
               <Button
                 type="button"
                 onClick={handleConfirmCheckIn}
-                disabled={isProcessing}
-                className="w-full bg-black text-white hover:bg-neutral-800 text-xs h-10 font-bold mt-1 shadow-xs"
+                disabled={isProcessing || (matchedBooking.status === "accepted" && matchedBooking.payment_status !== "verified")}
+                className="w-full bg-black text-white hover:bg-neutral-800 text-xs h-10 font-bold mt-1 shadow-xs disabled:opacity-50"
               >
                 {isProcessing ? (
                   <>

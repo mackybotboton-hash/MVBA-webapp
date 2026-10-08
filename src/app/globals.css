@@ -11,19 +11,6 @@
 
 html {
   -webkit-tap-highlight-color: transparent;
-  /* MASSIVE UI/UX ACCESSIBILITY BOOST: 
-     By setting the base font-size to 18.5px (instead of the standard 16px), 
-     EVERY single tailwind class using 'rem' (like text-sm, text-xs, p-4, m-2, h-10) 
-     is instantly magnified by ~15%. This creates the highly visible, 
-     easy-to-tap, TikTok/Facebook-style mobile experience. */
-  font-size: 18.5px; 
-}
-
-@media (min-width: 768px) {
-  html {
-    /* Slightly tone down the magnification on larger screens like tablets/desktop */
-    font-size: 17px;
-  }
 }
 
 body {
@@ -33,17 +20,10 @@ body {
   font-feature-settings: "cv11", "ss01", "ss03", "cv02";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Highly visible base text */
   @apply text-base leading-relaxed;
 }
 
 /* ---------- Typography Overrides (Highly Visible Approach) ---------- */
-h1, h2, h3, h4, h5, h6 {
-  /* Larger headings for clearer hierarchy */
-  font-size: 1.25rem; /* 20px */
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
 
 .text-hero {
   font-size: 1.5rem; /* 24px - Big and bold for main titles */

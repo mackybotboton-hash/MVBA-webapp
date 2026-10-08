@@ -151,7 +151,7 @@ export default function TouristBookingsPage() {
 
         // Auto-cache confirmed & completed reservations for offline island boarding
         const passesToCache: BoardingPassData[] = mapped
-          .filter((b) => b.status === "completed" || b.payment_status === "verified" || b.status === "accepted")
+          .filter((b) => b.status === "completed" || (b.status === "accepted" && b.payment_status === "verified"))
           .map((b) => ({
             id: b.id,
             property_name: b.property_name,
