@@ -31,7 +31,8 @@ import { toast } from "sonner";
  * if already hydrated, AND fires again later once hydration completes.
  */
 export function PushInitializer() {
-  const sdkInitialized = useRef(false);
+  const sdkInitAttempted = useRef(false);
+  const sdkReady = useRef(false);
   const boundUserId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -40,8 +41,8 @@ export function PushInitializer() {
     let initPromise: Promise<void> | null = null;
 
     const initSdkOnce = async () => {
-      if (sdkInitialized.current) return;
-      sdkInitialized.current = true;
+      if (sdkInitAttempted.current) return;
+      sdkInitAttempted.current = true;
 
       try {
         const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
@@ -54,6 +55,8 @@ export function PushInitializer() {
           appId,
           allowLocalhostAsSecureOrigin: process.env.NODE_ENV === "development",
         });
+        
+        sdkReady.current = true;
 
         OneSignal.Slidedown.promptPush();
 
@@ -91,6 +94,9 @@ export function PushInitializer() {
         await initPromise;
       }
       
+      // If initialization completely failed (e.g., origin not allowed in preview), abort login
+      if (!sdkReady.current) return;
+      
       try {
         await OneSignal.login(userId);
         boundUserId.current = userId;
@@ -107,7 +113,7 @@ export function PushInitializer() {
     };
 
     const unbindUser = async () => {
-      if (!boundUserId.current) return;
+      if (!boundUserId.current || !sdkReady.current) return;
       try {
         await OneSignal.logout();
         boundUserId.current = null;

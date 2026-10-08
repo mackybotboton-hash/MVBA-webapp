@@ -228,7 +228,17 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                   selected={dateRange}
                   onSelect={(range) => setDateRange(range as any)}
                   numberOfMonths={1}
-                  disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    // Disable past days
+                    if (date < today) return true;
+                    // Disable dates before check-in when picking check-out
+                    if (dateRange?.from && !dateRange?.to && date < dateRange.from) {
+                      return true;
+                    }
+                    return false;
+                  }}
                   className="rounded-md"
                 />
               </div>

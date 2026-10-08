@@ -4,6 +4,7 @@
 
 -- 1. System Settings: Global Minimum Downpayment %
 ALTER TABLE public.system_settings
+ADD COLUMN IF NOT EXISTS default_downpayment_percent INT DEFAULT 20 CHECK (default_downpayment_percent >= 1 AND default_downpayment_percent <= 100),
 ADD COLUMN IF NOT EXISTS min_downpayment_percent INT DEFAULT 20 CHECK (min_downpayment_percent >= 1 AND min_downpayment_percent <= 100);
 
 -- 2. Properties: Optional listing-level default
@@ -23,6 +24,7 @@ ALTER TABLE public.bookings
 ADD COLUMN IF NOT EXISTS balance_amount NUMERIC(10,2) GENERATED ALWAYS AS (COALESCE(total_price,0) - COALESCE(downpayment_amount,0)) STORED;
 
 -- Ensure balance amount is never negative and downpayment is never more than total price
+ALTER TABLE public.bookings DROP CONSTRAINT IF EXISTS check_balance_amount;
 ALTER TABLE public.bookings
 ADD CONSTRAINT check_balance_amount CHECK (balance_amount >= 0 AND downpayment_amount <= total_price) NOT VALID;
 
