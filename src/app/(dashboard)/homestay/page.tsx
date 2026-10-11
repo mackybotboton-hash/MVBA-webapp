@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Users,
   Receipt,
+  PhilippinePeso,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import {
 import { RoomFormModal } from "@/components/owner/room-form-modal";
 import { DuesPaymentModal } from "@/components/owner/dues-payment-modal";
 import { WeatherAlertBanner } from "@/components/shared/weather-alert-banner";
+import { calculateHostMetrics } from "@/lib/metrics-helper";
 
 export default function HomestayDashboardPage() {
   const [property, setProperty] = React.useState<any>(null);
@@ -112,6 +114,7 @@ export default function HomestayDashboardPage() {
     (b) => b.check_out_date === today && b.status === "accepted"
   );
   const pendingRequests = bookings.filter((b) => b.status === "pending");
+  const metrics = calculateHostMetrics(bookings);
 
   return (
     <div className="space-y-6">
@@ -280,24 +283,61 @@ export default function HomestayDashboardPage() {
               </span>
             </div>
 
-            {/* Platform Fee Widget */}
-            <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-2 opacity-50 cursor-not-allowed pointer-events-none">
+            {/* Revenue via Panaw */}
+            <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Platform Fee
+                  Revenue via Panaw
                 </span>
-                <Receipt className="h-4 w-4 text-neutral-600" />
+                <PhilippinePeso className="h-4 w-4 text-neutral-500" />
               </div>
-              <p className="text-2xl font-bold text-neutral-900">
-                ₱500 <span className="text-xs text-neutral-500 font-normal">/ mo</span>
-              </p>
-              <button
-                type="button"
-                disabled
-                className="text-xs text-neutral-800 font-bold flex items-center gap-1 cursor-not-allowed"
-              >
-                <span>Upload GCash Receipt (Disabled)</span> &rarr;
-              </button>
+              {metrics.grossBookingValue === 0 ? (
+                <div>
+                  <p className="text-2xl font-bold text-neutral-900">₱0</p>
+                  <p className="text-xs text-neutral-500 mt-1">Start accepting bookings to earn revenue</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-neutral-900">
+                    ₱{metrics.grossBookingValue.toLocaleString()}
+                  </p>
+                  <div className="space-y-1 mt-2 border-t border-neutral-100 pt-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-neutral-500">Net to Host (Panaw)</span>
+                      <span className="font-semibold text-green-700">₱{metrics.netToHost.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-neutral-400">Platform Commission</span>
+                      <span className="text-neutral-500">-₱{metrics.totalCommission.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Pending Payouts */}
+            <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-blue-900 uppercase tracking-wider">
+                  Pending Payouts
+                </span>
+                <Clock className="h-4 w-4 text-blue-700" />
+              </div>
+              {metrics.pendingPayoutAmount === 0 ? (
+                <div>
+                  <p className="text-2xl font-bold text-blue-900">₱0</p>
+                  <p className="text-xs text-blue-700/70 mt-1">No pending payouts at this time</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-blue-900">
+                    ₱{metrics.pendingPayoutAmount.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-blue-800">
+                    Awaiting admin GCash transfer
+                  </p>
+                </>
+              )}
             </div>
           </div>
 

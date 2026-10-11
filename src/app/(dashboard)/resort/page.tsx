@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Ship,
   Receipt,
+  PhilippinePeso,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ import {
 import { RoomFormModal } from "@/components/owner/room-form-modal";
 import { DuesPaymentModal } from "@/components/owner/dues-payment-modal";
 import { WeatherAlertBanner } from "@/components/shared/weather-alert-banner";
+import { calculateHostMetrics } from "@/lib/metrics-helper";
 
 export default function ResortDashboardPage() {
   const [property, setProperty] = React.useState<any>(null);
@@ -113,10 +115,7 @@ export default function ResortDashboardPage() {
   const confirmedBookings = bookings.filter((b) => b.status === "accepted" || b.status === "completed");
   const pendingBookings = bookings.filter((b) => b.status === "pending");
 
-  const totalRevenue = confirmedBookings.reduce(
-    (sum, b) => sum + Number(b.total_price || 0),
-    0
-  );
+  const metrics = calculateHostMetrics(bookings);
   const totalGuests = confirmedBookings.reduce(
     (sum, b) => sum + Number(b.guest_count || 0),
     0
@@ -252,19 +251,35 @@ export default function ResortDashboardPage() {
               </p>
             </div>
 
-            <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-2">
+            <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">
-                  Confirmed Revenue
+                  Revenue via Panaw
                 </span>
-                <DollarSign className="h-4 w-4 text-emerald-600" />
+                <PhilippinePeso className="h-4 w-4 text-emerald-600" />
               </div>
-              <p className="text-2xl font-bold text-neutral-900">
-                ₱{totalRevenue.toLocaleString()}
-              </p>
-              <span className="text-xs text-neutral-500">
-                All-time reservation value
-              </span>
+              {metrics.grossBookingValue === 0 ? (
+                <div>
+                  <p className="text-2xl font-bold text-neutral-900">₱0</p>
+                  <p className="text-xs text-neutral-500 mt-1">Start accepting bookings to earn revenue</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-neutral-900">
+                    ₱{metrics.grossBookingValue.toLocaleString()}
+                  </p>
+                  <div className="space-y-1 mt-2 border-t border-neutral-100 pt-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-neutral-500">Net to Host (Panaw)</span>
+                      <span className="font-semibold text-green-700">₱{metrics.netToHost.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-[10px]">
+                      <span className="text-neutral-400">Platform Commission</span>
+                      <span className="text-neutral-500">-₱{metrics.totalCommission.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="rounded-xl border border-neutral-200 bg-white p-5 space-y-2">
@@ -343,25 +358,30 @@ export default function ResortDashboardPage() {
               </Button>
             </Link>
 
-            {/* Platform Fee Quick Card */}
-            <div
-              className="rounded-xl border border-neutral-200 p-5 bg-white flex items-center justify-between group opacity-50 cursor-not-allowed pointer-events-none"
-            >
+            {/* Pending Payouts */}
+            <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-5 flex items-center justify-between group">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-neutral-800" />
-                  <h3 className="font-bold text-sm text-neutral-900">
-                    Platform Fee
+                  <Clock className="h-4 w-4 text-blue-700" />
+                  <h3 className="font-bold text-sm text-blue-900">
+                    Pending Payouts
                   </h3>
-                  <Badge variant="subtle" size="sm">₱1,500/mo</Badge>
                 </div>
-                <p className="text-xs text-neutral-600">
-                  Submit monthly GCash / bank payment receipt (Disabled)
+                {metrics.pendingPayoutAmount === 0 ? (
+                  <p className="text-xs text-blue-700/70">
+                    No pending payouts at this time
+                  </p>
+                ) : (
+                  <p className="text-xs text-blue-800">
+                    Awaiting admin GCash transfer
+                  </p>
+                )}
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-blue-900">
+                  ₱{metrics.pendingPayoutAmount.toLocaleString()}
                 </p>
               </div>
-              <Button variant="outline" size="sm" className="text-xs border-neutral-200" disabled>
-                Upload Receipt
-              </Button>
             </div>
           </div>
         </>

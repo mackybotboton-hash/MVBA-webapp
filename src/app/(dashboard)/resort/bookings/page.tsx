@@ -145,6 +145,15 @@ export default function ResortBookingsPage() {
     enabled: !!user?.id,
   });
 
+  const { data: commissionPercentage = 8 } = useQuery({
+    queryKey: ["system-settings-commission"],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("system_settings").select("commission_percentage").single();
+      return (data as any)?.commission_percentage || 8;
+    },
+  });
+
   // Supabase Realtime — invalidate on INSERT/UPDATE to owner's bookings
   useRealtimeBookings(user?.id, "host", ["resort-bookings"]);
 
@@ -264,7 +273,7 @@ export default function ResortBookingsPage() {
           variant="emerald"
         />
         <MetricCard
-          label="Platform Commissions (8%)"
+          label={`Platform Commissions (${commissionPercentage}%)`}
           value={`₱${metrics.totalCommissions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           subtext="Amount allocated to the platform"
           icon={DollarSign}

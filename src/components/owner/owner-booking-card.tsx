@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { calculatePayout } from "@/lib/payout-helper";
 import {
   Calendar,
   Users,
@@ -150,7 +151,7 @@ export function OwnerBookingCard({
               {booking.tourist_name || "Tourist Guest"}
             </h3>
             {/* Payout Paid Badge */}
-            {booking.payout_status === "paid" && (
+            {(booking.payout_status === "deposit_paid" || booking.payout_status === "fully_paid") && (
               <div className="absolute -top-3 -right-3">
                 <Badge variant="success" className="shadow-sm border-white border-2">
                   Payout Paid
@@ -179,24 +180,21 @@ export function OwnerBookingCard({
             ₱{booking.total_price.toLocaleString()}
           </span>
           {booking.downpayment_amount ? (() => {
-            const fee = booking.convenience_fee || 0;
-            const commissionRate = booking.commission_amount && (booking.total_price - fee) > 0
-              ? (booking.commission_amount / (booking.total_price - fee))
-              : 0;
-            // Room deposit = what tourist paid upfront minus the convenience fee
-            const roomDeposit = booking.downpayment_amount - fee;
-            // Commission on the deposit portion only
-            const commOnDeposit = Math.round(roomDeposit * commissionRate);
-            // What host actually receives from the upfront payment
-            const hostDeposit = roomDeposit - commOnDeposit;
-            // Remaining balance host collects at check-in
-            const hostPayout = booking.host_payout_amount || (booking.total_price - fee - (booking.commission_amount || 0));
-            const collectAtCheckin = hostPayout - hostDeposit;
+            const payouts = calculatePayout({
+              totalPrice: booking.total_price,
+              downpaymentAmount: booking.downpayment_amount,
+              commissionAmount: booking.commission_amount,
+              convenienceFee: booking.convenience_fee,
+              depositPayoutAmount: (booking as any).deposit_payout_amount,
+            });
+            const hostDeposit = payouts.depositPayout;
+            const collectAtCheckin = payouts.balancePayout;
+            const isDepositPaid = booking.payout_status === "deposit_paid" || booking.payout_status === "fully_paid";
             return (
               <div className="flex flex-col items-end mt-1 space-y-0.5">
                 <span className="text-[11px] text-green-700 font-medium">
-                  Deposit (GCash Transfer): ₱{hostDeposit.toLocaleString()}
-                  {booking.payout_status === "paid" && " (Paid to GCash)"}
+                  Panaw sends you after verification: ₱{hostDeposit.toLocaleString()}
+                  {isDepositPaid && " (Paid to GCash)"}
                 </span>
                 <span className="text-[11px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded">
                   Collect at Check-in: ₱{collectAtCheckin.toLocaleString()}
@@ -288,19 +286,18 @@ export function OwnerBookingCard({
             <span>- ₱{booking.commission_amount?.toLocaleString()}</span>
           </div>
 
-          {/* Guest Fee */}
-          <div className="flex justify-between items-center text-neutral-500">
-            <span>Guest Convenience Fee (Paid to Platform)</span>
-            <span>₱{booking.convenience_fee?.toLocaleString() || 100}</span>
-          </div>
-
           <div className="border-t border-neutral-200/60 my-2"></div>
 
           {/* Final Payout */}
           <div className="flex justify-between items-center font-bold text-neutral-900 text-sm">
             <span>Net Earnings (Your Payout)</span>
-            <span className="text-emerald-700">₱{booking.host_payout_amount?.toLocaleString() || 0}</span>
+            <span className="text-emerald-700">₱{(booking.host_payout_amount || ((booking.total_price - (booking.convenience_fee || 0)) - (booking.commission_amount || 0))).toLocaleString()}</span>
           </div>
+
+          {/* Informational Note for Guest Convenience Fee */}
+          <p className="text-[11px] text-neutral-500 pt-1">
+            * Note: Guest pays a separate ₱{(booking.convenience_fee || 100).toLocaleString()} convenience fee directly to Panaw (not deducted from your earnings).
+          </p>
         </div>
       </div>
 
@@ -311,12 +308,16 @@ export function OwnerBookingCard({
         </span>
 
         <div className="flex items-center gap-2">
-          {booking.payout_status === "paid" && booking.receipt_url && booking.receipt_url.includes("||payout:") && onViewPayoutReceipt && (
+          {(booking.payout_status === "deposit_paid" || booking.payout_status === "fully_paid") &&
+            booking.receipt_url &&
+            (booking.receipt_url.includes("payout:") || booking.receipt_url.includes("deposit_payout:")) &&
+            onViewPayoutReceipt && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                const payoutPart = booking.receipt_url!.split("||payout:")[1];
+                const parts = booking.receipt_url!.split(/\|\|(?:deposit_)?payout:|(?:deposit_)?payout:/);
+                const payoutPart = parts[parts.length - 1];
                 if (payoutPart) onViewPayoutReceipt(payoutPart);
               }}
               className="text-xs h-8 px-3 border-green-200 text-green-700 hover:bg-green-50"
