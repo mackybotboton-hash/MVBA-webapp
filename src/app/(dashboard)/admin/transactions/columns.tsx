@@ -25,8 +25,8 @@ export type TransactionItem = {
   status: string;
   receipt_url?: string;
   created_at: string;
-  check_in?: string;
-  check_out?: string;
+  check_in_date?: string;
+  check_out_date?: string;
   host_gcash_number?: string;
   host_name?: string;
 };

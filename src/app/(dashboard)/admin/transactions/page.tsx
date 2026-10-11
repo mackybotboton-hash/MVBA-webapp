@@ -79,8 +79,8 @@ function AdminTransactionsContent() {
           status,
           receipt_url,
           created_at,
-          check_in,
-          check_out,
+          check_in_date,
+          check_out_date,
           profiles!tourist_id (full_name),
           rooms (
             properties (
@@ -112,8 +112,8 @@ function AdminTransactionsContent() {
         status: d.status,
         receipt_url: d.receipt_url,
         created_at: d.created_at,
-        check_in: d.check_in,
-        check_out: d.check_out,
+        check_in_date: d.check_in_date,
+        check_out_date: d.check_out_date,
         host_gcash_number: d.rooms?.properties?.profiles?.payout_gcash_number,
         host_name: d.rooms?.properties?.profiles?.full_name,
       })) as TransactionItem[];
@@ -464,7 +464,7 @@ function AdminTransactionsContent() {
                       <div>
                         <span className="text-[10px] text-neutral-500 block uppercase font-semibold">Stay Dates</span>
                         <span className="font-medium text-xs text-neutral-900">
-                          {t.check_in && t.check_out ? `${t.check_in} → ${t.check_out}` : `Created ${new Date(t.created_at).toLocaleDateString()}`}
+                          {t.check_in_date && t.check_out_date ? `${t.check_in_date} → ${t.check_out_date}` : `Created ${new Date(t.created_at).toLocaleDateString()}`}
                         </span>
                       </div>
                       <div className="text-right">
