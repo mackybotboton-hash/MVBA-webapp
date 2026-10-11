@@ -8,11 +8,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNotificationCounts, markNotificationRead, markAllNotificationsRead, deleteAllNotifications } from "@/hooks/use-notification-counts";
+import {
+  useNotificationCounts,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteAllNotifications,
+  markSingleBookingAsSeen,
+  markBookingsAsSeen,
+} from "@/hooks/use-notification-counts";
 import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export function NotificationsDropdown() {
   const { user, profile } = useAuth();
@@ -29,12 +37,15 @@ export function NotificationsDropdown() {
     if (!user) return;
     setLoading(true);
     const supabase = createClient();
-    const { data } = await (supabase.from("notifications") as any)
+    const { data, error } = await (supabase.from("notifications") as any)
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(30);
-    if (data) {
+
+    if (error) {
+      console.error("[NotificationsDropdown] Fetch failed:", error);
+    } else if (data) {
       // Grouping logic for 'new_message'
       const processed: any[] = [];
       const seenMessageTitles = new Set<string>();
@@ -63,11 +74,25 @@ export function NotificationsDropdown() {
   };
 
   const handleNotificationClick = async (notif: any) => {
+    // 1. Mark notification as read
     if (!notif.is_read) {
       await markNotificationRead(notif.id);
-      // Update local state to reflect read status
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
     }
+
+    // 2. If it's a host tapping a booking notification, mark that booking as seen if ID is available
+    if (role === 'homestay' || role === 'resort') {
+      const isBookingNotif = notif.type === "new_booking" || notif.type === "booking_status" || notif.type === "deposit_verified" || notif.type === "booking_cancelled";
+      if (isBookingNotif && notif.url) {
+        const match = notif.url.match(/[?&]booking=([a-fA-F0-9-]+)/);
+        if (match && match[1]) {
+          await markSingleBookingAsSeen(match[1]);
+        }
+      }
+    }
+
+    // 3. Immediately refresh global badge counts
+    await counts.refreshCounts();
     
     // Resolve dynamic URL based on role
     let finalUrl = notif.url;
@@ -109,14 +134,28 @@ export function NotificationsDropdown() {
 
   const handleMarkAllAsRead = async () => {
     if (!user) return;
-    await markAllNotificationsRead(user.id);
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    try {
+      await markAllNotificationsRead(user.id);
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      await counts.refreshCounts();
+    } catch (err) {
+      console.error("[NotificationsDropdown] Mark all as read failed:", err);
+      toast.error("Failed to mark notifications as read");
+    }
   };
 
   const handleDeleteAll = async () => {
     if (!user) return;
-    await deleteAllNotifications(user.id);
-    setNotifications([]);
+    try {
+      const isHost = role === "homestay" || role === "resort";
+      await deleteAllNotifications(user.id, { includeBookingsSeen: isHost });
+      setNotifications([]);
+      await counts.refreshCounts();
+      toast.success("Notifications cleared");
+    } catch (err) {
+      console.error("[NotificationsDropdown] Delete all failed:", err);
+      toast.error("Failed to delete notifications");
+    }
   };
 
   const hasUnread = notifications.some(n => !n.is_read);

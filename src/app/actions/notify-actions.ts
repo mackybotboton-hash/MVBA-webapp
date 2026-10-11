@@ -251,3 +251,178 @@ export async function notifyBookingCancelled(params: {
     url: `/bookings`,
   });
 }
+
+// ============================================================================
+// Secure Authenticated Server Actions for Notifications & Seen State
+// ============================================================================
+// All actions below authenticate the user from the server session (cookies)
+// and operate ONLY on rows belonging to that user. Client-supplied userId is rejected.
+// ============================================================================
+
+import { createClient as createServerSupabase } from "@/lib/supabase/server";
+
+/**
+ * Marks all unseen bookings as seen for the authenticated host.
+ */
+export async function markBookingsAsSeenAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const admin = createAdminClient();
+    const { error: updateErr } = await (admin.from("bookings") as any)
+      .update({ seen_by_host_at: new Date().toISOString() })
+      .eq("owner_id", user.id)
+      .is("seen_by_host_at", null);
+
+    if (updateErr) {
+      console.error("[NotifyActions] Failed to mark bookings as seen:", updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[NotifyActions] markBookingsAsSeenAction error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Marks a specific booking as seen for the authenticated host.
+ */
+export async function markSingleBookingAsSeenAction(bookingId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const admin = createAdminClient();
+    const { error: updateErr } = await (admin.from("bookings") as any)
+      .update({ seen_by_host_at: new Date().toISOString() })
+      .eq("id", bookingId)
+      .eq("owner_id", user.id)
+      .is("seen_by_host_at", null);
+
+    if (updateErr) {
+      console.error("[NotifyActions] Failed to mark single booking as seen:", updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[NotifyActions] markSingleBookingAsSeenAction error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Deletes all notifications for the authenticated user.
+ * If includeBookingsSeen is true (for hosts), also marks unseen bookings as seen.
+ */
+export async function deleteAllNotificationsAction(options?: { includeBookingsSeen?: boolean }): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const admin = createAdminClient();
+
+    // 1. Delete notifications belonging to authenticated user
+    const { error: deleteErr } = await (admin.from("notifications") as any)
+      .delete()
+      .eq("user_id", user.id);
+
+    if (deleteErr) {
+      console.error("[NotifyActions] Failed to delete notifications:", deleteErr);
+      return { success: false, error: deleteErr.message };
+    }
+
+    // 2. If host opted to clear unseen bookings as well, mark them seen
+    if (options?.includeBookingsSeen) {
+      const { error: seenErr } = await (admin.from("bookings") as any)
+        .update({ seen_by_host_at: new Date().toISOString() })
+        .eq("owner_id", user.id)
+        .is("seen_by_host_at", null);
+
+      if (seenErr) {
+        console.error("[NotifyActions] Failed to mark bookings as seen during deleteAll:", seenErr);
+      }
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[NotifyActions] deleteAllNotificationsAction error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Marks a single notification as read for the authenticated user.
+ */
+export async function markNotificationReadAction(notificationId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const admin = createAdminClient();
+    const { error: updateErr } = await (admin.from("notifications") as any)
+      .update({ is_read: true })
+      .eq("id", notificationId)
+      .eq("user_id", user.id);
+
+    if (updateErr) {
+      console.error("[NotifyActions] Failed to mark notification read:", updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[NotifyActions] markNotificationReadAction error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Marks all notifications as read for the authenticated user.
+ */
+export async function markAllNotificationsReadAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const admin = createAdminClient();
+    const { error: updateErr } = await (admin.from("notifications") as any)
+      .update({ is_read: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false);
+
+    if (updateErr) {
+      console.error("[NotifyActions] Failed to mark all notifications read:", updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("[NotifyActions] markAllNotificationsReadAction error:", err);
+    return { success: false, error: err.message };
+  }
+}
+

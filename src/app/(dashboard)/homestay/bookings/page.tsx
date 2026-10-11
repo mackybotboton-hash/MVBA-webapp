@@ -39,7 +39,7 @@ const QRCheckinScannerModal = dynamic(
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeBookings } from "@/hooks/use-realtime-bookings";
-import { markBookingsAsSeen } from "@/hooks/use-notification-counts";
+import { markBookingsAsSeen, useNotificationCounts } from "@/hooks/use-notification-counts";
 import { notifyBookingStatusChange } from "@/app/actions/notify-actions";
 
 type BookingTab = "all" | "pending" | "accepted" | "declined" | "cancelled" | "completed";
@@ -157,12 +157,18 @@ export default function HomestayBookingsPage() {
   // Supabase Realtime — invalidate on INSERT/UPDATE to owner's bookings
   useRealtimeBookings(user?.id, "host", ["homestay-bookings"]);
 
-  // Mark all unseen bookings as seen when the host opens this page
+  const { refreshCounts } = useNotificationCounts();
+  const hasMarkedSeenRef = React.useRef(false);
+
+  // Mark all unseen bookings as seen once when the host opens this page
   React.useEffect(() => {
-    if (user?.id) {
-      markBookingsAsSeen(user.id);
+    if (user?.id && !hasMarkedSeenRef.current) {
+      hasMarkedSeenRef.current = true;
+      markBookingsAsSeen().then(() => {
+        refreshCounts();
+      });
     }
-  }, [user?.id]);
+  }, [user?.id, refreshCounts]);
 
   const handleUpdateStatus = React.useCallback(async (
     bookingId: string,

@@ -32,6 +32,7 @@ export interface NotificationCounts {
   unseenBookings: number;      // host badge: new, unseen booking requests
   pendingTransactions: number; // admin badge: GCash receipts awaiting verification
   unreadSystemNotifications: number;
+  refreshCounts: () => Promise<void>;
 }
 
 const DEFAULT_COUNTS: NotificationCounts = {
@@ -39,25 +40,47 @@ const DEFAULT_COUNTS: NotificationCounts = {
   unseenBookings: 0,
   pendingTransactions: 0,
   unreadSystemNotifications: 0,
+  refreshCounts: async () => {},
 };
 
 const NotificationCountsContext = createContext<NotificationCounts>(DEFAULT_COUNTS);
 
 // -- Provider --
 
+import {
+  markBookingsAsSeenAction,
+  markSingleBookingAsSeenAction,
+  markNotificationReadAction,
+  markAllNotificationsReadAction,
+  deleteAllNotificationsAction,
+} from "@/app/actions/notify-actions";
+
 /**
- * Marks all of the current host's bookings as "seen" by writing seen_by_host_at.
+ * Marks all of the current host's unseen bookings as "seen" by writing seen_by_host_at.
  * Call this when the host navigates to their /bookings page.
  */
-export async function markBookingsAsSeen(userId: string): Promise<void> {
+export async function markBookingsAsSeen(_userId?: string): Promise<void> {
   try {
-    const supabase = createClient();
-    await (supabase.from("bookings") as any)
-      .update({ seen_by_host_at: new Date().toISOString() })
-      .eq("owner_id", userId)
-      .is("seen_by_host_at", null);
+    const res = await markBookingsAsSeenAction();
+    if (!res.success) {
+      console.error("[Counts] Failed to mark bookings as seen:", res.error);
+    }
   } catch (err) {
     console.error("[Counts] Failed to mark bookings as seen:", err);
+  }
+}
+
+/**
+ * Marks a single booking as seen for the authenticated host.
+ */
+export async function markSingleBookingAsSeen(bookingId: string): Promise<void> {
+  try {
+    const res = await markSingleBookingAsSeenAction(bookingId);
+    if (!res.success) {
+      console.error("[Counts] Failed to mark single booking as seen:", res.error);
+    }
+  } catch (err) {
+    console.error("[Counts] Failed to mark single booking as seen:", err);
   }
 }
 
@@ -66,41 +89,42 @@ export async function markBookingsAsSeen(userId: string): Promise<void> {
  */
 export async function markNotificationRead(notificationId: string): Promise<void> {
   try {
-    const supabase = createClient();
-    await (supabase.from("notifications") as any)
-      .update({ is_read: true })
-      .eq("id", notificationId);
+    const res = await markNotificationReadAction(notificationId);
+    if (!res.success) {
+      console.error("[Counts] Failed to mark notification as read:", res.error);
+    }
   } catch (err) {
     console.error("[Counts] Failed to mark notification as read:", err);
   }
 }
 
 /**
- * Marks all notifications as read for the current user.
+ * Marks all notifications as read for the authenticated user.
  */
-export async function markAllNotificationsRead(userId: string): Promise<void> {
+export async function markAllNotificationsRead(_userId?: string): Promise<void> {
   try {
-    const supabase = createClient();
-    await (supabase.from("notifications") as any)
-      .update({ is_read: true })
-      .eq("user_id", userId)
-      .eq("is_read", false);
+    const res = await markAllNotificationsReadAction();
+    if (!res.success) {
+      console.error("[Counts] Failed to mark all notifications as read:", res.error);
+    }
   } catch (err) {
     console.error("[Counts] Failed to mark all notifications as read:", err);
   }
 }
 
 /**
- * Deletes all notifications for the current user.
+ * Deletes all notifications for the authenticated user.
  */
-export async function deleteAllNotifications(userId: string): Promise<void> {
+export async function deleteAllNotifications(_userId?: string, options?: { includeBookingsSeen?: boolean }): Promise<void> {
   try {
-    const supabase = createClient();
-    await (supabase.from("notifications") as any)
-      .delete()
-      .eq("user_id", userId);
+    const res = await deleteAllNotificationsAction(options);
+    if (!res.success) {
+      console.error("[Counts] Failed to delete all notifications:", res.error);
+      throw new Error(res.error || "Failed to delete notifications");
+    }
   } catch (err) {
     console.error("[Counts] Failed to delete all notifications:", err);
+    throw err;
   }
 }
 
@@ -243,7 +267,13 @@ export function NotificationCountsProvider({ children }: { children: ReactNode }
         .eq("is_read", false);
       unreadSystemNotifications = sysCount ?? 0;
 
-      setCounts({ unreadMessages, unseenBookings, pendingTransactions, unreadSystemNotifications });
+      setCounts({
+        unreadMessages,
+        unseenBookings,
+        pendingTransactions,
+        unreadSystemNotifications,
+        refreshCounts: fetchCounts,
+      });
     } catch (err) {
       console.error("[Counts] Initial fetch failed:", err);
     }
