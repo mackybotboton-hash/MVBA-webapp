@@ -102,6 +102,7 @@ export interface Booking {
   downpayment_amount?: number | null;
   commission_amount?: number | null;
   host_payout_amount?: number | null;
+  deposit_payout_amount?: number | null;
   payment_status?: PaymentStatus | string | null;
   receipt_url?: string | null;
   payout_status?: string | null;
