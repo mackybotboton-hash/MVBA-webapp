@@ -122,9 +122,24 @@ export function AdminPayoutModal({
                 <p className="text-sm font-bold text-blue-900">
                   {hostName || "Host Name Not Provided"}
                 </p>
-                <p className="text-xs font-medium text-blue-700/80">
-                  GCash: {hostGcashNumber || "N/A"}
-                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs font-medium text-blue-700/80">
+                    GCash: <span className="font-mono font-semibold">{hostGcashNumber || "N/A"}</span>
+                  </p>
+                  {hostGcashNumber && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(hostGcashNumber);
+                        toast.success("Host GCash number copied to clipboard");
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 underline font-medium cursor-pointer"
+                    >
+                      Copy
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Amount</p>

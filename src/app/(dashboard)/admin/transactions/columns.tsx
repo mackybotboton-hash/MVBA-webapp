@@ -78,13 +78,6 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
 
   if (!transaction) return null;
 
-  const handleCopy = () => {
-    if (transaction.host_gcash_number) {
-      navigator.clipboard.writeText(transaction.host_gcash_number);
-      toast.success("GCash number copied!");
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div 
@@ -169,25 +162,6 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
                     </div>
                   );
                 })()}
-                
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-600">Host GCash Number</label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 bg-neutral-100 border border-neutral-200 rounded-lg px-3 py-2 text-xs sm:text-sm font-mono font-medium text-neutral-900">
-                      {transaction.host_gcash_number || "Not provided"}
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="shrink-0 h-9"
-                      onClick={handleCopy}
-                      disabled={!transaction.host_gcash_number}
-                    >
-                      <Copy className="h-3.5 w-3.5 mr-1.5" />
-                      Copy
-                    </Button>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
