@@ -4,19 +4,28 @@
  * 2. Property-level default (if set and >= 1)
  * 3. Platform default (system_settings.default_downpayment_percent)
  *
- * Then clamp upward to the platform minimum (system_settings.min_downpayment_percent).
- * Falls back to 20% if both system settings are somehow missing.
  *
- * @param roomDownpaymentPercent      Room-level override (nullable)
- * @param propertyDownpaymentPercent  Property-level default (nullable)
- * @param platformDefaultPercent      system_settings.default_downpayment_percent (nullable)
- * @param platformMinPercent          system_settings.min_downpayment_percent (nullable)
+ * Then clamp upward to the effective floor.
+ * Falls back to platform effective floor (minimum 15% or commission rate) if settings are unconfigured.
  */
+export function getEffectiveDownpaymentFloor(
+  minDownpaymentPercent?: number | null,
+  commissionPercent?: number | null,
+  addonCommissionPercent?: number | null
+): number {
+  const min = (typeof minDownpaymentPercent === "number" && minDownpaymentPercent >= 1) ? minDownpaymentPercent : 15;
+  const comm = (typeof commissionPercent === "number") ? commissionPercent : 0;
+  const addComm = (typeof addonCommissionPercent === "number") ? addonCommissionPercent : 0;
+  return Math.max(min, comm, addComm);
+}
+
 export function resolveDownpaymentPercent(
   roomDownpaymentPercent?: number | null,
   propertyDownpaymentPercent?: number | null,
   platformDefaultPercent?: number | null,
-  platformMinPercent?: number | null
+  platformMinPercent?: number | null,
+  commissionPercent?: number | null,
+  addonCommissionPercent?: number | null
 ): number {
   // Step 1: pick the most specific override in hierarchy
   let resolved: number;
@@ -30,9 +39,9 @@ export function resolveDownpaymentPercent(
     resolved = 20; // Absolute fallback if system settings are missing
   }
 
-  // Step 2: clamp upward to the platform minimum (the floor set by admin)
-  const min = (typeof platformMinPercent === "number" && platformMinPercent >= 1) ? platformMinPercent : 1;
-  return Math.max(resolved, min);
+  // Step 2: clamp upward to the effective floor
+  const floor = getEffectiveDownpaymentFloor(platformMinPercent, commissionPercent, addonCommissionPercent);
+  return Math.max(resolved, floor);
 }
 
 

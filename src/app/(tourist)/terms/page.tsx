@@ -62,7 +62,7 @@ export default function TermsOfServicePage() {
             </p>
             <ul className="list-disc pl-5 space-y-2 text-neutral-700">
               <li>
-                <strong>20% Mandatory Downpayment:</strong> Once a property host accepts your booking request, a twenty percent (20%) downpayment of the total accommodation fee must be remitted via GCash within 24 hours to secure the reservation dates.
+                <strong>Mandatory Downpayment:</strong> Once a property host accepts your booking request, a downpayment of the total accommodation fee must be remitted via GCash within 24 hours to secure the reservation dates. The exact percentage is specified by the host and shown before booking.
               </li>
               <li>
                 <strong>Receipt Submission:</strong> Tourists must provide a valid GCash transaction reference number and screenshot proof of payment through their portal.
@@ -71,7 +71,7 @@ export default function TermsOfServicePage() {
                 <strong>Verification & Confirmation:</strong> The platform administration and host verify payment legitimacy before issuing an official Digital Boarding Pass with a scannable QR code.
               </li>
               <li>
-                <strong>Remaining Balance:</strong> The remaining eighty percent (80%) balance, along with any optional addon services, is payable directly to the property upon check-in.
+                <strong>Remaining Balance:</strong> The remaining balance, along with any optional addon services, is payable directly to the property upon check-in.
               </li>
             </ul>
           </section>
@@ -85,19 +85,19 @@ export default function TermsOfServicePage() {
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Free Cancellation (7+ Days Prior):</strong> Full refund of downpayment if cancelled at least seven (7) full calendar days before the scheduled check-in date, minus any standard bank processing charges.
+                  <strong>Full Refund (7 or More Days Prior):</strong> Full refund of downpayment if cancelled 7 or more days before the scheduled check-in date, minus any standard bank processing charges.
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Partial Refund (3 to 6 Days Prior):</strong> 50% refund of the downpayment amount if cancelled within 3 to 6 days of check-in.
+                  <strong>Partial Refund (3 Days up to Under 7 Days Prior):</strong> 50% refund of the downpayment amount if cancelled 3 days up to under 7 days before check-in.
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Non-Refundable (Under 48 Hours / No-Show):</strong> Cancellations made within 48 hours of check-in are strictly non-refundable to compensate operators for reserved room inventory.
+                  <strong>Non-Refundable (Under 3 Days / 72 Hours or No-Show):</strong> Cancellations made under 3 days (72 hours) before check-in or guest no-shows are strictly non-refundable to compensate operators for reserved room inventory.
                 </span>
               </div>
               <div className="flex items-start gap-2">

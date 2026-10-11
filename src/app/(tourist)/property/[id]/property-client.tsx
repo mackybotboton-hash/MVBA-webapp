@@ -234,7 +234,7 @@ export default function PropertyStorefrontPage() {
 
         const { data: settingsData } = await supabase
           .from("system_settings")
-          .select("commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent")
+          .select("commission_percentage, addon_commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent")
           .limit(1)
           .single();
         
@@ -346,7 +346,9 @@ export default function PropertyStorefrontPage() {
         selectedRoom.downpayment_percent,
         property?.downpayment_percent,
         systemSettings?.default_downpayment_percent,
-        systemSettings?.min_downpayment_percent
+        systemSettings?.min_downpayment_percent,
+        systemSettings?.commission_percentage,
+        systemSettings?.addon_commission_percentage
       );
       
       const total = calculateTotalPrice(selectedRoom.base_price);
@@ -714,12 +716,12 @@ export default function PropertyStorefrontPage() {
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-900 flex items-center gap-1.5">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  <span>Municipal Booking & Safety Policies</span>
+                  <span>Booking & Safety Policies</span>
                 </h3>
-                <span className="text-[11px] text-neutral-500 font-medium">San Agustin Eco-Tourism</span>
+                <span className="text-[11px] text-neutral-500 font-medium">Panaw Platform Rules</span>
               </div>
               <p className="text-xs text-neutral-600 leading-relaxed">
-                All stays and boat excursions in Bretania are governed by the Municipal Eco-Tourism Code, including the 20% downpayment standard, free cancellation 7+ days prior, and mandatory Coast Guard weather safety protocols.
+                All stays and boat excursions are governed by Panaw&apos;s terms and the host&apos;s house rules, including a required downpayment (shown before you pay) and our tiered cancellation policy: 7 or more days before check-in for a full refund, 3 days up to under 7 days for a 50% refund, and under 3 days (72 hours) or no-show is non-refundable. All water activities remain subject to mandatory Coast Guard weather safety protocols.
               </p>
               <div className="flex flex-wrap gap-2 pt-1 text-xs">
                 <Link
@@ -1139,7 +1141,9 @@ export default function PropertyStorefrontPage() {
                 selectedRoom.downpayment_percent,
                 property?.downpayment_percent,
                 systemSettings?.default_downpayment_percent,
-                systemSettings?.min_downpayment_percent
+                systemSettings?.min_downpayment_percent,
+                systemSettings?.commission_percentage,
+                systemSettings?.addon_commission_percentage
               );
               const breakdown = calculatePaymentBreakdown(
                 total,

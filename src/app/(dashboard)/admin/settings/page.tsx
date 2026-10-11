@@ -234,7 +234,8 @@ export default function AdminSettingsPage() {
                             </div>
                           </FormControl>
                           <FormDescription>
-                            The default downpayment percentage required to secure a booking.
+                            The absolute minimum deposit percentage required to secure a booking.
+                            <br/><span className="text-amber-600 font-medium">Note: The effective minimum will automatically never be lower than your highest commission rate.</span>
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -316,7 +317,7 @@ export default function AdminSettingsPage() {
                             </div>
                           </FormControl>
                           <FormDescription>
-                            Tourists will send their 20% deposit to this number.
+                            Tourists will send their required deposit to this number.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
