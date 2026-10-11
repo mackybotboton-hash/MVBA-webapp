@@ -2,12 +2,19 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown, AlertCircle } from "lucide-react";
+import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { approveBookingDeposit } from "@/app/actions/admin-actions";
 import { markPayoutPaidAction, markBookingRefundedAction } from "@/app/actions/admin-transactions";
 import { DataTable } from "./data-table";
-import { getColumns, TransactionItem, VerifyModal } from "./columns";
+import {
+  getColumns,
+  TransactionItem,
+  VerifyModal,
+  DepositStatusBadge,
+  PayoutStatusBadge,
+  TransactionActions,
+} from "./columns";
 import { AdminPayoutModal } from "@/components/admin/admin-payout-modal";
 import { calculatePayout } from "@/lib/payout-helper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,6 +40,7 @@ function AdminTransactionsContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
+  const [expandedCardId, setExpandedCardId] = React.useState<string | null>(null);
 
   const [activeTab, setActiveTab] = React.useState<"all" | "verifying" | "verified" | "paid" | "cancelled">("verifying");
 
@@ -71,6 +79,8 @@ function AdminTransactionsContent() {
           status,
           receipt_url,
           created_at,
+          check_in,
+          check_out,
           profiles!tourist_id (full_name),
           rooms (
             properties (
@@ -102,6 +112,8 @@ function AdminTransactionsContent() {
         status: d.status,
         receipt_url: d.receipt_url,
         created_at: d.created_at,
+        check_in: d.check_in,
+        check_out: d.check_out,
         host_gcash_number: d.rooms?.properties?.profiles?.payout_gcash_number,
         host_name: d.rooms?.properties?.profiles?.full_name,
       })) as TransactionItem[];
@@ -369,7 +381,149 @@ function AdminTransactionsContent() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={filteredTransactions} />
+      {/* Desktop Table View (md and up) */}
+      <div className="hidden md:block">
+        <DataTable columns={columns} data={filteredTransactions} />
+      </div>
+
+      {/* Mobile Card View (below md) */}
+      <div className="block md:hidden space-y-3">
+        {filteredTransactions.length === 0 ? (
+          <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-xs text-neutral-500 shadow-2xs">
+            No transactions found for the selected filter.
+          </div>
+        ) : (
+          filteredTransactions.map((t) => {
+            const isExpanded = expandedCardId === t.id;
+            const payouts = calculatePayout({
+              totalPrice: t.total_price,
+              downpaymentAmount: t.downpayment_amount,
+              commissionAmount: t.commission_amount,
+              convenienceFee: t.convenience_fee,
+              depositPayoutAmount: t.deposit_payout_amount,
+            });
+
+            return (
+              <div
+                key={t.id}
+                onClick={() => setExpandedCardId(isExpanded ? null : t.id)}
+                className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-2xs transition-all active:bg-neutral-50/50 cursor-pointer select-none space-y-3"
+              >
+                {/* Collapsed Top Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-sm text-neutral-900 truncate">
+                      {t.guest_name}
+                    </p>
+                    <p className="text-xs text-neutral-500 font-mono">
+                      #{t.id.slice(0, 8)}
+                    </p>
+                    <p className="text-xs text-neutral-600 truncate mt-0.5">
+                      {t.property_name}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <DepositStatusBadge status={t.payment_status} />
+                    {t.payout_status && (
+                      <PayoutStatusBadge status={t.payout_status} />
+                    )}
+                  </div>
+                </div>
+
+                {/* Collapsed Primary Action Row */}
+                <div className="flex items-center justify-between pt-2 border-t border-neutral-100 gap-2">
+                  <div className="text-[11px] font-semibold text-neutral-500 flex items-center gap-1">
+                    <span>{isExpanded ? "Hide details" : "Tap for details"}</span>
+                    {isExpanded ? (
+                      <ChevronUp className="h-3.5 w-3.5 text-neutral-400" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-neutral-400" />
+                    )}
+                  </div>
+
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <TransactionActions
+                      transaction={t}
+                      onVerifyClick={handleVerifyClick}
+                      onMarkPaidClick={handleMarkPaidClick}
+                      onMarkRefundedClick={handleMarkRefundedClick}
+                      mode="primary"
+                    />
+                  </div>
+                </div>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div 
+                    className="pt-3 border-t border-neutral-100 space-y-3 text-xs"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Stay Dates */}
+                    <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-100 flex justify-between items-center text-neutral-700">
+                      <div>
+                        <span className="text-[10px] text-neutral-500 block uppercase font-semibold">Stay Dates</span>
+                        <span className="font-medium text-xs text-neutral-900">
+                          {t.check_in && t.check_out ? `${t.check_in} → ${t.check_out}` : `Created ${new Date(t.created_at).toLocaleDateString()}`}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-neutral-500 block uppercase font-semibold">Status</span>
+                        <span className="font-semibold text-xs capitalize text-neutral-800">
+                          {t.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Financials Breakdown */}
+                    <div className="bg-neutral-50 p-3.5 rounded-xl border border-neutral-100 space-y-2">
+                      <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">
+                        Financial Summary
+                      </span>
+                      <div className="flex justify-between text-neutral-700 font-medium">
+                        <span>Total Price</span>
+                        <span className="font-bold text-neutral-900">₱{t.total_price.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-neutral-600">
+                        <span>Collected Deposit</span>
+                        <span className="font-bold text-neutral-900">₱{t.downpayment_amount.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-neutral-500 text-[11px]">
+                        <span>Convenience Fee (Platform)</span>
+                        <span>₱{(t.convenience_fee || 100).toLocaleString()}</span>
+                      </div>
+                      <div className="border-t border-neutral-200/60 my-1"></div>
+                      <div className="flex justify-between text-green-700 font-medium">
+                        <span>Platform Commission</span>
+                        <span>₱{(t.commission_amount || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-blue-700 font-medium">
+                        <span>Host Deposit Share</span>
+                        <span>₱{payouts.depositPayout.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-amber-700 font-semibold">
+                        <span>Guest Pays at Check-in</span>
+                        <span>₱{payouts.balancePayout.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Secondary Actions */}
+                    <div className="flex justify-end pt-1">
+                      <TransactionActions
+                        transaction={t}
+                        onVerifyClick={handleVerifyClick}
+                        onMarkPaidClick={handleMarkPaidClick}
+                        onMarkRefundedClick={handleMarkRefundedClick}
+                        mode="secondary"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
 
       <VerifyModal 
         transaction={previewTransaction} 

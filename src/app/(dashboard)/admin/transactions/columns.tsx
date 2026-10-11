@@ -25,6 +25,8 @@ export type TransactionItem = {
   status: string;
   receipt_url?: string;
   created_at: string;
+  check_in?: string;
+  check_out?: string;
   host_gcash_number?: string;
   host_name?: string;
 };
@@ -220,6 +222,163 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
   );
 }
 
+export function DepositStatusBadge({ status }: { status: string }) {
+  return (
+    <Badge
+      variant={
+        status === "verified"
+          ? "success"
+          : status === "refunded"
+          ? "destructive"
+          : status === "deposit_uploaded"
+          ? "warning"
+          : "default"
+      }
+      size="sm"
+      className="capitalize"
+    >
+      {status.replace("_", " ")}
+    </Badge>
+  );
+}
+
+export function PayoutStatusBadge({ status }: { status?: string | null }) {
+  const s = status || "unpaid";
+  return (
+    <Badge 
+      variant={s === "fully_paid" ? "success" : s === "deposit_paid" ? "outline" : "warning"} 
+      size="sm" 
+      className="capitalize"
+    >
+      {s.replace("_", " ")}
+    </Badge>
+  );
+}
+
+export function TransactionActions({
+  transaction,
+  onVerifyClick,
+  onMarkPaidClick,
+  onMarkRefundedClick,
+  mode = "all",
+}: {
+  transaction: TransactionItem;
+  onVerifyClick: (t: TransactionItem) => void;
+  onMarkPaidClick: (t: TransactionItem, stage: "deposit" | "balance") => void;
+  onMarkRefundedClick?: (t: TransactionItem) => void;
+  mode?: "primary" | "secondary" | "all";
+}) {
+  const t = transaction;
+  const isDepositUploaded = t.payment_status === "deposit_uploaded" && !!t.receipt_url;
+  const isPayoutDue = t.payment_status === "verified" && (!t.payout_status || t.payout_status === "pending");
+  const isCancelledVerified = t.status === "cancelled" && t.payment_status === "verified" && !!onMarkRefundedClick;
+  const hasReceiptToView = !!t.receipt_url && !isDepositUploaded;
+
+  if (mode === "primary") {
+    if (isDepositUploaded) {
+      return (
+        <Button 
+          size="sm" 
+          onClick={(e) => { e.stopPropagation(); onVerifyClick(t); }} 
+          className="bg-black text-white hover:bg-neutral-800 text-xs h-8 px-3"
+        >
+          Verify Receipt
+        </Button>
+      );
+    }
+    if (isPayoutDue) {
+      return (
+        <Button 
+          size="sm" 
+          variant="outline" 
+          onClick={(e) => { e.stopPropagation(); onMarkPaidClick(t, "deposit"); }} 
+          className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs h-8 px-3"
+        >
+          Mark Deposit Payout
+        </Button>
+      );
+    }
+    if (isCancelledVerified) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => { e.stopPropagation(); onMarkRefundedClick!(t); }}
+          className="border-red-200 text-red-600 hover:bg-red-50 text-xs h-8 px-3"
+        >
+          Mark as Refunded
+        </Button>
+      );
+    }
+    if (hasReceiptToView) {
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => { e.stopPropagation(); onVerifyClick(t); }}
+          className="border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs h-8 px-3"
+        >
+          View Receipt
+        </Button>
+      );
+    }
+    return null;
+  }
+
+  if (mode === "secondary") {
+    return (
+      <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        {hasReceiptToView && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onVerifyClick(t)}
+            className="border-neutral-200 text-neutral-700 hover:bg-neutral-50 text-xs h-8 px-3"
+          >
+            View Receipt
+          </Button>
+        )}
+        {isCancelledVerified && !isDepositUploaded && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onMarkRefundedClick!(t)}
+            className="border-red-200 text-red-600 hover:bg-red-50 text-xs h-8 px-3"
+          >
+            Mark as Refunded
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {isDepositUploaded && (
+        <Button size="sm" onClick={() => onVerifyClick(t)} className="bg-black text-white hover:bg-neutral-800 text-xs">
+          Verify Receipt
+        </Button>
+      )}
+      {isPayoutDue && (
+        <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t, "deposit")} className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs">
+          Mark Deposit Payout
+        </Button>
+      )}
+      {/* Balance payout button hidden in new commission-only model where hosts collect directly */}
+      {isCancelledVerified && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onMarkRefundedClick!(t)}
+          className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
+        >
+          Mark as Refunded
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export const getColumns = (
   onVerifyClick: (t: TransactionItem) => void,
   onMarkPaidClick: (t: TransactionItem, stage: "deposit" | "balance") => void,
@@ -278,69 +437,24 @@ export const getColumns = (
   {
     accessorKey: "payment_status",
     header: "Deposit Status",
-    cell: ({ row }) => {
-      const status = row.getValue("payment_status") as string;
-      return (
-        <Badge
-          variant={
-            status === "verified"
-              ? "success"
-              : status === "refunded"
-              ? "destructive"
-              : status === "deposit_uploaded"
-              ? "warning"
-              : "default"
-          }
-          size="sm"
-          className="capitalize"
-        >
-          {status.replace("_", " ")}
-        </Badge>
-      );
-    },
+    cell: ({ row }) => <DepositStatusBadge status={row.getValue("payment_status") as string} />,
   },
   {
     accessorKey: "payout_status",
     header: "Payout Status",
-    cell: ({ row }) => {
-      const status = row.getValue("payout_status") as string;
-      return (
-        <Badge variant={status === "fully_paid" ? "success" : status === "deposit_paid" ? "outline" : "warning"} size="sm" className="capitalize">
-          {status.replace("_", " ")}
-        </Badge>
-      );
-    },
+    cell: ({ row }) => <PayoutStatusBadge status={row.getValue("payout_status") as string} />,
   },
   {
     id: "actions",
     header: () => <div className="text-right">Actions</div>,
-    cell: ({ row }) => {
-      const t = row.original;
-      return (
-        <div className="flex flex-col items-end gap-1.5">
-          {t.payment_status === "deposit_uploaded" && t.receipt_url && (
-            <Button size="sm" onClick={() => onVerifyClick(t)} className="bg-black text-white hover:bg-neutral-800 text-xs">
-              Verify Receipt
-            </Button>
-          )}
-          {t.payment_status === "verified" && t.payout_status === "pending" && (
-            <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t, "deposit")} className="border-blue-200 text-blue-600 hover:bg-blue-50 text-xs">
-              Mark Deposit Payout
-            </Button>
-          )}
-          {/* Balance payout button hidden in new commission-only model where hosts collect directly */}
-          {t.status === "cancelled" && t.payment_status === "verified" && onMarkRefundedClick && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onMarkRefundedClick(t)}
-              className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
-            >
-              Mark as Refunded
-            </Button>
-          )}
-        </div>
-      );
-    },
+    cell: ({ row }) => (
+      <TransactionActions
+        transaction={row.original}
+        onVerifyClick={onVerifyClick}
+        onMarkPaidClick={onMarkPaidClick}
+        onMarkRefundedClick={onMarkRefundedClick}
+        mode="all"
+      />
+    ),
   },
 ];
