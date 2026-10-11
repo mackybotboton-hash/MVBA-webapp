@@ -2,16 +2,26 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown } from "lucide-react";
+import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { approveBookingDeposit } from "@/app/actions/admin-actions";
-import { markPayoutPaidAction } from "@/app/actions/admin-transactions";
+import { markPayoutPaidAction, markBookingRefundedAction } from "@/app/actions/admin-transactions";
 import { DataTable } from "./data-table";
 import { getColumns, TransactionItem, VerifyModal } from "./columns";
 import { AdminPayoutModal } from "@/components/admin/admin-payout-modal";
+import { calculatePayout } from "@/lib/payout-helper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRealtimeTransactions } from "@/hooks/use-realtime-transactions";
 import { MetricCard } from "@/components/ui/metric-card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { useSearchParams } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,12 +29,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export default function AdminTransactionsPage() {
+function AdminTransactionsContent() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
   const [activeTab, setActiveTab] = React.useState<"all" | "verifying" | "verified" | "paid" | "cancelled">("verifying");
+
+  React.useEffect(() => {
+    if (tabParam && ["all", "verifying", "verified", "paid", "cancelled"].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [tabParam]);
+
   const [propertyFilter, setPropertyFilter] = React.useState<string>("all");
   const [previewTransaction, setPreviewTransaction] = React.useState<TransactionItem | null>(null);
   const [selectedPayoutTransaction, setSelectedPayoutTransaction] = React.useState<{ transaction: TransactionItem; stage: "deposit" | "balance" } | null>(null);
+  const [selectedRefundTransaction, setSelectedRefundTransaction] = React.useState<TransactionItem | null>(null);
+  const [isRefunding, setIsRefunding] = React.useState(false);
 
   // Supabase Realtime — auto-refresh when deposits are uploaded or statuses change
   useRealtimeTransactions();
@@ -45,6 +67,7 @@ export default function AdminTransactionsPage() {
           convenience_fee,
           payment_status,
           payout_status,
+          deposit_payout_amount,
           status,
           receipt_url,
           created_at,
@@ -75,6 +98,7 @@ export default function AdminTransactionsPage() {
         convenience_fee: Number(d.convenience_fee),
         payment_status: d.payment_status || "awaiting_deposit",
         payout_status: d.payout_status || "pending",
+        deposit_payout_amount: d.deposit_payout_amount != null ? Number(d.deposit_payout_amount) : null,
         status: d.status,
         receipt_url: d.receipt_url,
         created_at: d.created_at,
@@ -166,7 +190,33 @@ export default function AdminTransactionsPage() {
     setSelectedPayoutTransaction({ transaction: t, stage });
   }, []);
 
-  const columns = React.useMemo(() => getColumns(handleVerifyClick, handleMarkPaidClick), [handleVerifyClick, handleMarkPaidClick]);
+  const handleMarkRefundedClick = React.useCallback((t: TransactionItem) => {
+    setSelectedRefundTransaction(t);
+  }, []);
+
+  const handleConfirmRefund = async () => {
+    if (!selectedRefundTransaction) return;
+    try {
+      setIsRefunding(true);
+      const res = await markBookingRefundedAction(selectedRefundTransaction.id);
+      if (!res.success) {
+        toast.error(res.error || "Failed to mark booking as refunded.");
+        return;
+      }
+      toast.success("Booking marked as refunded.");
+      setSelectedRefundTransaction(null);
+      refetch();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to mark booking as refunded.");
+    } finally {
+      setIsRefunding(false);
+    }
+  };
+
+  const columns = React.useMemo(
+    () => getColumns(handleVerifyClick, handleMarkPaidClick, handleMarkRefundedClick),
+    [handleVerifyClick, handleMarkPaidClick, handleMarkRefundedClick]
+  );
 
   const properties = React.useMemo(() => {
     const props = new Set<string>();
@@ -182,8 +232,8 @@ export default function AdminTransactionsPage() {
     let filtered = transactions;
     if (activeTab === "all") filtered = filtered.filter(t => t.status !== "cancelled" && t.status !== "declined");
     else if (activeTab === "verifying") filtered = filtered.filter(t => t.payment_status === "deposit_uploaded" && t.status !== "cancelled");
-    else if (activeTab === "verified") filtered = filtered.filter(t => t.payment_status === "verified" && t.payout_status !== "fully_paid" && t.status !== "cancelled");
-    else if (activeTab === "paid") filtered = filtered.filter(t => t.payout_status === "fully_paid" && t.status !== "cancelled");
+    else if (activeTab === "verified") filtered = filtered.filter(t => t.payment_status === "verified" && t.payout_status !== "deposit_paid" && t.payout_status !== "fully_paid" && t.status !== "cancelled");
+    else if (activeTab === "paid") filtered = filtered.filter(t => (t.payout_status === "deposit_paid" || t.payout_status === "fully_paid") && t.status !== "cancelled");
     else if (activeTab === "cancelled") filtered = filtered.filter(t => t.status === "cancelled" || t.status === "declined");
 
     if (propertyFilter !== "all") {
@@ -196,8 +246,8 @@ export default function AdminTransactionsPage() {
     return {
       all: transactions.filter(t => t.status !== "cancelled" && t.status !== "declined").length,
       verifying: transactions.filter(t => t.payment_status === "deposit_uploaded" && t.status !== "cancelled").length,
-      verified: transactions.filter(t => t.payment_status === "verified" && t.payout_status !== "fully_paid" && t.status !== "cancelled").length,
-      paid: transactions.filter(t => t.payout_status === "fully_paid" && t.status !== "cancelled").length,
+      verified: transactions.filter(t => t.payment_status === "verified" && t.payout_status !== "deposit_paid" && t.payout_status !== "fully_paid" && t.status !== "cancelled").length,
+      paid: transactions.filter(t => (t.payout_status === "deposit_paid" || t.payout_status === "fully_paid") && t.status !== "cancelled").length,
       cancelled: transactions.filter(t => t.status === "cancelled" || t.status === "declined").length,
     };
   }, [transactions]);
@@ -337,13 +387,85 @@ export default function AdminTransactionsPage() {
         payoutStage={selectedPayoutTransaction?.stage}
         payoutAmount={
           selectedPayoutTransaction 
-            ? (selectedPayoutTransaction.stage === "deposit"
-                ? (selectedPayoutTransaction.transaction.downpayment_amount - selectedPayoutTransaction.transaction.convenience_fee) - (selectedPayoutTransaction.transaction.commission_amount * 0.20)
-                : selectedPayoutTransaction.transaction.host_payout_amount - ((selectedPayoutTransaction.transaction.downpayment_amount - selectedPayoutTransaction.transaction.convenience_fee) - (selectedPayoutTransaction.transaction.commission_amount * 0.20)))
+            ? (() => {
+                const payouts = calculatePayout({
+                  totalPrice: selectedPayoutTransaction.transaction.total_price,
+                  downpaymentAmount: selectedPayoutTransaction.transaction.downpayment_amount,
+                  commissionAmount: selectedPayoutTransaction.transaction.commission_amount,
+                  convenienceFee: selectedPayoutTransaction.transaction.convenience_fee,
+                  depositPayoutAmount: selectedPayoutTransaction.transaction.deposit_payout_amount,
+                });
+                return selectedPayoutTransaction.stage === "deposit"
+                  ? payouts.depositPayout
+                  : payouts.balancePayout;
+              })()
             : undefined
         }
         onUploadComplete={handlePayoutUploadComplete}
       />
+
+      <Dialog open={!!selectedRefundTransaction} onOpenChange={(open) => !open && setSelectedRefundTransaction(null)}>
+        <DialogContent className="max-w-md p-6 bg-white rounded-2xl shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-neutral-900">Confirm Booking Refund</DialogTitle>
+            <DialogDescription className="text-xs text-neutral-600 mt-2">
+              {selectedRefundTransaction && (
+                (selectedRefundTransaction.payout_status === "deposit_paid" || selectedRefundTransaction.payout_status === "fully_paid") ? (
+                  <div className="space-y-3">
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-xs flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+                      <div>
+                        <strong className="block font-semibold">Warning: Host Payout Already Made!</strong>
+                        The host has already been disbursed the deposit payout for this booking (Payout Status: {selectedRefundTransaction.payout_status.replace('_', ' ')}). Marking this booking as refunded confirms the deposit was returned to the guest after host payout.
+                      </div>
+                    </div>
+                    <p className="text-xs text-neutral-600">
+                      Booking #{selectedRefundTransaction.id.slice(0, 8)} ({selectedRefundTransaction.guest_name}) will be updated to <strong>refunded</strong> and excluded from platform commissions and pending payouts.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-xs text-neutral-700">
+                      Are you sure you want to mark booking #{selectedRefundTransaction.id.slice(0, 8)} ({selectedRefundTransaction.guest_name}) as <strong>refunded</strong>?
+                    </p>
+                    <p className="text-xs text-neutral-500">
+                      This confirms the deposit of ₱{selectedRefundTransaction.downpayment_amount.toLocaleString()} was refunded to the guest. It will be excluded from platform commission totals and host pending payouts.
+                    </p>
+                  </div>
+                )
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-5">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isRefunding}
+              onClick={() => setSelectedRefundTransaction(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={isRefunding}
+              onClick={handleConfirmRefund}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isRefunding ? "Processing..." : "Confirm Refund"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+export default function AdminTransactionsPage() {
+  return (
+    <React.Suspense fallback={<div className="p-8 text-center text-xs text-neutral-500">Loading transactions...</div>}>
+      <AdminTransactionsContent />
+    </React.Suspense>
+  );
+}
+

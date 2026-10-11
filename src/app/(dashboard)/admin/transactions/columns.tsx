@@ -8,6 +8,7 @@ import Image from "next/image";
 import * as React from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { calculatePayout } from "@/lib/payout-helper";
 
 export type TransactionItem = {
   id: string;
@@ -20,6 +21,7 @@ export type TransactionItem = {
   convenience_fee: number;
   payment_status: "awaiting_deposit" | "deposit_uploaded" | "verified" | "completed" | "refunded";
   payout_status: string;
+  deposit_payout_amount?: number | null;
   status: string;
   receipt_url?: string;
   created_at: string;
@@ -143,15 +145,27 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
             <div>
               <h4 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">Disbursement Info (Host)</h4>
               <div className="space-y-4">
-                <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                  <span className="text-sm font-semibold text-blue-900">Deposit Payout (Host Share)</span>
-                  <span className="text-lg font-bold text-blue-700">₱{(transaction.downpayment_amount - transaction.convenience_fee) - (transaction.commission_amount * 0.20)}</span>
-                </div>
-                
-                <div className="flex justify-between items-center bg-neutral-50/50 p-4 rounded-xl border border-neutral-100">
-                  <span className="text-sm font-semibold text-neutral-600">Balance Payout (Future)</span>
-                  <span className="text-sm font-bold text-neutral-700">₱{transaction.host_payout_amount - ((transaction.downpayment_amount - transaction.convenience_fee) - (transaction.commission_amount * 0.20))}</span>
-                </div>
+                {(() => {
+                  const payouts = calculatePayout({
+                    totalPrice: transaction.total_price,
+                    downpaymentAmount: transaction.downpayment_amount,
+                    commissionAmount: transaction.commission_amount,
+                    convenienceFee: transaction.convenience_fee,
+                  });
+                  return (
+                    <>
+                      <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                        <span className="text-sm font-semibold text-blue-900">Deposit Payout (Host Share)</span>
+                        <span className="text-lg font-bold text-blue-700">₱{payouts.depositPayout}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center bg-neutral-50/50 p-4 rounded-xl border border-neutral-100">
+                        <span className="text-sm font-semibold text-neutral-600">Balance Payout (Future)</span>
+                        <span className="text-sm font-bold text-neutral-700">₱{payouts.balancePayout}</span>
+                      </div>
+                    </>
+                  );
+                })()}
                 
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-neutral-600">Host GCash Number</label>
@@ -207,7 +221,8 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
 
 export const getColumns = (
   onVerifyClick: (t: TransactionItem) => void,
-  onMarkPaidClick: (t: TransactionItem, stage: "deposit" | "balance") => void
+  onMarkPaidClick: (t: TransactionItem, stage: "deposit" | "balance") => void,
+  onMarkRefundedClick?: (t: TransactionItem) => void
 ): ColumnDef<TransactionItem>[] => [
   {
     accessorKey: "id",
@@ -236,10 +251,17 @@ export const getColumns = (
       const deposit = row.original.downpayment_amount;
       const fee = row.original.convenience_fee;
       const commission = row.original.commission_amount;
-      const payout = row.original.host_payout_amount;
       
-      const depositHostPayout = (deposit - fee) - (commission * 0.20);
-      const balanceHostPayout = payout - depositHostPayout;
+      const payouts = calculatePayout({
+        totalPrice: total,
+        downpaymentAmount: deposit,
+        commissionAmount: commission,
+        convenienceFee: fee,
+        depositPayoutAmount: row.original.deposit_payout_amount,
+      });
+      
+      const depositHostPayout = payouts.depositPayout;
+      const balanceHostPayout = payouts.balancePayout;
       
       return (
         <div className="space-y-1">
@@ -247,7 +269,7 @@ export const getColumns = (
           <p className="text-xs text-neutral-900 font-bold">Deposit: ₱{deposit} (Fee: ₱{fee})</p>
           <p className="text-[10px] font-medium text-green-700">Total Comm: ₱{commission}</p>
           <p className="text-[10px] font-medium text-blue-700">Host Deposit: ₱{depositHostPayout}</p>
-          <p className="text-[10px] font-medium text-blue-700">Host Balance: ₱{balanceHostPayout}</p>
+          <p className="text-[10px] font-medium text-amber-700">Collected from guest at check-in: ₱{balanceHostPayout}</p>
         </div>
       );
     },
@@ -258,7 +280,19 @@ export const getColumns = (
     cell: ({ row }) => {
       const status = row.getValue("payment_status") as string;
       return (
-        <Badge variant={status === "verified" ? "success" : status === "deposit_uploaded" ? "warning" : "default"} size="sm" className="capitalize">
+        <Badge
+          variant={
+            status === "verified"
+              ? "success"
+              : status === "refunded"
+              ? "destructive"
+              : status === "deposit_uploaded"
+              ? "warning"
+              : "default"
+          }
+          size="sm"
+          className="capitalize"
+        >
           {status.replace("_", " ")}
         </Badge>
       );
@@ -282,7 +316,7 @@ export const getColumns = (
     cell: ({ row }) => {
       const t = row.original;
       return (
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex flex-col items-end gap-1.5">
           {t.payment_status === "deposit_uploaded" && t.receipt_url && (
             <Button size="sm" onClick={() => onVerifyClick(t)} className="bg-black text-white hover:bg-neutral-800 text-xs">
               Verify Receipt
@@ -293,9 +327,15 @@ export const getColumns = (
               Mark Deposit Payout
             </Button>
           )}
-          {t.payment_status === "verified" && t.payout_status === "deposit_paid" && (
-            <Button size="sm" variant="outline" onClick={() => onMarkPaidClick(t, "balance")} className="border-emerald-200 text-emerald-600 hover:bg-emerald-50 text-xs mt-1">
-              Mark Balance Payout
+          {/* Balance payout button hidden in new commission-only model where hosts collect directly */}
+          {t.status === "cancelled" && t.payment_status === "verified" && onMarkRefundedClick && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onMarkRefundedClick(t)}
+              className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
+            >
+              Mark as Refunded
             </Button>
           )}
         </div>
