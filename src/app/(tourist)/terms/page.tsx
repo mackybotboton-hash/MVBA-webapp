@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, FileText, CheckCircle2 } from "lucide-react";
 import { PolicyNav } from "@/components/layouts/policy-nav";
 import { createClient } from "@/lib/supabase/server";
+import { getFeeRefundRuleText } from "@/lib/pricing/cancellation-helper";
 
 export const metadata: Metadata = {
   title: "Terms of Service | Panaw",
@@ -109,6 +110,12 @@ export default async function TermsOfServicePage() {
                 <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
                   <strong>Non-Refundable (Under {partialDays} Days or No-Show):</strong> Cancellations made under {partialDays} days before check-in or guest no-shows are strictly non-refundable to compensate operators for reserved room inventory.
+                </span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Convenience Fee Policy:</strong> {getFeeRefundRuleText(settings?.convenience_fee_refund_rule)} In cases of host cancellation or force majeure, the fee is always refunded 100%.
                 </span>
               </div>
               <div className="flex items-start gap-2">

@@ -216,12 +216,33 @@ export async function createReservationAction(payload: {
 
     const newBookingId = rpcRes.booking_id;
 
-    // Record policy_accepted_at timestamp atomically via admin client
+    // Record policy_accepted_at timestamp via admin client with retry and safeguard
     if (newBookingId) {
-      await supabaseAdmin
+      const nowIso = new Date().toISOString();
+      let updateRes = await supabaseAdmin
         .from("bookings")
-        .update({ policy_accepted_at: new Date().toISOString() })
+        .update({ policy_accepted_at: nowIso })
         .eq("id", newBookingId);
+
+      // Retry once if the first attempt failed
+      if (updateRes.error) {
+        console.warn(`Initial policy_accepted_at update failed for booking ${newBookingId}, retrying once...`, updateRes.error);
+        updateRes = await supabaseAdmin
+          .from("bookings")
+          .update({ policy_accepted_at: nowIso })
+          .eq("id", newBookingId);
+      }
+
+      // If still failing after retry, mark booking as cancelled (status only, no refund fields)
+      if (updateRes.error) {
+        console.error(`Failed to record policy acceptance for booking ${newBookingId} after retry:`, updateRes.error);
+        await supabaseAdmin
+          .from("bookings")
+          .update({ status: "cancelled", cancellation_reason: "Failed to record policy acceptance agreement timestamp" })
+          .eq("id", newBookingId);
+
+        throw new Error("Unable to confirm policy acceptance agreement. The booking request could not be completed. Please try again.");
+      }
     }
 
     // Insert Add-ons if any

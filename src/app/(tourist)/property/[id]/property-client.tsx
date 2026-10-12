@@ -1228,6 +1228,9 @@ export default function PropertyStorefrontPage() {
                         <p className="text-[11px] text-amber-900 leading-snug">
                           • {summary.tier3}
                         </p>
+                        <p className="text-[11px] text-amber-900/90 leading-snug font-medium">
+                          • {summary.feeRuleText}
+                        </p>
 
                         <div className="pt-2 border-t border-amber-200/60 flex items-start gap-2.5">
                           <input 
