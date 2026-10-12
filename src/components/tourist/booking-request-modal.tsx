@@ -18,6 +18,9 @@ interface Room {
   max_capacity: number;
 }
 
+import { getPolicySummary, formatPolicyName } from "@/lib/pricing/cancellation-helper";
+import Link from "next/link";
+
 interface ExtraService {
   id: string;
   name: string;
@@ -30,7 +33,7 @@ interface BookingRequestModalProps {
   onClose: () => void;
   propertyId: string;
   rooms: Room[];
-  onSubmit: (payload: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number; serviceIds: string[]; expectedDownpayment: number }) => void;
+  onSubmit: (payload: { roomId: string; checkInDate: string; checkOutDate: string; guestCount: number; serviceIds: string[]; expectedDownpayment: number; policyAccepted: boolean }) => void;
   isSubmitting?: boolean;
 }
 
@@ -39,6 +42,23 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to?: Date }>({ from: undefined });
   const [guestCount, setGuestCount] = useState<number>(1);
   const [selectedAddonIds, setSelectedAddonIds] = useState<Set<string>>(new Set());
+  const [policyAccepted, setPolicyAccepted] = useState<boolean>(false);
+
+  // Fetch property cancellation policy
+  const { data: propertyPolicy } = useQuery({
+    queryKey: ['property-policy', propertyId],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("properties")
+        .select("cancellation_policy")
+        .eq("id", propertyId)
+        .single();
+      return ((data as any)?.cancellation_policy || "standard") as string;
+    },
+    enabled: !!propertyId && isOpen,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Fetch active extra services for the property
   const { data: addons = [] } = useQuery({
@@ -64,10 +84,10 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
       const supabase = createClient();
       const { data } = await supabase
         .from("system_settings")
-        .select("convenience_fee, default_downpayment_percent, min_downpayment_percent")
+        .select("convenience_fee, default_downpayment_percent, min_downpayment_percent, commission_percentage, addon_commission_percentage, refund_full_days, refund_partial_days, refund_partial_percent")
         .limit(1)
         .single();
-      return data as { convenience_fee: number; default_downpayment_percent: number | null; min_downpayment_percent: number | null } | null;
+      return data as any;
     },
     enabled: isOpen,
     staleTime: 5 * 60 * 1000, // 5 min cache
@@ -101,7 +121,9 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
       null,
       null,
       systemSettings?.default_downpayment_percent ?? null,
-      systemSettings?.min_downpayment_percent ?? null
+      systemSettings?.min_downpayment_percent ?? null,
+      systemSettings?.commission_percentage ?? null,
+      systemSettings?.addon_commission_percentage ?? null
     );
     const breakdown = calculatePaymentBreakdown(baseTotal, resolvedPercent, convenienceFee);
     
@@ -120,7 +142,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
     setGuestCount(selectedRoom.max_capacity);
   }
 
-  const isFormValid = selectedRoomId && dateRange.from && dateRange.to && guestCount > 0;
+  const isFormValid = selectedRoomId && dateRange.from && dateRange.to && guestCount > 0 && policyAccepted;
 
   const handleSubmit = () => {
     if (!isFormValid || !dateRange.from || !dateRange.to || !selectedRoomId) return;
@@ -139,6 +161,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
       guestCount,
       serviceIds: Array.from(selectedAddonIds),
       expectedDownpayment: pricing?.downpayment ?? 0,
+      policyAccepted,
     });
   };
 
@@ -347,6 +370,45 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                   <span>₱{pricing.convenienceFee.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
+
+              {/* Dynamic Cancellation Policy Snapshot Box */}
+              {(() => {
+                const summary = getPolicySummary(propertyPolicy, systemSettings);
+                return (
+                  <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-950 space-y-1.5">
+                    <div className="font-bold flex items-center justify-between">
+                      <span>{formatPolicyName(propertyPolicy)}</span>
+                      <Link href="/terms" target="_blank" className="text-amber-800 underline font-medium hover:text-black">
+                        View Terms
+                      </Link>
+                    </div>
+                    <p className="text-[11px] text-amber-900 leading-snug">
+                      • {summary.tier1}
+                    </p>
+                    {summary.tier2 && (
+                      <p className="text-[11px] text-amber-900 leading-snug">
+                        • {summary.tier2}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-amber-900 leading-snug">
+                      • {summary.tier3}
+                    </p>
+
+                    <div className="pt-2 border-t border-amber-200/60 flex items-start gap-2.5">
+                      <input 
+                        type="checkbox"
+                        id="policy-checkbox"
+                        checked={policyAccepted}
+                        onChange={(e) => setPolicyAccepted(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 rounded border-amber-400 text-black accent-black cursor-pointer"
+                      />
+                      <label htmlFor="policy-checkbox" className="text-[11px] font-semibold text-neutral-900 cursor-pointer select-none">
+                        I understand and agree to the {formatPolicyName(propertyPolicy)} for this booking.
+                      </label>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="border-t border-zinc-200 my-3"></div>
 

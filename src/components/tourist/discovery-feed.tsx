@@ -145,6 +145,7 @@ export function DiscoveryFeed() {
       guestCount: payload.guestCount,
       serviceIds: payload.serviceIds,
       expectedDownpayment: payload.expectedDownpayment,
+      policyAccepted: payload.policyAccepted ?? true,
     });
   };
 

@@ -21,9 +21,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
 import { STORAGE_BUCKETS } from "@/lib/constants";
+import { getEffectiveDownpaymentFloor } from "@/lib/pricing/downpayment";
 
 /** Fetched once when the modal opens; cached in component state */
 let _cachedPlatformDefault: number | null = null;
+let _cachedFloor: number | null = null;
 
 const SAMPLE_ANGLE_PRESETS = [
   { label: "Main Bed Angle", url: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80" },
@@ -77,24 +79,35 @@ export function RoomFormModal({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [platformDefaultPercent, setPlatformDefaultPercent] = React.useState<number | null>(_cachedPlatformDefault);
+  const [floorPercent, setFloorPercent] = React.useState<number>(_cachedFloor || 15);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Fetch platform default downpayment percent once when modal opens
   React.useEffect(() => {
     if (!isOpen) return;
-    if (_cachedPlatformDefault !== null) {
+    if (_cachedPlatformDefault !== null && _cachedFloor !== null) {
       setPlatformDefaultPercent(_cachedPlatformDefault);
+      setFloorPercent(_cachedFloor);
       return;
     }
     createClient()
       .from("system_settings")
-      .select("default_downpayment_percent")
+      .select("default_downpayment_percent, min_downpayment_percent, commission_percentage, addon_commission_percentage")
       .limit(1)
       .single()
       .then(({ data }) => {
-        const val = (data as any)?.default_downpayment_percent ? Number((data as any).default_downpayment_percent) : 20;
+        const d = data as any;
+        const val = d?.default_downpayment_percent ? Number(d.default_downpayment_percent) : 20;
+        const floor = getEffectiveDownpaymentFloor(
+          d?.min_downpayment_percent,
+          d?.commission_percentage,
+          d?.addon_commission_percentage
+        );
         _cachedPlatformDefault = val;
+        _cachedFloor = floor;
         setPlatformDefaultPercent(val);
+        setFloorPercent(floor);
       });
   }, [isOpen]);
 
@@ -124,11 +137,11 @@ export function RoomFormModal({
         base_price: 1500,
         max_capacity: 2,
         is_active: true,
-        downpayment_percent: null,
+        downpayment_percent: platformDefaultPercent,
       });
       setImages([]);
     }
-  }, [initialData, propertyId, isOpen]);
+  }, [initialData, propertyId, isOpen, platformDefaultPercent]);
 
 
   if (!isOpen) return null;
@@ -228,6 +241,16 @@ export function RoomFormModal({
 
       const finalImages = images;
 
+
+      setErrorMsg(null);
+
+      // Validate Downpayment Floor
+      const dp = formData.downpayment_percent;
+      if (dp !== null && dp !== undefined && dp < floorPercent) {
+        setErrorMsg(`Deposit percentage cannot be below the platform minimum (${floorPercent}%).`);
+        setIsSubmitting(false);
+        return;
+      }
 
       if (formData.id) {
         // 1. Update room record
@@ -587,28 +610,30 @@ export function RoomFormModal({
           {/* Downpayment Setting */}
           <div>
             <label className="text-xs font-semibold text-neutral-900 block mb-1.5">
-              Room Deposit / Downpayment
+              Room Deposit / Downpayment (%)
             </label>
-            <select
-              value={formData.downpayment_percent?.toString() || ""}
+            <input
+              type="number"
+              min={floorPercent}
+              max={100}
+              step={1}
+              value={formData.downpayment_percent ?? ""}
               onChange={(e) =>
                 setFormData({
                   ...formData,
                   downpayment_percent: e.target.value ? Number(e.target.value) : null,
                 })
               }
+              placeholder={`e.g. ${platformDefaultPercent || 20}`}
               className="w-full h-10 px-3 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:ring-1 focus:ring-black bg-white"
-            >
-              <option value="">
-                {platformDefaultPercent !== null ? `Use Default (${platformDefaultPercent}%)` : "Use Default"}
-              </option>
-              <option value="20">20% Deposit</option>
-              <option value="30">30% Deposit</option>
-              <option value="50">50% Deposit</option>
-              <option value="100">100% (Full Payment)</option>
-            </select>
+            />
+            {errorMsg && (
+              <p className="text-[10px] text-red-600 font-semibold mt-1">
+                {errorMsg}
+              </p>
+            )}
             <p className="text-[10px] text-neutral-500 mt-1">
-              Override the default deposit rule for this specific room.
+              Minimum allowed is {floorPercent}%. Leave blank to use property default. Effective rate applies to this room.
             </p>
           </div>
 

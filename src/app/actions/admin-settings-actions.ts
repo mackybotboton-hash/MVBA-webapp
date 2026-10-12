@@ -13,6 +13,15 @@ const SystemSettingsSchema = z.object({
     message: "GCash number must be exactly 11 digits and start with 09.",
   }),
   adminGcashName: z.string().min(2, "Name must be at least 2 characters long"),
+  // Cancellation and Refund Policy Settings
+  refundFullDays: z.number().int().min(1, "Full refund days must be at least 1").max(30, "Cannot exceed 30 days"),
+  refundPartialDays: z.number().int().min(0, "Partial refund days must be at least 0").max(30, "Cannot exceed 30 days"),
+  refundPartialPercent: z.number().min(0).max(100, "Partial refund percent must be between 0 and 100"),
+  convenienceFeeRefundRule: z.enum(["never", "full_tier_only", "always"]),
+  hostRefundDeadlineHours: z.number().int().min(1, "Deadline must be at least 1 hour").max(168, "Cannot exceed 168 hours"),
+}).refine((data) => data.refundFullDays > data.refundPartialDays, {
+  message: "Full refund window (days) must be strictly greater than partial refund window (days).",
+  path: ["refundFullDays"],
 });
 
 export async function getSystemSettings() {
@@ -78,6 +87,11 @@ export async function updateSystemSettings(payload: z.infer<typeof SystemSetting
         min_downpayment_percent: validatedData.data.minDownpaymentPercent,
         admin_gcash_number: validatedData.data.adminGcashNumber,
         admin_gcash_name: validatedData.data.adminGcashName,
+        refund_full_days: validatedData.data.refundFullDays,
+        refund_partial_days: validatedData.data.refundPartialDays,
+        refund_partial_percent: validatedData.data.refundPartialPercent,
+        convenience_fee_refund_rule: validatedData.data.convenienceFeeRefundRule,
+        host_refund_deadline_hours: validatedData.data.hostRefundDeadlineHours,
       })
       .eq("id", 1);
 

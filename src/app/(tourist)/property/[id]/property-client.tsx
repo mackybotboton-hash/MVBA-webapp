@@ -55,6 +55,7 @@ import { cn } from "@/lib/utils";
 import { ShareButton } from "@/components/tourist/share-button";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { getRoomAvailabilityAction, createReservationAction } from "@/app/actions/booking-actions";
+import { getPolicySummary, formatPolicyName } from "@/lib/pricing/cancellation-helper";
 
 interface RoomItem {
   id: string;
@@ -128,6 +129,7 @@ export default function PropertyStorefrontPage() {
   const [guestCount, setGuestCount] = React.useState(2);
   const [arrivalTime, setArrivalTime] = React.useState("");
   const [selectedAddons, setSelectedAddons] = React.useState<string[]>([]); // array of service_ids
+  const [policyAccepted, setPolicyAccepted] = React.useState<boolean>(false);
   const [isSubmittingBooking, setIsSubmittingBooking] = React.useState(false);
 
   // Concurrency & Double-Booking Protection State
@@ -222,6 +224,7 @@ export default function PropertyStorefrontPage() {
             facebook_url,
             tiktok_url,
             downpayment_percent,
+            cancellation_policy,
             rooms (*, room_images(id, image_url, display_order)),
             extra_services (*),
             reviews (
@@ -234,7 +237,7 @@ export default function PropertyStorefrontPage() {
 
         const { data: settingsData } = await supabase
           .from("system_settings")
-          .select("commission_percentage, addon_commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent")
+          .select("commission_percentage, addon_commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent, refund_full_days, refund_partial_days, refund_partial_percent, convenience_fee_refund_rule, host_refund_deadline_hours")
           .limit(1)
           .single();
         
@@ -358,6 +361,13 @@ export default function PropertyStorefrontPage() {
         systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
       );
 
+      if (!policyAccepted) {
+        toast.error("Policy Agreement Required", {
+          description: "Please read and agree to the cancellation policy before booking.",
+        });
+        return;
+      }
+
       // Phase 1a: Use strictly Server Action for entire flow
       const bookingNotes = arrivalTime ? `Estimated Arrival: ${arrivalTime}` : undefined;
       const result = await createReservationAction({
@@ -367,7 +377,8 @@ export default function PropertyStorefrontPage() {
         guestCount: guestCount,
         serviceIds: selectedAddons,
         expectedDownpayment: breakdown.expectedDownpayment,
-        notes: bookingNotes
+        notes: bookingNotes,
+        policyAccepted: true,
       });
 
       if (!result.success) {
@@ -1193,6 +1204,46 @@ export default function PropertyStorefrontPage() {
                       </span>
                     </div>
                   )}
+
+                  {/* Dynamic Cancellation Policy Snapshot Box */}
+                  {(() => {
+                    const policy = property?.cancellation_policy || "standard";
+                    const summary = getPolicySummary(policy, systemSettings);
+                    return (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-950 space-y-1.5">
+                        <div className="font-bold flex items-center justify-between">
+                          <span>{formatPolicyName(policy)}</span>
+                          <Link href="/terms" target="_blank" className="text-amber-800 underline font-medium hover:text-black">
+                            View Terms
+                          </Link>
+                        </div>
+                        <p className="text-[11px] text-amber-900 leading-snug">
+                          • {summary.tier1}
+                        </p>
+                        {summary.tier2 && (
+                          <p className="text-[11px] text-amber-900 leading-snug">
+                            • {summary.tier2}
+                          </p>
+                        )}
+                        <p className="text-[11px] text-amber-900 leading-snug">
+                          • {summary.tier3}
+                        </p>
+
+                        <div className="pt-2 border-t border-amber-200/60 flex items-start gap-2.5">
+                          <input 
+                            type="checkbox"
+                            id="drawer-policy-checkbox"
+                            checked={policyAccepted}
+                            onChange={(e) => setPolicyAccepted(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 rounded border-amber-400 text-black accent-black cursor-pointer"
+                          />
+                          <label htmlFor="drawer-policy-checkbox" className="text-[11px] font-semibold text-neutral-900 cursor-pointer select-none">
+                            I understand and agree to the {formatPolicyName(policy)} for this reservation.
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
@@ -1201,7 +1252,7 @@ export default function PropertyStorefrontPage() {
             <div className="shrink-0 p-4 border-t border-neutral-100 bg-white">
               <Button
                 onClick={handleCreateBooking}
-                disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate}
+                disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate || !policyAccepted}
                 className="w-full h-10 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-lg transition-all shadow-md"
               >
                 {isSubmittingBooking ? (
@@ -1210,6 +1261,8 @@ export default function PropertyStorefrontPage() {
                   "Dates Unavailable (Already Booked)"
                 ) : checkInDate >= checkOutDate ? (
                   "Select Valid Dates"
+                ) : !policyAccepted ? (
+                  "Agree to Policy to Continue"
                 ) : (
                   "Confirm & Send Request"
                 )}

@@ -17,9 +17,11 @@ import { Button } from "@/components/ui/button";
 import { syncProfileAvatar } from "@/app/actions/settings-actions";
 import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
 import { STORAGE_BUCKETS } from "@/lib/constants";
+import { getEffectiveDownpaymentFloor } from "@/lib/pricing/downpayment";
 
 /** Module-level cache so we don't refetch on every modal open */
 let _cachedPropertyFormPlatformDefault: number | null = null;
+let _cachedPropertyFormFloor: number | null = null;
 
 export interface PropertyFormData {
   id?: string;
@@ -32,6 +34,7 @@ export interface PropertyFormData {
   promo_video_url: string;
   status: "active" | "renovating" | "full" | "closed";
   downpayment_percent?: number | null;
+  cancellation_policy?: "standard" | "flexible" | "non_refundable";
 }
 
 export interface PropertyFormModalProps {
@@ -64,30 +67,44 @@ export function PropertyFormModal({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [platformDefaultPercent, setPlatformDefaultPercent] = React.useState<number | null>(_cachedPropertyFormPlatformDefault);
+  const [floorPercent, setFloorPercent] = React.useState<number>(_cachedPropertyFormFloor || 15);
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Fetch platform default downpayment percent once when modal opens
   React.useEffect(() => {
     if (!isOpen) return;
-    if (_cachedPropertyFormPlatformDefault !== null) {
+    if (_cachedPropertyFormPlatformDefault !== null && _cachedPropertyFormFloor !== null) {
       setPlatformDefaultPercent(_cachedPropertyFormPlatformDefault);
+      setFloorPercent(_cachedPropertyFormFloor);
       return;
     }
     createClient()
       .from("system_settings")
-      .select("default_downpayment_percent")
+      .select("default_downpayment_percent, min_downpayment_percent, commission_percentage, addon_commission_percentage")
       .limit(1)
       .single()
       .then(({ data }) => {
-        const val = (data as any)?.default_downpayment_percent ? Number((data as any).default_downpayment_percent) : 20;
+        const d = data as any;
+        const val = d?.default_downpayment_percent ? Number(d.default_downpayment_percent) : 20;
+        const floor = getEffectiveDownpaymentFloor(
+          d?.min_downpayment_percent,
+          d?.commission_percentage,
+          d?.addon_commission_percentage
+        );
         _cachedPropertyFormPlatformDefault = val;
+        _cachedPropertyFormFloor = floor;
         setPlatformDefaultPercent(val);
+        setFloorPercent(floor);
       });
   }, [isOpen]);
 
   React.useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        ...initialData,
+        cancellation_policy: initialData.cancellation_policy || "standard",
+      });
     } else {
       setFormData({
         name: "",
@@ -97,10 +114,11 @@ export function PropertyFormModal({
         cover_image_url: "",
         promo_video_url: "",
         status: "active",
-        downpayment_percent: null,
+        downpayment_percent: platformDefaultPercent,
+        cancellation_policy: "standard",
       });
     }
-  }, [initialData, defaultType, isOpen]);
+  }, [initialData, defaultType, isOpen, platformDefaultPercent]);
 
   if (!isOpen) return null;
 
@@ -170,6 +188,16 @@ export function PropertyFormModal({
         return;
       }
 
+      setErrorMsg(null);
+
+      // Validate Downpayment Floor
+      const dp = formData.downpayment_percent;
+      if (dp !== null && dp !== undefined && dp < floorPercent) {
+        setErrorMsg(`Deposit percentage cannot be below the platform minimum (${floorPercent}%).`);
+        setIsSubmitting(false);
+        return;
+      }
+
       if (formData.id) {
         // Update existing property (both owner and admin can update)
         const { data, error } = await (supabase.from("properties") as any)
@@ -182,6 +210,7 @@ export function PropertyFormModal({
             promo_video_url: formData.promo_video_url?.trim() || "",
             status: formData.status,
             downpayment_percent: formData.downpayment_percent || null,
+            cancellation_policy: formData.cancellation_policy || "standard",
           })
           .eq("id", formData.id)
           .select()
@@ -215,6 +244,7 @@ export function PropertyFormModal({
             promo_video_url: formData.promo_video_url?.trim() || "",
             status: formData.status,
             downpayment_percent: formData.downpayment_percent || null,
+            cancellation_policy: formData.cancellation_policy || "standard",
           })
           .select()
           .single();
@@ -443,28 +473,54 @@ export function PropertyFormModal({
           {/* Default Listing Deposit */}
           <div className="space-y-1.5">
             <label className="font-bold text-neutral-900 uppercase tracking-wider text-[11px] block">
-              Default Deposit / Downpayment
+              Default Deposit / Downpayment (%)
             </label>
-            <select
-              value={formData.downpayment_percent?.toString() || ""}
+            <input
+              type="number"
+              min={floorPercent}
+              max={100}
+              step={1}
+              value={formData.downpayment_percent ?? ""}
               onChange={(e) =>
                 setFormData({
                   ...formData,
                   downpayment_percent: e.target.value ? Number(e.target.value) : null,
                 })
               }
+              placeholder={`e.g. ${platformDefaultPercent || 20}`}
               className="w-full h-10 px-3 rounded-xl border border-neutral-300 text-neutral-900 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-black"
+            />
+            {errorMsg && (
+              <p className="text-[10px] text-red-600 font-semibold mt-1">
+                {errorMsg}
+              </p>
+            )}
+            <p className="text-[10px] text-neutral-600">
+              Minimum allowed is {floorPercent}%. Set the default downpayment rule for all rooms in this property.
+            </p>
+          </div>
+
+          {/* Cancellation Policy Setting */}
+          <div className="space-y-1.5">
+            <label className="font-bold text-neutral-900 uppercase tracking-wider text-[11px] block">
+              Cancellation &amp; Refund Policy
+            </label>
+            <select
+              value={formData.cancellation_policy || "standard"}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  cancellation_policy: e.target.value as "standard" | "flexible" | "non_refundable",
+                })
+              }
+              className="w-full h-10 px-3 rounded-xl border border-neutral-300 text-neutral-900 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-black text-sm"
             >
-              <option value="">
-                {platformDefaultPercent !== null ? `Use System Default (${platformDefaultPercent}%)` : "Use System Default"}
-              </option>
-              <option value="20">20% Deposit</option>
-              <option value="30">30% Deposit</option>
-              <option value="50">50% Deposit</option>
-              <option value="100">100% (Full Payment)</option>
+              <option value="standard">Standard (Full refund 7+ days, 50% 3–6 days, 0% &lt;3 days)</option>
+              <option value="flexible">Flexible (100% refund up to 3 days before check-in)</option>
+              <option value="non_refundable">Strictly Non-Refundable (0% guest refund)</option>
             </select>
             <p className="text-[10px] text-neutral-600">
-              Set the default downpayment rule for all rooms in this property.
+              Governs refund eligibility on guest cancellations. Frozen into the booking record upon reservation.
             </p>
           </div>
 

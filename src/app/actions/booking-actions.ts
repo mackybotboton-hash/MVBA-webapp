@@ -25,8 +25,12 @@ export async function createReservationAction(payload: {
   serviceIds?: string[];
   expectedDownpayment: number;
   notes?: string;
+  policyAccepted: boolean;
 }) {
   try {
+    if (!payload.policyAccepted) {
+      throw new Error("You must agree to the property cancellation policy to proceed with booking.");
+    }
     // 1. Authenticate the caller using standard SSR client (respects cookies)
     const supabaseUserClient = await createClient();
     const { data: { user }, error: authError } = await supabaseUserClient.auth.getUser();
@@ -92,7 +96,7 @@ export async function createReservationAction(payload: {
     // Fetch the system settings to get the dynamic commission percentage and convenience fee
     const { data: systemSettings, error: settingsError } = await (supabaseAdmin as any)
       .from("system_settings")
-      .select("commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent")
+      .select("commission_percentage, addon_commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent")
       .limit(1)
       .single();
       
@@ -151,7 +155,9 @@ export async function createReservationAction(payload: {
       room.downpayment_percent,
       room.properties?.downpayment_percent,
       systemSettings.default_downpayment_percent,
-      systemSettings.min_downpayment_percent
+      systemSettings.min_downpayment_percent,
+      systemSettings.commission_percentage,
+      systemSettings.addon_commission_percentage
     );
 
     const breakdown = calculatePaymentBreakdown(totalPrice + addonsTotal, resolvedPercent, convenienceFee);
@@ -171,6 +177,14 @@ export async function createReservationAction(payload: {
     const commissionAmount = roomCommissionAmount + addonsCommission;
     // Host payout is room + addons minus their respective commissions
     const hostPayoutAmount = (totalPrice - roomCommissionAmount) + (addonsTotal - addonsCommission);
+
+    // Safety guard to ensure deposit covers all platform fees (using centavos to avoid float drift)
+    const depositCents = Math.round((downpaymentAmount - convenienceFee) * 100);
+    const commissionCents = Math.round(commissionAmount * 100);
+    if (depositCents < commissionCents) {
+      console.error(`Deposit too low guard triggered. Deposit (no fee): ₱${(depositCents/100).toFixed(2)}, Commission: ₱${(commissionCents/100).toFixed(2)}`);
+      throw new Error("This booking can't be created right now. Please try another option or contact support");
+    }
 
     // 4. Atomic Insertion via Admin Client using RPC v2 (Phase 1a Fix)
     
@@ -201,6 +215,14 @@ export async function createReservationAction(payload: {
     }
 
     const newBookingId = rpcRes.booking_id;
+
+    // Record policy_accepted_at timestamp atomically via admin client
+    if (newBookingId) {
+      await supabaseAdmin
+        .from("bookings")
+        .update({ policy_accepted_at: new Date().toISOString() })
+        .eq("id", newBookingId);
+    }
 
     // Insert Add-ons if any
     if (addonsData.length > 0 && newBookingId) {

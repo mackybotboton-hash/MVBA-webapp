@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, FileText, CheckCircle2 } from "lucide-react";
 import { PolicyNav } from "@/components/layouts/policy-nav";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Terms of Service | Panaw",
@@ -9,7 +10,17 @@ export const metadata: Metadata = {
     "Official terms and conditions for booking accommodations and island tours through the Panaw.",
 };
 
-export default function TermsOfServicePage() {
+export default async function TermsOfServicePage() {
+  const supabase = await createClient();
+  const { data: settings } = await (supabase as any)
+    .from("system_settings")
+    .select("refund_full_days, refund_partial_days, refund_partial_percent, convenience_fee_refund_rule")
+    .limit(1)
+    .single();
+
+  const fullDays = settings?.refund_full_days ?? 7;
+  const partialDays = settings?.refund_partial_days ?? 3;
+  const partialPercent = settings?.refund_partial_percent ?? 50;
   return (
     <div className="min-h-screen bg-neutral-50/50">
       {/* Top Header */}
@@ -79,34 +90,37 @@ export default function TermsOfServicePage() {
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-neutral-950">3. Cancellation and Refund Policy</h2>
             <p>
-              Reservations are managed in accordance with platform fairness standards:
+              Reservations are managed in accordance with platform fairness standards and each property&apos;s designated cancellation policy (Standard, Flexible, or Non-Refundable). For properties on the Standard Policy:
             </p>
             <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-200 space-y-2">
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Full Refund (7 or More Days Prior):</strong> Full refund of downpayment if cancelled 7 or more days before the scheduled check-in date, minus any standard bank processing charges.
+                  <strong>Full Refund ({fullDays} or More Days Prior):</strong> 100% refund of the room/addon deposit if cancelled {fullDays} or more days before the scheduled check-in date. Booking service fees are non-refundable on guest cancellation.
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Partial Refund (3 Days up to Under 7 Days Prior):</strong> 50% refund of the downpayment amount if cancelled 3 days up to under 7 days before check-in.
+                  <strong>Partial Refund ({partialDays} to Under {fullDays} Days Prior):</strong> {partialPercent}% refund of the deposit amount if cancelled between {partialDays} days and under {fullDays} days before check-in.
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Non-Refundable (Under 3 Days / 72 Hours or No-Show):</strong> Cancellations made under 3 days (72 hours) before check-in or guest no-shows are strictly non-refundable to compensate operators for reserved room inventory.
+                  <strong>Non-Refundable (Under {partialDays} Days or No-Show):</strong> Cancellations made under {partialDays} days before check-in or guest no-shows are strictly non-refundable to compensate operators for reserved room inventory.
                 </span>
               </div>
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Force Majeure & Maritime Gale Warnings:</strong> If boat trips or tourist operations are halted due to Philippine Coast Guard gale warnings, severe weather, or government travel restrictions, guests may reschedule without penalty or receive a full 100% refund.
+                  <strong>Force Majeure &amp; Maritime Gale Warnings:</strong> If boat trips or tourist operations are halted due to Philippine Coast Guard gale warnings, severe weather, or government travel restrictions, guests receive a 100% full refund (including convenience fee) or may reschedule without penalty.
                 </span>
               </div>
             </div>
+            <p className="text-xs text-neutral-600 mt-2">
+              Properties operating under Flexible Policy offer 100% refund up to {partialDays} days before check-in. Properties operating under Non-Refundable Policy are non-refundable upon guest cancellation.
+            </p>
           </section>
 
           <section className="space-y-3">

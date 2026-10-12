@@ -45,6 +45,30 @@ const systemSettingsSchema = z.object({
   adminGcashName: z
     .string()
     .min(2, "Name must be at least 2 characters long"),
+  // Cancellation and Refund Policy
+  refundFullDays: z
+    .number()
+    .int()
+    .min(1, "Full refund days must be at least 1")
+    .max(30, "Cannot exceed 30 days"),
+  refundPartialDays: z
+    .number()
+    .int()
+    .min(0, "Partial refund days must be at least 0")
+    .max(30, "Cannot exceed 30 days"),
+  refundPartialPercent: z
+    .number()
+    .min(0, "Must be at least 0%")
+    .max(100, "Cannot exceed 100%"),
+  convenienceFeeRefundRule: z.enum(["never", "full_tier_only", "always"]),
+  hostRefundDeadlineHours: z
+    .number()
+    .int()
+    .min(1, "Deadline must be at least 1 hour")
+    .max(168, "Cannot exceed 168 hours"),
+}).refine((data) => data.refundFullDays > data.refundPartialDays, {
+  message: "Full refund window (days) must be greater than partial refund window (days).",
+  path: ["refundFullDays"],
 });
 
 export default function AdminSettingsPage() {
@@ -61,6 +85,11 @@ export default function AdminSettingsPage() {
       convenienceFee: 100.0,
       adminGcashNumber: "",
       adminGcashName: "",
+      refundFullDays: 7,
+      refundPartialDays: 3,
+      refundPartialPercent: 50,
+      convenienceFeeRefundRule: "never",
+      hostRefundDeadlineHours: 72,
     },
   });
 
@@ -84,6 +113,11 @@ export default function AdminSettingsPage() {
         convenienceFee: Number(settingsData.convenience_fee || 100),
         adminGcashNumber: settingsData.admin_gcash_number,
         adminGcashName: settingsData.admin_gcash_name,
+        refundFullDays: Number(settingsData.refund_full_days ?? 7),
+        refundPartialDays: Number(settingsData.refund_partial_days ?? 3),
+        refundPartialPercent: Number(settingsData.refund_partial_percent ?? 50),
+        convenienceFeeRefundRule: settingsData.convenience_fee_refund_rule ?? "never",
+        hostRefundDeadlineHours: Number(settingsData.host_refund_deadline_hours ?? 72),
       });
       setIsInitializing(false);
     }
@@ -318,6 +352,147 @@ export default function AdminSettingsPage() {
                           </FormControl>
                           <FormDescription>
                             Tourists will send their required deposit to this number.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Cancellation & Refund Rules Configuration */}
+                <div className="pt-6 border-t border-neutral-200">
+                  <h3 className="font-semibold text-sm text-neutral-900 flex items-center gap-2 mb-4">
+                    <Settings className="h-4 w-4 text-amber-600" />
+                    Cancellation &amp; Refund Policy Defaults
+                  </h3>
+
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="refundFullDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Full Refund Window (Days Before Check-in)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="1" 
+                              min="1"
+                              max="30"
+                              placeholder="7" 
+                              className="h-11 bg-neutral-50 focus-visible:ring-amber-500"
+                              {...field} 
+                              onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Minimum calendar days required before check-in for a 100% deposit refund (Standard Policy).
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="refundPartialDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Partial Refund Cutoff (Days Before Check-in)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="1" 
+                              min="0"
+                              max="30"
+                              placeholder="3" 
+                              className="h-11 bg-neutral-50 focus-visible:ring-amber-500"
+                              {...field} 
+                              onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Notice cutoff below which bookings become strictly non-refundable (e.g. 3 days).
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="refundPartialPercent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Partial Refund Percentage (%)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input 
+                                type="number" 
+                                step="1" 
+                                min="0"
+                                max="100"
+                                placeholder="50" 
+                                className="pl-9 h-11 bg-neutral-50 focus-visible:ring-amber-500"
+                                {...field} 
+                                onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                              />
+                              <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Deposit percentage refunded when cancelled within the partial window (Standard Policy).
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="convenienceFeeRefundRule"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Booking Convenience Fee Refund Rule</FormLabel>
+                          <FormControl>
+                            <select
+                              className="w-full h-11 px-3 rounded-lg border border-neutral-300 text-sm focus:outline-none focus:ring-1 focus:ring-black bg-neutral-50"
+                              {...field}
+                            >
+                              <option value="never">Never (Platform Retains Fee - Default)</option>
+                              <option value="full_tier_only">Full Tier Only (Refund with 100% deposit tier)</option>
+                              <option value="always">Always (Refund on every cancellation)</option>
+                            </select>
+                          </FormControl>
+                          <FormDescription>
+                            Controls whether the ₱100 convenience fee is returned to tourists upon guest cancellation.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="hostRefundDeadlineHours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-semibold">Host Refund Deadline (Hours)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              step="1" 
+                              min="1"
+                              max="168"
+                              placeholder="72" 
+                              className="h-11 bg-neutral-50 focus-visible:ring-amber-500"
+                              {...field} 
+                              onChange={(e) => field.onChange(e.target.value === "" ? "" : Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Deadline for hosts to upload GCash proof for host-leg refunds (default 72h).
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

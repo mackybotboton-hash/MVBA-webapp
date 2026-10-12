@@ -49,6 +49,8 @@ export interface Property {
   tiktok_url: string | null;
   /** Optional property-level downpayment override (1–100). Falls back to system setting if null. */
   downpayment_percent?: number | null;
+  /** Property-level cancellation policy: 'standard' | 'flexible' | 'non_refundable' */
+  cancellation_policy?: "standard" | "flexible" | "non_refundable" | string;
   created_at: string;
   updated_at: string;
 }
@@ -75,6 +77,12 @@ export interface SystemSettings {
   min_downpayment_percent: number;
   /** Alias for min_downpayment_percent used in some admin forms. */
   default_downpayment_percent?: number | null;
+  /** Cancellation refund system configuration */
+  refund_full_days?: number;
+  refund_partial_days?: number;
+  refund_partial_percent?: number;
+  convenience_fee_refund_rule?: string;
+  host_refund_deadline_hours?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -108,6 +116,31 @@ export interface Booking {
   payout_status?: string | null;
   status: BookingStatus;
   notes?: string | null;
+  /** Cancellation & Refund fields */
+  cancelled_by?: "tourist" | "host" | "admin" | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  cancellation_policy?: string | null;
+  cancellation_snapshot?: Record<string, any> | null;
+  policy_accepted_at?: string | null;
+  cancel_acknowledged_at?: string | null;
+  refund_total?: number | null;
+  deposit_refund_amount?: number | null;
+  fee_refund_amount?: number | null;
+  adjusted_host_payout_amount?: number | null;
+  refund_gcash_number?: string | null;
+  host_refund_amount?: number | null;
+  host_refund_status?: "none" | "pending" | "sent";
+  host_refund_receipt_url?: string | null;
+  host_refund_due_at?: string | null;
+  host_refund_sent_at?: string | null;
+  panaw_refund_amount?: number | null;
+  panaw_refund_status?: "none" | "pending" | "sent";
+  panaw_refund_receipt_url?: string | null;
+  panaw_refund_sent_at?: string | null;
+  refund_issue_reported_at?: string | null;
+  refund_issue_reason?: string | null;
+  refunded_at?: string | null;
   created_at: string;
   updated_at: string;
 }
