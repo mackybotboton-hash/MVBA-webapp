@@ -132,7 +132,6 @@ export default function PropertyStorefrontPage() {
   const [policyAccepted, setPolicyAccepted] = React.useState<boolean>(false);
   const [isSubmittingBooking, setIsSubmittingBooking] = React.useState(false);
 
-  // Concurrency & Double-Booking Protection State
   const [bookedRanges, setBookedRanges] = React.useState<{
     id: string;
     check_in_date: string;
@@ -140,6 +139,9 @@ export default function PropertyStorefrontPage() {
     status: string;
   }[]>([]);
   const [isLoadingAvailability, setIsLoadingAvailability] = React.useState(false);
+  const [bookingError, setBookingError] = React.useState<string | null>(null);
+  const [highlightPolicy, setHighlightPolicy] = React.useState<boolean>(false);
+  const policyBoxRef = React.useRef<HTMLDivElement>(null);
 
   // Load User Data
   React.useEffect(() => {
@@ -361,10 +363,12 @@ export default function PropertyStorefrontPage() {
         systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
       );
 
+      setBookingError(null);
+
       if (!policyAccepted) {
-        toast.error("Policy Agreement Required", {
-          description: "Please read and agree to the cancellation policy before booking.",
-        });
+        setHighlightPolicy(true);
+        policyBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => setHighlightPolicy(false), 2000);
         return;
       }
 
@@ -382,9 +386,8 @@ export default function PropertyStorefrontPage() {
       });
 
       if (!result.success) {
-        toast.error("Booking Error", {
-          description: result.error || "Failed to create reservation request.",
-        });
+        console.error("[Booking Request Error]:", result.error);
+        setBookingError("We couldn't complete your booking. Please try again.");
         setIsSubmittingBooking(false);
         fetchRoomAvailability();
         return;
@@ -398,9 +401,8 @@ export default function PropertyStorefrontPage() {
       setSelectedRoom(null);
       router.push("/bookings");
     } catch (err: any) {
-      toast.error("Reservation Error", {
-        description: err.message || "An unexpected error occurred while booking.",
-      });
+      console.error("[Booking Request Error]:", err);
+      setBookingError("We couldn't complete your booking. Please try again.");
     } finally {
       setIsSubmittingBooking(false);
     }
@@ -1021,14 +1023,14 @@ export default function PropertyStorefrontPage() {
             onClick={() => setSelectedRoom(null)}
           />
 
-          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col max-h-[85dvh] overflow-hidden">
+          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90dvh] overflow-hidden">
             {/* Header - Fixed */}
             <div className="shrink-0 flex items-center justify-between border-b border-neutral-100 p-4 bg-white">
               <div>
                 <h3 className="font-bold text-lg text-neutral-900 leading-tight">
                   Request Reservation
                 </h3>
-                <p className="text-xs font-medium text-neutral-700">{selectedRoom.name}</p>
+                <p className="text-xs font-medium text-neutral-600">{selectedRoom.name}</p>
               </div>
               <button
                 onClick={() => setSelectedRoom(null)}
@@ -1038,9 +1040,9 @@ export default function PropertyStorefrontPage() {
               </button>
             </div>
 
-            {/* Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
-              {/* Custom Inline Calendar */}
+            {/* Content - Scrollable Body (The ONLY scroll area) */}
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 text-sm">
+              {/* 1. Custom Inline Calendar */}
               <div className="rounded-xl border border-neutral-200 bg-white p-1 flex justify-center overflow-hidden">
                 <CalendarComponent
                   mode="range"
@@ -1051,28 +1053,23 @@ export default function PropertyStorefrontPage() {
                   disabled={(date) => {
                     const earliestAllowed = addDays(new Date(), 2);
                     earliestAllowed.setHours(0, 0, 0, 0);
-                    
-                    // 1. Strictly enforce 2-day advance booking (disable today and tomorrow)
                     if (date < earliestAllowed) return true;
-                    
-                    // 2. Once a check-in date is selected, PERMANENTLY disable all dates before it.
                     if (dateRange?.from && date < dateRange.from) return true;
-                    
-                    // 3. Disable dates already booked
                     return disabledDates.some(
                       (range) => date >= range.from && date <= range.to
                     );
                   }}
-                  className="w-full max-w-[280px] sm:max-w-none flex justify-center"
+                  className="w-full flex justify-center"
                 />
               </div>
 
               {checkInDate >= checkOutDate && dateRange?.to && (
-                <span className="text-[10px] text-red-600 mt-1 block font-semibold text-center">
+                <span className="text-[11px] text-red-600 mt-1 block font-semibold text-center">
                   Check-out date must be after check-in date.
                 </span>
               )}
 
+              {/* 2. Number of Guests */}
               <div>
                 <label className="font-medium text-neutral-700 block mb-1.5">
                   Number of Guests
@@ -1083,32 +1080,34 @@ export default function PropertyStorefrontPage() {
                   max={selectedRoom.max_capacity}
                   value={guestCount}
                   onChange={(e) => setGuestCount(Number(e.target.value))}
-                  className="w-full h-10 px-3 rounded-md border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium"
+                  className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium"
                 />
-                <span className="text-xs font-medium text-neutral-700 mt-1 block">
+                <span className="text-xs font-medium text-neutral-500 mt-1 block">
                   Maximum capacity: {selectedRoom.max_capacity} guests
                 </span>
               </div>
 
+              {/* 3. Estimated Arrival Time */}
               <div>
                 <label className="font-medium text-neutral-700 block mb-1.5">
-                  Estimated Arrival Time <span className="text-neutral-600 font-normal">(Optional)</span>
+                  Estimated Arrival Time <span className="text-neutral-500 font-normal">(Optional)</span>
                 </label>
                 <select
                   value={arrivalTime}
                   onChange={(e) => setArrivalTime(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
+                  className="w-full h-10 px-3 rounded-lg border border-neutral-200 text-neutral-900 text-sm focus:outline-none focus:ring-1 focus:ring-black font-medium appearance-none bg-white"
                 >
                   <option value="">Not Sure Yet</option>
                   <option value="2:00 PM - 4:00 PM">2:00 PM - 4:00 PM</option>
                   <option value="4:00 PM - 6:00 PM">4:00 PM - 6:00 PM</option>
                   <option value="After 6:00 PM">Late Arrival (After 6:00 PM)</option>
                 </select>
-                <span className="text-xs font-medium text-neutral-700 mt-1 block">
+                <span className="text-xs font-medium text-neutral-500 mt-1 block">
                   Standard Check-in: 2:00 PM | Check-out: 12:00 PM
                 </span>
               </div>
 
+              {/* 4. Optional Add-ons */}
               {services.length > 0 && (
                 <div className="pt-2 border-t border-neutral-100">
                   <label className="font-bold text-neutral-900 block mb-2">
@@ -1119,7 +1118,7 @@ export default function PropertyStorefrontPage() {
                       <label key={service.id} className="flex items-start gap-3 p-3 rounded-xl border border-neutral-200 bg-neutral-50/50 cursor-pointer hover:border-black transition-colors">
                         <input
                           type="checkbox"
-                          className="mt-0.5 rounded border-neutral-300 text-black focus:ring-black"
+                          className="mt-0.5 rounded border-neutral-300 text-black focus:ring-black accent-black"
                           checked={selectedAddons.includes(service.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
@@ -1143,134 +1142,223 @@ export default function PropertyStorefrontPage() {
                   </div>
                 </div>
               )}
+
+              {/* 5. Price Breakdown & 6. Policy Box */}
+              {(() => {
+                const total = calculateTotalPrice(selectedRoom.base_price);
+                const nights = calculateTotalNights();
+                const isValidDates = nights > 0 && checkInDate < checkOutDate;
+
+                if (!isValidDates) {
+                  return (
+                    <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200 text-neutral-500 text-xs text-center">
+                      Select check-in and check-out dates to view payment breakdown.
+                    </div>
+                  );
+                }
+
+                const resolvedPercent = resolveDownpaymentPercent(
+                  selectedRoom.downpayment_percent,
+                  property?.downpayment_percent,
+                  systemSettings?.default_downpayment_percent,
+                  systemSettings?.min_downpayment_percent,
+                  systemSettings?.commission_percentage,
+                  systemSettings?.addon_commission_percentage
+                );
+                const breakdown = calculatePaymentBreakdown(
+                  total,
+                  resolvedPercent,
+                  systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
+                );
+
+                const policy = property?.cancellation_policy || "standard";
+                const summary = getPolicySummary(policy, systemSettings);
+
+                return (
+                  <div className="space-y-4 pt-2">
+                    {/* Price Breakdown */}
+                    <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
+                      <div className="flex justify-between text-neutral-600">
+                        <span className="font-medium text-neutral-700">
+                          Room Base ({nights} {nights === 1 ? "night" : "nights"})
+                        </span>
+                        <span className="font-bold text-neutral-900">
+                          ₱{(selectedRoom.base_price * nights).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      
+                      {selectedAddons.length > 0 && (
+                        <div className="flex justify-between text-neutral-600">
+                          <span className="font-medium text-neutral-700">Extra Services</span>
+                          <span className="font-bold text-neutral-900">
+                            ₱{(total - selectedRoom.base_price * nights).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between text-neutral-600">
+                        <span className="font-medium text-neutral-700">
+                          {resolvedPercent === 100 ? "Full Payment" : `Deposit (${resolvedPercent}% of room/addons)`}
+                        </span>
+                        <span className="font-bold text-emerald-700">
+                          ₱{(total * (breakdown.effectivePercent / 100)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between text-neutral-600">
+                        <span className="font-medium text-neutral-700">Booking Service Fee</span>
+                        <span className="font-bold text-neutral-900">
+                          ₱{(systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
+                        <span>{resolvedPercent === 100 ? "Total Full Payment" : "Total Due Now"}</span>
+                        <span className="text-emerald-600">
+                          ₱{breakdown.expectedDownpayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+
+                      {breakdown.expectedBalance > 0 && (
+                        <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
+                          <span>Remaining Balance (due at check-in)</span>
+                          <span className="text-neutral-800">
+                            ₱{breakdown.expectedBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 6. Dynamic Cancellation Policy Box */}
+                    <div
+                      ref={policyBoxRef}
+                      className={cn(
+                        "rounded-xl border p-3.5 text-xs text-amber-950 space-y-1.5 transition-all duration-300",
+                        highlightPolicy
+                          ? "border-amber-500 bg-amber-100 ring-4 ring-amber-400/50 shadow-md animate-pulse"
+                          : "border-amber-200 bg-amber-50/80"
+                      )}
+                    >
+                      <div className="font-bold flex items-center justify-between">
+                        <span>{formatPolicyName(policy)}</span>
+                        <Link href="/terms" target="_blank" className="text-amber-800 underline font-medium hover:text-black">
+                          View Terms
+                        </Link>
+                      </div>
+                      <p className="text-[11px] text-amber-900 leading-snug">
+                        • {summary.tier1}
+                      </p>
+                      {summary.tier2 && (
+                        <p className="text-[11px] text-amber-900 leading-snug">
+                          • {summary.tier2}
+                        </p>
+                      )}
+                      <p className="text-[11px] text-amber-900 leading-snug">
+                        • {summary.tier3}
+                      </p>
+                      <p className="text-[11px] text-amber-900/90 leading-snug font-medium">
+                        • {summary.feeRuleText}
+                      </p>
+
+                      <div className="pt-2 border-t border-amber-200/60 flex items-start gap-2.5">
+                        <input 
+                          type="checkbox"
+                          id="drawer-policy-checkbox"
+                          checked={policyAccepted}
+                          onChange={(e) => {
+                            setPolicyAccepted(e.target.checked);
+                            if (e.target.checked) setHighlightPolicy(false);
+                          }}
+                          className="mt-0.5 h-4 w-4 rounded border-amber-400 text-black accent-black cursor-pointer"
+                        />
+                        <label htmlFor="drawer-policy-checkbox" className="text-[11px] font-semibold text-neutral-900 cursor-pointer select-none">
+                          I understand and agree to the {formatPolicyName(policy)} for this reservation.
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* 7. Booking Error Banner - Inside body, directly above footer */}
+              {bookingError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-xs text-red-800 flex items-start gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-red-950">Booking Unavailable</p>
+                    <p className="mt-0.5 text-red-800">{bookingError}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
+            {/* Footer - Sticky, compact (64-72px), respecting safe-area */}
             {(() => {
-              const total = calculateTotalPrice(selectedRoom.base_price);
-              // Hierarchy: room override → property default → platform default → clamped to platform min
-              const resolvedPercent = resolveDownpaymentPercent(
-                selectedRoom.downpayment_percent,
-                property?.downpayment_percent,
-                systemSettings?.default_downpayment_percent,
-                systemSettings?.min_downpayment_percent,
-                systemSettings?.commission_percentage,
-                systemSettings?.addon_commission_percentage
-              );
-              const breakdown = calculatePaymentBreakdown(
-                total,
-                resolvedPercent,
-                systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
-              );
+              const nights = calculateTotalNights();
+              const isValidDates = nights > 0 && checkInDate < checkOutDate;
+              let expectedDownpayment = 0;
+              if (isValidDates) {
+                const total = calculateTotalPrice(selectedRoom.base_price);
+                const resolvedPercent = resolveDownpaymentPercent(
+                  selectedRoom.downpayment_percent,
+                  property?.downpayment_percent,
+                  systemSettings?.default_downpayment_percent,
+                  systemSettings?.min_downpayment_percent,
+                  systemSettings?.commission_percentage,
+                  systemSettings?.addon_commission_percentage
+                );
+                const breakdown = calculatePaymentBreakdown(
+                  total,
+                  resolvedPercent,
+                  systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
+                );
+                expectedDownpayment = breakdown.expectedDownpayment;
+              }
+
+              const isReadyToReserve = isValidDates && !conflictingBooking && policyAccepted;
+
+              const handleReserveClick = () => {
+                if (isSubmittingBooking) return;
+                if (!isValidDates) {
+                  toast.error("Please select valid check-in and check-out dates.");
+                  return;
+                }
+                if (conflictingBooking) {
+                  toast.error("Selected dates are unavailable.");
+                  return;
+                }
+                if (!policyAccepted) {
+                  setHighlightPolicy(true);
+                  policyBoxRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  setTimeout(() => setHighlightPolicy(false), 2000);
+                  return;
+                }
+                handleCreateBooking();
+              };
 
               return (
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm space-y-2">
-                  <div className="flex justify-between text-neutral-600">
-                    <span className="font-medium text-neutral-700">
-                      Room Base ({calculateTotalNights()} {calculateTotalNights() === 1 ? "night" : "nights"})
+                <div className="shrink-0 border-t border-neutral-100 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-3 min-h-[64px] max-h-[72px]">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-500 truncate">
+                      Total due now
                     </span>
-                    <span className="font-bold text-neutral-900">
-                      ₱{(selectedRoom.base_price * calculateTotalNights()).toLocaleString()}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between text-neutral-600">
-                    <span className="font-medium text-neutral-700">
-                      {resolvedPercent === 100 ? "Full Payment" : `Deposit (${resolvedPercent}% of room/addons)`}
-                    </span>
-                    <span className="font-bold text-emerald-700">
-                      ₱{(total * (breakdown.effectivePercent / 100)).toLocaleString()}
+                    <span className="text-base sm:text-lg font-bold text-neutral-900 leading-tight">
+                      {isValidDates ? `₱${expectedDownpayment.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
                     </span>
                   </div>
 
-                  <div className="flex justify-between text-neutral-600">
-                    <span className="font-medium text-neutral-700">Booking Service Fee</span>
-                    <span className="font-bold text-neutral-900">
-                      ₱{systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee).toLocaleString() : 100}
-                    </span>
+                  <div onClick={handleReserveClick}>
+                    <Button
+                      type="button"
+                      disabled={isSubmittingBooking || !isReadyToReserve}
+                      className="h-10 sm:h-11 px-6 rounded-xl bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 font-semibold text-sm transition-all shadow-sm shrink-0"
+                    >
+                      {isSubmittingBooking ? "Sending..." : "Reserve"}
+                    </Button>
                   </div>
-
-                  <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
-                    <span>{resolvedPercent === 100 ? "Total Full Payment" : "Total Due Now"}</span>
-                    <span className="text-emerald-600">
-                      ₱{breakdown.expectedDownpayment.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {breakdown.expectedBalance > 0 && (
-                    <div className="flex justify-between font-bold text-sm text-neutral-900 pt-2 border-t border-neutral-200">
-                      <span>Remaining Balance (due at check-in)</span>
-                      <span className="text-neutral-800">
-                        ₱{breakdown.expectedBalance.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Dynamic Cancellation Policy Snapshot Box */}
-                  {(() => {
-                    const policy = property?.cancellation_policy || "standard";
-                    const summary = getPolicySummary(policy, systemSettings);
-                    return (
-                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/80 p-3 text-xs text-amber-950 space-y-1.5">
-                        <div className="font-bold flex items-center justify-between">
-                          <span>{formatPolicyName(policy)}</span>
-                          <Link href="/terms" target="_blank" className="text-amber-800 underline font-medium hover:text-black">
-                            View Terms
-                          </Link>
-                        </div>
-                        <p className="text-[11px] text-amber-900 leading-snug">
-                          • {summary.tier1}
-                        </p>
-                        {summary.tier2 && (
-                          <p className="text-[11px] text-amber-900 leading-snug">
-                            • {summary.tier2}
-                          </p>
-                        )}
-                        <p className="text-[11px] text-amber-900 leading-snug">
-                          • {summary.tier3}
-                        </p>
-                        <p className="text-[11px] text-amber-900/90 leading-snug font-medium">
-                          • {summary.feeRuleText}
-                        </p>
-
-                        <div className="pt-2 border-t border-amber-200/60 flex items-start gap-2.5">
-                          <input 
-                            type="checkbox"
-                            id="drawer-policy-checkbox"
-                            checked={policyAccepted}
-                            onChange={(e) => setPolicyAccepted(e.target.checked)}
-                            className="mt-0.5 h-4 w-4 rounded border-amber-400 text-black accent-black cursor-pointer"
-                          />
-                          <label htmlFor="drawer-policy-checkbox" className="text-[11px] font-semibold text-neutral-900 cursor-pointer select-none">
-                            I understand and agree to the {formatPolicyName(policy)} for this reservation.
-                          </label>
-                        </div>
-                      </div>
-                    );
-                  })()}
                 </div>
               );
             })()}
-
-            {/* Footer - Fixed */}
-            <div className="shrink-0 p-4 border-t border-neutral-100 bg-white">
-              <Button
-                onClick={handleCreateBooking}
-                disabled={isSubmittingBooking || !!conflictingBooking || checkInDate >= checkOutDate || !policyAccepted}
-                className="w-full h-10 bg-black text-white hover:bg-neutral-800 disabled:bg-neutral-200 disabled:text-neutral-500 disabled:cursor-not-allowed text-sm font-semibold rounded-lg transition-all shadow-md"
-              >
-                {isSubmittingBooking ? (
-                  "Verifying & Sending Request..."
-                ) : conflictingBooking ? (
-                  "Dates Unavailable (Already Booked)"
-                ) : checkInDate >= checkOutDate ? (
-                  "Select Valid Dates"
-                ) : !policyAccepted ? (
-                  "Agree to Policy to Continue"
-                ) : (
-                  "Confirm & Send Request"
-                )}
-              </Button>
-            </div>
           </div>
         </div>
       )}

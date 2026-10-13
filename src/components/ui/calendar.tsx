@@ -21,18 +21,18 @@ function Calendar({
       classNames={{
         months: "flex flex-col sm:flex-row space-y-2 sm:space-x-4 sm:space-y-0",
         month: "space-y-2 w-full",
-        month_caption: "flex justify-center pt-1 relative items-center mb-1",
-        caption_label: "text-sm font-bold",
-        nav: "space-x-1 flex items-center",
+        month_caption: "flex justify-center pt-1 relative items-center mb-2 min-h-9",
+        caption_label: "text-sm font-bold text-neutral-900 select-none",
+        nav: "flex items-center justify-between absolute inset-x-1 top-1.5 z-10 pointer-events-none px-1",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-white p-0 opacity-90 hover:opacity-100 absolute left-0 top-[55%] -translate-y-1/2 rounded-full shadow-md z-10 border border-neutral-200 text-black hover:bg-neutral-50"
+          "h-8 w-8 bg-white p-0 opacity-80 hover:opacity-100 rounded-full shadow-xs border border-neutral-200 text-black hover:bg-neutral-50 pointer-events-auto"
         ),
         button_next: cn(
           buttonVariants({ variant: "outline" }),
-          "h-9 w-9 bg-white p-0 opacity-90 hover:opacity-100 absolute right-0 top-[55%] -translate-y-1/2 rounded-full shadow-md z-10 border border-neutral-200 text-black hover:bg-neutral-50"
+          "h-8 w-8 bg-white p-0 opacity-80 hover:opacity-100 rounded-full shadow-xs border border-neutral-200 text-black hover:bg-neutral-50 pointer-events-auto"
         ),
-        month_grid: "w-full border-collapse space-y-1",
+        month_grid: "w-full border-collapse space-y-1 mt-1",
         weekdays: "flex justify-between sm:justify-center sm:gap-2 px-1 sm:px-0",
         weekday: "text-neutral-600 rounded-md w-8 font-medium text-[11px]",
         week: "flex justify-between sm:justify-center sm:gap-2 w-full mt-1 px-1 sm:px-0",

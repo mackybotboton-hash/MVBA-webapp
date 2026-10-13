@@ -129,11 +129,13 @@ export function DiscoveryFeed() {
         queryClient.invalidateQueries({ queryKey: ["properties"] });
         setBookingModalOpen(false);
       } else {
-        toast.error("Failed to request booking", { description: data.error });
+        console.error("[Booking Request Error]:", data.error);
+        toast.error("Booking Error", { description: "We couldn't complete your booking. Please try again." });
       }
     },
     onError: (error: any) => {
-      toast.error("Failed to request booking", { description: error.message });
+      console.error("[Booking Request Error]:", error);
+      toast.error("Booking Error", { description: "We couldn't complete your booking. Please try again." });
     }
   });
 
@@ -146,6 +148,7 @@ export function DiscoveryFeed() {
       serviceIds: payload.serviceIds,
       expectedDownpayment: payload.expectedDownpayment,
       policyAccepted: Boolean(payload.policyAccepted),
+      notes: payload.notes,
     });
   };
 
@@ -205,6 +208,11 @@ export function DiscoveryFeed() {
           rooms={selectedProperty.rooms}
           onSubmit={handleBookingSubmit}
           isSubmitting={bookingMutation.isPending}
+          errorMessage={
+            bookingMutation.isError || (bookingMutation.data && !bookingMutation.data.success)
+              ? "We couldn't complete your booking. Please try again."
+              : null
+          }
         />
       )}
       
