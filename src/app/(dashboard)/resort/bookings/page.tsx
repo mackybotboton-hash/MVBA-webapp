@@ -190,7 +190,7 @@ export default function ResortBookingsPage() {
 
   const handleUpdateStatus = React.useCallback(async (
     bookingId: string,
-    newStatus: "accepted" | "declined" | "cancelled",
+    newStatus: "accepted" | "declined" | "cancelled" | "completed",
     reason?: string
   ) => {
     try {
@@ -209,6 +209,8 @@ export default function ResortBookingsPage() {
           ? "Resort reservation confirmed!"
           : newStatus === "cancelled"
           ? "Confirmed reservation was cancelled successfully."
+          : newStatus === "completed"
+          ? "Stay completed! Guest has been invited to rate their stay."
           : "Reservation declined."
       );
 

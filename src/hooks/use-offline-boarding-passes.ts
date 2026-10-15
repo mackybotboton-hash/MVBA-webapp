@@ -39,7 +39,9 @@ export function useOfflineBoardingPasses() {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
+      if (!Array.isArray(parsed)) return [];
+      // Strictly exclude any cancelled passes that might linger in storage
+      return parsed.filter((p: any) => p && p.id && p.status !== "cancelled");
     } catch (e) {
       console.error("Failed to load offline boarding passes from storage:", e);
       return [];
@@ -56,6 +58,15 @@ export function useOfflineBoardingPasses() {
   const savePass = useCallback((pass: BoardingPassData) => {
     if (typeof window === "undefined") return;
     try {
+      // If pass is cancelled, purge it from cache immediately
+      if (pass.status === "cancelled") {
+        const current = loadCachedPasses();
+        const filtered = current.filter((p: CachedBoardingPass) => p.id !== pass.id);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+        setCachedPasses(filtered);
+        return;
+      }
+
       const current = loadCachedPasses();
       const existingIdx = current.findIndex((p: CachedBoardingPass) => p.id === pass.id);
       const newEntry: CachedBoardingPass = {
@@ -85,17 +96,21 @@ export function useOfflineBoardingPasses() {
       const current = loadCachedPasses();
       const passMap = new Map<string, CachedBoardingPass>();
 
-      // Populate existing
-      current.forEach((p: CachedBoardingPass) => passMap.set(p.id, p));
+      // Populate existing (excluding cancelled)
+      current
+        .filter((p) => p.status !== "cancelled")
+        .forEach((p: CachedBoardingPass) => passMap.set(p.id, p));
 
       // Merge new confirmed passes
       const now = new Date().toISOString();
-      passes.forEach((p) => {
-        passMap.set(p.id, {
-          ...p,
-          cached_at: passMap.get(p.id)?.cached_at || now,
+      passes
+        .filter((p) => p.status !== "cancelled")
+        .forEach((p) => {
+          passMap.set(p.id, {
+            ...p,
+            cached_at: passMap.get(p.id)?.cached_at || now,
+          });
         });
-      });
 
       const updated = Array.from(passMap.values());
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
@@ -105,10 +120,34 @@ export function useOfflineBoardingPasses() {
     }
   }, [loadCachedPasses]);
 
+  // Authoritative sync: replaces or reconciles offline passes with confirmed/completed list
+  const syncPasses = useCallback((authoritativePasses: BoardingPassData[]) => {
+    if (typeof window === "undefined") return;
+    try {
+      const current = loadCachedPasses();
+      const currentMap = new Map<string, CachedBoardingPass>();
+      current.forEach((p: CachedBoardingPass) => currentMap.set(p.id, p));
+
+      const now = new Date().toISOString();
+      // Only keep passes that exist in authoritative list and are not cancelled
+      const validOnly = authoritativePasses
+        .filter((p) => p.status !== "cancelled")
+        .map((p) => ({
+          ...p,
+          cached_at: currentMap.get(p.id)?.cached_at || now,
+        }));
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(validOnly));
+      setCachedPasses(validOnly);
+    } catch (e) {
+      console.error("Failed to sync offline boarding passes:", e);
+    }
+  }, [loadCachedPasses]);
+
   // Check if a booking is cached
   const hasPass = useCallback(
     (bookingId: string) => {
-      return cachedPasses.some((p) => p.id === bookingId);
+      return cachedPasses.some((p) => p.id === bookingId && p.status !== "cancelled");
     },
     [cachedPasses]
   );
@@ -116,7 +155,7 @@ export function useOfflineBoardingPasses() {
   // Get single cached pass
   const getCachedPass = useCallback(
     (bookingId: string): CachedBoardingPass | undefined => {
-      return cachedPasses.find((p) => p.id === bookingId);
+      return cachedPasses.find((p) => p.id === bookingId && p.status !== "cancelled");
     },
     [cachedPasses]
   );
@@ -140,6 +179,7 @@ export function useOfflineBoardingPasses() {
     isLoaded,
     savePass,
     saveMultiplePasses,
+    syncPasses,
     hasPass,
     getCachedPass,
     removePass,

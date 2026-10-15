@@ -150,11 +150,22 @@ export async function notifyNewBooking(params: {
  */
 export async function notifyBookingStatusChange(params: {
   touristId: string;
-  newStatus: "accepted" | "declined" | "cancelled";
+  newStatus: "accepted" | "declined" | "cancelled" | "completed";
   propertyName: string;
   checkIn: string;
 }) {
   const { touristId, newStatus, propertyName, checkIn } = params;
+
+  if (newStatus === "completed") {
+    await sendNotification({
+      targetUserId: touristId,
+      type: "booking_status",
+      title: "How was your stay?",
+      body: `Your stay at ${propertyName} is completed! Tap here to rate your stay and leave a review.`,
+      url: `/bookings`,
+    });
+    return;
+  }
 
   if (newStatus === "cancelled") {
     await sendNotification({
@@ -250,6 +261,116 @@ export async function notifyBookingCancelled(params: {
     body: `${touristName} cancelled their booking at ${propertyName} for ${checkIn}.`,
     url: `/bookings`,
   });
+}
+
+/**
+ * Fired when admin disburses a Panaw refund to a tourist.
+ * Notifies the TOURIST.
+ */
+export async function notifyRefundDisbursed(params: {
+  touristId: string;
+  propertyName: string;
+  amount: number;
+  gcashNumber?: string | null;
+}) {
+  const { touristId, propertyName, amount, gcashNumber } = params;
+  const gcashNote = gcashNumber ? ` sent to your GCash (${gcashNumber})` : "";
+  await sendNotification({
+    targetUserId: touristId,
+    type: "booking_status",
+    title: "Refund Disbursed!",
+    body: `Your refund of ₱${amount.toLocaleString()} for ${propertyName} has been${gcashNote}. Tap to view receipt.`,
+    url: `/bookings`,
+  });
+}
+
+/**
+ * Fired when a booking is cancelled after host payout was already disbursed.
+ * Notifies the HOST with 72-hour return deadline.
+ */
+export async function notifyHostRefundRequired(params: {
+  ownerId: string;
+  propertyName: string;
+  guestName: string;
+  amount: number;
+  dueAt?: string | null;
+}) {
+  const { ownerId, propertyName, guestName, amount, dueAt } = params;
+  const deadline = dueAt
+    ? `by ${new Date(dueAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+    : "within 72 hours";
+
+  await sendNotification({
+    targetUserId: ownerId,
+    type: "booking_cancelled",
+    title: "Action Required: Deposit Return Due",
+    body: `Booking for ${guestName} at ${propertyName} was cancelled. Please return ₱${amount.toLocaleString()} deposit payout ${deadline}.`,
+    url: `/homestay/bookings`,
+  });
+}
+
+/**
+ * Fired when a host submits proof of deposit return.
+ * Notifies all ADMINS.
+ */
+export async function notifyHostRefundProofUploaded(params: {
+  bookingId: string;
+  propertyName: string;
+  hostName: string;
+  amount: number;
+}) {
+  const { bookingId, propertyName, hostName, amount } = params;
+  const supabaseAdmin = createAdminClient();
+  try {
+    const { data: admins } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin");
+
+    for (const admin of (admins as any[]) || []) {
+      await sendNotification({
+        targetUserId: admin.id,
+        type: "booking_status",
+        title: "Host Return Proof Submitted",
+        body: `${hostName} submitted deposit return proof (₱${amount.toLocaleString()}) for ${propertyName} (#${bookingId.slice(0, 8)}).`,
+        url: `/admin/transactions?tab=cancelled`,
+      });
+    }
+  } catch (err) {
+    console.error("[Notify] Failed to notify admins of host refund proof:", err);
+  }
+}
+
+/**
+ * Fired when a tourist or host reports an issue/dispute with a refund.
+ * Notifies all ADMINS.
+ */
+export async function notifyRefundIssueReported(params: {
+  bookingId: string;
+  reporterName: string;
+  propertyName: string;
+  reason: string;
+}) {
+  const { bookingId, reporterName, propertyName, reason } = params;
+  const supabaseAdmin = createAdminClient();
+  try {
+    const { data: admins } = await supabaseAdmin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin");
+
+    for (const admin of (admins as any[]) || []) {
+      await sendNotification({
+        targetUserId: admin.id,
+        type: "booking_status",
+        title: "Refund Dispute / Issue Reported",
+        body: `${reporterName} reported an issue on booking #${bookingId.slice(0, 8)} (${propertyName}): "${reason.slice(0, 70)}"`,
+        url: `/admin/transactions?tab=cancelled`,
+      });
+    }
+  } catch (err) {
+    console.error("[Notify] Failed to notify admins of refund issue:", err);
+  }
 }
 
 // ============================================================================

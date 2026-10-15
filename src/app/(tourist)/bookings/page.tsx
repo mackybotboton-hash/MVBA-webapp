@@ -11,6 +11,7 @@ import {
   Wifi,
   QrCode,
   ShieldCheck,
+  Star,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Logo } from "@/components/shared/logo";
@@ -58,7 +59,9 @@ export default function TouristBookingsPage() {
     cachedPasses,
     isOnline,
     saveMultiplePasses,
+    syncPasses,
     hasPass,
+    removePass,
   } = useOfflineBoardingPasses();
 
   const { user, profile, isLoading: authLoading } = useAuth();
@@ -140,6 +143,26 @@ export default function TouristBookingsPage() {
           toast.error("Failed to load bookings.");
         }
       } else {
+        // Fetch reviews by this tourist to show rating badges and track unreviewed stays
+        const { data: userReviews } = await supabase
+          .from("reviews")
+          .select("id, booking_id, rating, comment")
+          .eq("tourist_id", user.id);
+
+        const reviewMap = new Map<
+          string,
+          { id: string; rating: number; comment?: string | null }
+        >();
+        (userReviews || []).forEach((r: any) => {
+          if (r.booking_id) {
+            reviewMap.set(r.booking_id, {
+              id: r.id,
+              rating: Number(r.rating || 5),
+              comment: r.comment,
+            });
+          }
+        });
+
         const mapped: BookingData[] = (data || []).map((b: any) => ({
           id: b.id,
           property_id: b.rooms?.properties?.id,
@@ -156,7 +179,7 @@ export default function TouristBookingsPage() {
           addons: (b.booking_addons || []).map((a: any) => ({
             name: a.extra_services?.name || "Add-on",
             price: Number(a.price_at_booking || 0),
-            commission: Number(a.commission_amount || 0)
+            commission: Number(a.commission_amount || 0),
           })),
           payment_status: b.payment_status,
           receipt_url: b.receipt_url,
@@ -178,17 +201,24 @@ export default function TouristBookingsPage() {
           host_refund_amount: b.host_refund_amount != null ? Number(b.host_refund_amount) : null,
           refund_issue_reported_at: b.refund_issue_reported_at,
           refund_issue_reason: b.refund_issue_reason,
+          review: reviewMap.get(b.id) || null,
         }));
         setBookings(mapped);
 
-        // Auto-cache confirmed & completed reservations for offline island boarding
+        // Authoritatively sync confirmed & completed reservations for offline island boarding
+        // Strictly filters out cancelled or unverified bookings so cache stays clean
         const passesToCache: BoardingPassData[] = mapped
-          .filter((b) => b.status === "completed" || (b.status === "accepted" && b.payment_status === "verified"))
+          .filter(
+            (b) =>
+              b.status !== "cancelled" &&
+              (b.status === "completed" ||
+                (b.status === "accepted" && b.payment_status === "verified"))
+          )
           .map((b) => ({
             id: b.id,
             property_name: b.property_name,
             room_name: b.room_name,
-            guest_name: user.user_metadata?.full_name || "Tourist Guest",
+            guest_name: user.user_metadata?.full_name || userName || "Tourist Guest",
             check_in: b.check_in_date,
             check_out: b.check_out_date,
             guests_count: b.guest_count,
@@ -197,20 +227,33 @@ export default function TouristBookingsPage() {
             reference_code: `PANAW-${b.id.slice(0, 4).toUpperCase()}`,
           }));
 
-        if (passesToCache.length > 0) {
-          saveMultiplePasses(passesToCache);
-        }
+        syncPasses(passesToCache);
       }
     } catch {
       if (!navigator.onLine) {
         toast.info("Offline mode active. Saved passes are available.");
+        // Hydrate from cached passes if available
+        if (cachedPasses.length > 0 && bookings.length === 0) {
+          const offlineFallback: BookingData[] = cachedPasses.map((p) => ({
+            id: p.id,
+            property_name: p.property_name || "Bretania Island Stay",
+            room_name: p.room_name || "Standard Accommodation",
+            check_in_date: p.check_in,
+            check_out_date: p.check_out,
+            guest_count: p.guests_count,
+            total_price: p.total_price,
+            status: (p.status as any) || "accepted",
+            payment_status: "verified",
+          }));
+          setBookings(offlineFallback);
+        }
       } else {
         toast.error("An error occurred while loading your bookings.");
       }
     } finally {
       setIsLoading(false);
     }
-  }, [saveMultiplePasses, user, profile, authLoading]);
+  }, [syncPasses, user, profile, authLoading, userName, cachedPasses, bookings.length]);
 
   React.useEffect(() => {
     fetchBookings();
@@ -259,6 +302,8 @@ export default function TouristBookingsPage() {
       if (!res.success) {
         throw new Error(res.error);
       }
+      // Immediately purge the cancelled pass from local offline cache
+      removePass(bookingId);
       toast.success("Booking cancelled successfully", {
         description:
           res.data?.refund_total && Number(res.data.refund_total) > 0
@@ -275,8 +320,14 @@ export default function TouristBookingsPage() {
   const filteredBookings = React.useMemo(() => {
     if (activeTab === "all") return bookings;
     if (activeTab === "offline") {
-      // Return bookings that are in the offline cache
-      return bookings.filter((b) => hasPass(b.id));
+      // Return bookings that are in the offline cache and strictly confirmed/completed
+      return bookings.filter(
+        (b) =>
+          hasPass(b.id) &&
+          b.status !== "cancelled" &&
+          (b.status === "completed" ||
+            (b.status === "accepted" && b.payment_status === "verified"))
+      );
     }
     if (activeTab === "awaiting_deposit") {
       return bookings.filter((b) => b.status === "accepted" && b.payment_status !== "verified");
@@ -295,9 +346,23 @@ export default function TouristBookingsPage() {
       confirmed: bookings.filter((b) => b.status === "accepted" && b.payment_status === "verified").length,
       completed: bookings.filter((b) => b.status === "completed").length,
       cancelled: bookings.filter((b) => b.status === "cancelled").length,
-      offline: cachedPasses.length,
+      offline: cachedPasses.filter((p) => p.status !== "cancelled").length,
     };
   }, [bookings, cachedPasses]);
+
+  // Find any completed or checked-out stay awaiting review
+  const pendingReviewBooking = React.useMemo(() => {
+    const now = new Date();
+    return bookings.find((b) => {
+      if (b.status === "cancelled" || b.review) return false;
+      const isCompleted = b.status === "completed";
+      const isCheckedOut =
+        b.status === "accepted" &&
+        b.payment_status === "verified" &&
+        new Date(b.check_out_date) <= now;
+      return isCompleted || isCheckedOut;
+    });
+  }, [bookings]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -356,9 +421,42 @@ export default function TouristBookingsPage() {
                 onClick={() => setActiveTab("offline")}
                 className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100 text-xs h-8 font-semibold shrink-0"
               >
-                View Offline Passes ({cachedPasses.length})
+                View Offline Passes ({cachedPasses.filter((p) => p.status !== "cancelled").length})
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Post-Checkout Review Callout Banner */}
+        {pendingReviewBooking && (
+          <div className="p-4 rounded-2xl bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200/80 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-xl bg-amber-100/80 text-amber-800 shrink-0 mt-0.5">
+                <Star className="h-5 w-5 fill-amber-400 text-amber-500" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-200/60 text-amber-900 px-2 py-0.5 rounded-full">
+                    Completed Stay
+                  </span>
+                  <span className="text-xs text-amber-800 font-medium">#{pendingReviewBooking.id.slice(0, 8)}</span>
+                </div>
+                <h3 className="text-sm font-bold text-neutral-900 mt-0.5">
+                  How was your stay at {pendingReviewBooking.property_name}?
+                </h3>
+                <p className="text-xs text-neutral-600 mt-0.5">
+                  Your review helps local island hosts, boat operators, and fellow Bretania travelers.
+                </p>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setSelectedReviewBooking(pendingReviewBooking)}
+              className="bg-neutral-900 hover:bg-black text-white text-xs h-9 px-4 font-semibold rounded-xl shadow-xs shrink-0 self-stretch sm:self-auto cursor-pointer"
+            >
+              <Star className="h-3.5 w-3.5 mr-1.5 fill-amber-400 text-amber-400" />
+              Rate Your Stay
+            </Button>
           </div>
         )}
 
@@ -546,6 +644,9 @@ export default function TouristBookingsPage() {
         isOpen={!!selectedReviewBooking}
         onClose={() => setSelectedReviewBooking(null)}
         booking={selectedReviewBooking}
+        onSuccess={async () => {
+          await fetchBookings();
+        }}
       />
 
       {/* View Payment Modal */}

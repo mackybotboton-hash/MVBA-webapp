@@ -3,7 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { notifyNewBooking, notifyBookingCancelled, notifyBookingStatusChange } from "@/app/actions/notify-actions";
+import {
+  notifyNewBooking,
+  notifyBookingCancelled,
+  notifyBookingStatusChange,
+  notifyHostRefundRequired,
+  notifyHostRefundProofUploaded,
+  notifyRefundIssueReported,
+} from "@/app/actions/notify-actions";
 import { resolveDownpaymentPercent, calculatePaymentBreakdown } from "@/lib/pricing/downpayment";
 
 const ALLOWED_TRANSITIONS = {
@@ -557,6 +564,17 @@ export async function cancelBookingAction(
           propertyName,
           checkIn,
         }).catch((e) => console.error("[Notify] cancel notify failed:", e));
+
+        // If host was already paid out, notify host that deposit return is due
+        if (result && Number(result.host_refund_amount || 0) > 0) {
+          notifyHostRefundRequired({
+            ownerId,
+            propertyName,
+            guestName: profile?.full_name || "Guest",
+            amount: Number(result.host_refund_amount),
+            dueAt: result.host_refund_due_at,
+          }).catch((e) => console.error("[Notify] host refund required notify failed:", e));
+        }
       } else if (user.id === ownerId && touristId) {
         // Host cancelled -> notify tourist
         notifyBookingStatusChange({
@@ -565,6 +583,23 @@ export async function cancelBookingAction(
           propertyName,
           checkIn,
         }).catch((e) => console.error("[Notify] host cancel notify failed:", e));
+
+        // If host was already paid out and cancelled themselves, notify host of deposit return due
+        if (result && Number(result.host_refund_amount || 0) > 0) {
+          const { data: touristProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("full_name")
+            .eq("id", touristId)
+            .single();
+
+          notifyHostRefundRequired({
+            ownerId,
+            propertyName,
+            guestName: touristProfile?.full_name || "Guest",
+            amount: Number(result.host_refund_amount),
+            dueAt: result.host_refund_due_at,
+          }).catch((e) => console.error("[Notify] host refund required notify failed:", e));
+        }
       }
     }
 
@@ -748,6 +783,23 @@ export async function submitHostRefundProofAction(payload: {
 
     if (updateErr) throw updateErr;
 
+    // Fire-and-forget: Notify admins that host submitted deposit return proof
+    const { data: hostProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", ownerId)
+      .single();
+
+    const propertyName =
+      (booking.rooms as any)?.properties?.name || "Bretania Property";
+
+    notifyHostRefundProofUploaded({
+      bookingId,
+      propertyName,
+      hostName: hostProfile?.full_name || "Host",
+      amount: Number(booking.host_refund_amount || 0),
+    }).catch((e) => console.error("[Notify] host proof notify failed:", e));
+
     revalidatePath("/homestay/bookings");
     revalidatePath("/resort/bookings");
     revalidatePath("/admin/transactions");
@@ -809,6 +861,23 @@ export async function reportRefundIssueAction(payload: {
       .eq("id", bookingId);
 
     if (updateErr) throw updateErr;
+
+    // Fire-and-forget: Notify admins that an issue or dispute was reported
+    const { data: reporterProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+
+    const reportedPropName =
+      (booking.rooms as any)?.properties?.name || "Bretania Property";
+
+    notifyRefundIssueReported({
+      bookingId,
+      reporterName: reporterProfile?.full_name || (user.id === booking.tourist_id ? "Guest" : "Host"),
+      propertyName: reportedPropName,
+      reason: reason.trim(),
+    }).catch((e) => console.error("[Notify] report issue notify failed:", e));
 
     revalidatePath("/bookings");
     revalidatePath("/homestay/bookings");

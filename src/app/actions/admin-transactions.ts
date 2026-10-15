@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
 import { calculatePayout } from "@/lib/payout-helper";
+import { notifyRefundDisbursed } from "@/app/actions/notify-actions";
 
 async function assertAdminCaller() {
   const supabaseUserClient = await createClient();
@@ -226,7 +227,7 @@ export async function disbursePanawRefundAction(payload: {
     const supabaseAdmin = createAdminClient();
     const { data: booking, error: fetchErr } = await supabaseAdmin
       .from("bookings")
-      .select("id, status, host_refund_status, host_refund_amount")
+      .select("id, status, host_refund_status, host_refund_amount, tourist_id, refund_total, refund_gcash_number, rooms(properties(name))")
       .eq("id", bookingId)
       .single();
 
@@ -260,6 +261,16 @@ export async function disbursePanawRefundAction(payload: {
       .eq("id", bookingId);
 
     if (updateErr) throw updateErr;
+
+    // Fire-and-forget notification to the tourist
+    if (booking.tourist_id) {
+      notifyRefundDisbursed({
+        touristId: booking.tourist_id,
+        propertyName: (booking.rooms as any)?.properties?.name || "Bretania Island Stay",
+        amount: Number(booking.refund_total || 0),
+        gcashNumber: booking.refund_gcash_number,
+      }).catch((e) => console.error("[disbursePanawRefundAction] Notification error:", e));
+    }
 
     revalidatePath("/admin/transactions");
     revalidatePath("/admin");

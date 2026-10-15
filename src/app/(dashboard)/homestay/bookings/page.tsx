@@ -190,7 +190,7 @@ export default function HomestayBookingsPage() {
 
   const handleUpdateStatus = React.useCallback(async (
     bookingId: string,
-    newStatus: "accepted" | "declined" | "cancelled",
+    newStatus: "accepted" | "declined" | "cancelled" | "completed",
     reason?: string
   ) => {
     try {
@@ -209,6 +209,8 @@ export default function HomestayBookingsPage() {
           ? "Booking accepted! Guest reservation confirmed."
           : newStatus === "cancelled"
           ? "Confirmed booking was cancelled successfully."
+          : newStatus === "completed"
+          ? "Stay completed! Guest has been invited to rate their stay."
           : "Booking request declined."
       );
 

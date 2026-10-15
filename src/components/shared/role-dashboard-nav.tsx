@@ -25,7 +25,6 @@ const DASHBOARD_CONFIGS: Record<string, NavItem[]> = {
   ],
   resort: [
     { href: "/resort", label: "Rooms", icon: Home },
-    { href: "/resort/dispatch", label: "Dispatch", icon: Ship },
     { href: "/resort/bookings", label: "Bookings", icon: CalendarCheck },
   ],
   tourist: [

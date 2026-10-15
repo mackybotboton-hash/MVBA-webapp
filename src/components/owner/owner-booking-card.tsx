@@ -77,7 +77,7 @@ export interface OwnerBookingCardProps {
   booking: OwnerBookingItem;
   onUpdateStatus: (
     bookingId: string,
-    newStatus: "accepted" | "declined" | "cancelled",
+    newStatus: "accepted" | "declined" | "cancelled" | "completed",
     reason?: string
   ) => Promise<void>;
   onViewPayoutReceipt?: (receiptUrl: string) => void;
@@ -111,7 +111,7 @@ export function OwnerBookingCard({
     });
 
   const handleAction = async (
-    status: "accepted" | "declined" | "cancelled",
+    status: "accepted" | "declined" | "cancelled" | "completed",
     reason?: string
   ) => {
     setIsUpdating(true);
@@ -528,6 +528,18 @@ export function OwnerBookingCard({
               </Button>
             </>
           )}
+          {booking.status === "accepted" && booking.payment_status === "verified" && (
+            <Button
+              size="sm"
+              disabled={isUpdating}
+              onClick={() => handleAction("completed")}
+              className="text-xs h-8 px-3 bg-neutral-900 text-white hover:bg-black font-semibold cursor-pointer shadow-2xs"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-emerald-400" />
+              Complete Stay
+            </Button>
+          )}
+
           {booking.status === "accepted" && (
             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
               <DialogTrigger render={

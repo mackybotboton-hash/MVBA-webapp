@@ -71,6 +71,7 @@ export interface BookingData {
   host_refund_amount?: number | null;
   refund_issue_reported_at?: string | null;
   refund_issue_reason?: string | null;
+  review?: { id: string; rating: number; comment?: string | null } | null;
 }
 
 export interface BookingCardProps {
@@ -509,16 +510,36 @@ export function BookingCard({
             </Button>
           )}
 
-          {booking.status === "completed" && onRateStay && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs h-8 px-3 border-amber-200 text-amber-700 hover:bg-amber-50"
-              onClick={() => onRateStay(booking)}
-            >
-              <Star className="h-3.5 w-3.5 mr-1 fill-amber-400 text-amber-400" />
-              Rate Stay
-            </Button>
+          {booking.review ? (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-500" />
+              <span>Rated {booking.review.rating}/5</span>
+            </div>
+          ) : (
+            (() => {
+              const isCheckoutPassed = new Date(booking.check_out_date) <= new Date();
+              const canReview =
+                booking.status !== "cancelled" &&
+                (booking.status === "completed" ||
+                  (booking.status === "accepted" &&
+                    booking.payment_status === "verified" &&
+                    isCheckoutPassed));
+
+              if (canReview && onRateStay) {
+                return (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-xs h-8 px-3 border-amber-300 bg-amber-50/80 text-amber-900 hover:bg-amber-100 font-semibold shadow-2xs transition-all"
+                    onClick={() => onRateStay(booking)}
+                  >
+                    <Star className="h-3.5 w-3.5 mr-1 fill-amber-400 text-amber-500" />
+                    Rate Stay
+                  </Button>
+                );
+              }
+              return null;
+            })()
           )}
 
           {booking.property_id && (
