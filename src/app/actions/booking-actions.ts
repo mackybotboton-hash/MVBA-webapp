@@ -683,3 +683,145 @@ export async function completeBookingAction(bookingId: string) {
   }
 }
 
+/**
+ * Host submits proof of returning their payout leg for a cancelled booking.
+ */
+export async function submitHostRefundProofAction(payload: {
+  bookingId: string;
+  receiptPath: string;
+}) {
+  try {
+    const { bookingId, receiptPath } = payload;
+    if (!bookingId || !receiptPath) {
+      return { success: false, error: "Booking ID and receipt path are required." };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from("bookings")
+      .select("id, status, host_refund_amount, panaw_refund_status, panaw_refund_amount, rooms!inner(properties!inner(owner_id))")
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchErr || !booking) {
+      return { success: false, error: "Booking not found." };
+    }
+
+    const ownerId = (booking.rooms as any)?.properties?.owner_id;
+    if (ownerId !== user.id) {
+      return { success: false, error: "Forbidden: Not your property." };
+    }
+
+    if (booking.status !== "cancelled") {
+      return { success: false, error: "Cannot submit refund proof for a non-cancelled booking." };
+    }
+
+    const now = new Date().toISOString();
+    const updatePayload: Record<string, any> = {
+      host_refund_receipt_url: receiptPath,
+      host_refund_status: "sent",
+      host_refund_sent_at: now,
+    };
+
+    // If panaw leg is already sent or zero, mark whole booking as refunded
+    const panawDone =
+      booking.panaw_refund_status === "sent" ||
+      Number(booking.panaw_refund_amount || 0) === 0;
+    if (panawDone) {
+      updatePayload.payment_status = "refunded";
+      updatePayload.refunded_at = now;
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from("bookings")
+      .update(updatePayload)
+      .eq("id", bookingId);
+
+    if (updateErr) throw updateErr;
+
+    revalidatePath("/homestay/bookings");
+    revalidatePath("/resort/bookings");
+    revalidatePath("/admin/transactions");
+    revalidatePath("/bookings");
+
+    return { success: true };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Failed to submit host refund proof.",
+    };
+  }
+}
+
+/**
+ * Tourist or host reports an issue/dispute regarding a cancellation refund.
+ */
+export async function reportRefundIssueAction(payload: {
+  bookingId: string;
+  reason: string;
+}) {
+  try {
+    const { bookingId, reason } = payload;
+    if (!bookingId || !reason?.trim()) {
+      return { success: false, error: "Booking ID and explanation are required." };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from("bookings")
+      .select("id, tourist_id, rooms!inner(properties!inner(owner_id))")
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchErr || !booking) {
+      return { success: false, error: "Booking not found." };
+    }
+
+    const ownerId = (booking.rooms as any)?.properties?.owner_id;
+    if (booking.tourist_id !== user.id && ownerId !== user.id) {
+      return { success: false, error: "Forbidden: Not your booking." };
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from("bookings")
+      .update({
+        refund_issue_reported_at: new Date().toISOString(),
+        refund_issue_reason: reason.trim().slice(0, 500),
+      })
+      .eq("id", bookingId);
+
+    if (updateErr) throw updateErr;
+
+    revalidatePath("/bookings");
+    revalidatePath("/homestay/bookings");
+    revalidatePath("/resort/bookings");
+    revalidatePath("/admin/transactions");
+
+    return { success: true };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Failed to report refund issue.",
+    };
+  }
+}
+
+

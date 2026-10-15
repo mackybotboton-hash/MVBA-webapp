@@ -39,6 +39,8 @@ export type TransactionItem = {
   refund_gcash_number?: string | null;
   cancellation_reason?: string | null;
   cancelled_by?: string | null;
+  host_refund_receipt_url?: string | null;
+  panaw_refund_receipt_url?: string | null;
 };
 
 interface VerifyModalProps {

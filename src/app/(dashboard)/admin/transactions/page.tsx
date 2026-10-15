@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { approveBookingDeposit } from "@/app/actions/admin-actions";
-import { markPayoutPaidAction, markBookingRefundedAction } from "@/app/actions/admin-transactions";
+import { markPayoutPaidAction, markBookingRefundedAction, disbursePanawRefundAction } from "@/app/actions/admin-transactions";
 import { DataTable } from "./data-table";
 import {
   getColumns,
@@ -54,6 +54,7 @@ function AdminTransactionsContent() {
   const [previewTransaction, setPreviewTransaction] = React.useState<TransactionItem | null>(null);
   const [selectedPayoutTransaction, setSelectedPayoutTransaction] = React.useState<{ transaction: TransactionItem; stage: "deposit" | "balance" } | null>(null);
   const [selectedRefundTransaction, setSelectedRefundTransaction] = React.useState<TransactionItem | null>(null);
+  const [refundProofFile, setRefundProofFile] = React.useState<File | null>(null);
   const [isRefunding, setIsRefunding] = React.useState(false);
 
   // Supabase Realtime — auto-refresh when deposits are uploaded or statuses change
@@ -89,8 +90,10 @@ function AdminTransactionsContent() {
           fee_refund_amount,
           panaw_refund_amount,
           panaw_refund_status,
+          panaw_refund_receipt_url,
           host_refund_amount,
           host_refund_status,
+          host_refund_receipt_url,
           refund_gcash_number,
           profiles!tourist_id (full_name),
           rooms (
@@ -132,8 +135,10 @@ function AdminTransactionsContent() {
         fee_refund_amount: d.fee_refund_amount != null ? Number(d.fee_refund_amount) : null,
         panaw_refund_amount: d.panaw_refund_amount != null ? Number(d.panaw_refund_amount) : null,
         panaw_refund_status: d.panaw_refund_status,
+        panaw_refund_receipt_url: d.panaw_refund_receipt_url,
         host_refund_amount: d.host_refund_amount != null ? Number(d.host_refund_amount) : null,
         host_refund_status: d.host_refund_status,
+        host_refund_receipt_url: d.host_refund_receipt_url,
         refund_gcash_number: d.refund_gcash_number,
         cancellation_reason: d.cancellation_reason,
         cancelled_by: d.cancelled_by,
@@ -231,13 +236,40 @@ function AdminTransactionsContent() {
     if (!selectedRefundTransaction) return;
     try {
       setIsRefunding(true);
-      const res = await markBookingRefundedAction(selectedRefundTransaction.id);
-      if (!res.success) {
-        toast.error(res.error || "Failed to mark booking as refunded.");
-        return;
+      let receiptPath = "";
+
+      if (refundProofFile) {
+        const fileExt = refundProofFile.name.split('.').pop();
+        const filePath = `panaw-refunds/refund-${selectedRefundTransaction.id}-${Date.now()}.${fileExt}`;
+        const supabase = createClient();
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("payment-receipts")
+          .upload(filePath, refundProofFile);
+
+        if (uploadError) throw uploadError;
+        receiptPath = uploadData.path;
       }
-      toast.success("Booking marked as refunded.");
+
+      if (receiptPath) {
+        const res = await disbursePanawRefundAction({
+          bookingId: selectedRefundTransaction.id,
+          receiptPath,
+        });
+        if (!res.success) {
+          toast.error(res.error || "Failed to disburse Panaw refund.");
+          return;
+        }
+      } else {
+        const res = await markBookingRefundedAction(selectedRefundTransaction.id);
+        if (!res.success) {
+          toast.error(res.error || "Failed to mark booking as refunded.");
+          return;
+        }
+      }
+
+      toast.success("Refund processed successfully.");
       setSelectedRefundTransaction(null);
+      setRefundProofFile(null);
       refetch();
     } catch (err: any) {
       toast.error(err.message || "Failed to mark booking as refunded.");
@@ -632,7 +664,44 @@ function AdminTransactionsContent() {
                           Reason: &ldquo;{selectedRefundTransaction.cancellation_reason}&rdquo;
                         </p>
                       )}
+
+                      {selectedRefundTransaction.host_refund_receipt_url && (
+                        <div className="pt-2 border-t border-neutral-200">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            className="text-xs h-7 px-2.5 text-blue-700 border-blue-200 bg-white"
+                            onClick={() => {
+                              setSelectedPayoutTransaction({
+                                transaction: {
+                                  ...selectedRefundTransaction,
+                                  receipt_url: selectedRefundTransaction.host_refund_receipt_url!,
+                                },
+                                stage: "deposit",
+                              });
+                            }}
+                          >
+                            View Host Return Proof
+                          </Button>
+                        </div>
+                      )}
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-neutral-800 block text-xs">
+                      Upload Panaw Refund Proof Screenshot (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setRefundProofFile(e.target.files?.[0] || null)}
+                      className="text-xs w-full text-neutral-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border file:border-neutral-200 file:text-xs file:font-semibold file:bg-neutral-50 file:text-neutral-700 hover:file:bg-neutral-100"
+                    />
+                    <p className="text-[10px] text-neutral-500">
+                      Uploading receipt saves proof directly to panaw_refund_receipt_url.
+                    </p>
                   </div>
 
                   <p className="text-xs text-neutral-500">

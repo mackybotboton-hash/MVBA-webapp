@@ -16,6 +16,9 @@ export interface AdminBookingRow {
   commission_amount: number | null;
   convenience_fee: number | null;
   total_price: number | null;
+  panaw_refund_status?: string | null;
+  host_refund_status?: string | null;
+  adjusted_host_payout_amount?: number | null;
 }
 
 export interface AdminDashboardMetrics {
@@ -102,21 +105,29 @@ export function calculateAdminDashboardMetrics(
       depositsAwaitingVerification++;
     }
 
-    // (b) Payouts due: verified/completed, not cancelled/declined/refunded, deposit payout not yet sent
-    if (
+    // (b) Payouts due:
+    // 1) Active booking: verified/completed, not cancelled/declined/refunded, deposit payout not yet sent
+    // 2) Cancelled booking with host payout due: adjusted_host_payout_amount > 0 and payout not yet sent
+    const activePayoutDue =
       ["verified", "completed"].includes(b.payment_status || "") &&
       !["cancelled", "declined"].includes(b.status) &&
       b.payment_status !== "refunded" &&
-      !["deposit_paid", "fully_paid"].includes(b.payout_status || "")
-    ) {
+      !["deposit_paid", "fully_paid"].includes(b.payout_status || "");
+
+    const cancelledHostPayoutDue =
+      b.status === "cancelled" &&
+      Number(b.adjusted_host_payout_amount || 0) > 0 &&
+      !["deposit_paid", "fully_paid"].includes(b.payout_status || "");
+
+    if (activePayoutDue || cancelledHostPayoutDue) {
       payoutsDue++;
     }
 
-    // (c) Cancelled bookings awaiting refund decision: cancelled + verified, host deposit payout not yet made
+    // (c) Cancelled bookings awaiting refund decision or disbursement
     if (
       b.status === "cancelled" &&
-      b.payment_status === "verified" &&
-      !["deposit_paid", "fully_paid"].includes(b.payout_status || "")
+      (b.panaw_refund_status === "pending" ||
+        (b.payment_status === "verified" && !["deposit_paid", "fully_paid"].includes(b.payout_status || "")))
     ) {
       cancellationsAwaitingRefundDecision++;
     }

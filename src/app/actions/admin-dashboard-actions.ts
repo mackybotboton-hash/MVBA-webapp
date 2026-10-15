@@ -58,7 +58,7 @@ export async function getAdminDashboardMetricsAction(): Promise<{
     // Select ONLY the exact columns needed for dashboard calculations
     const { data: bookings, error } = await supabaseAdmin
       .from("bookings")
-      .select("id, status, payment_status, payout_status, check_out_date, commission_amount, convenience_fee, total_price");
+      .select("id, status, payment_status, payout_status, check_out_date, commission_amount, convenience_fee, total_price, panaw_refund_status, adjusted_host_payout_amount");
 
     if (error) {
       throw error;
@@ -73,6 +73,8 @@ export async function getAdminDashboardMetricsAction(): Promise<{
       commission_amount: b.commission_amount != null ? Number(b.commission_amount) : 0,
       convenience_fee: b.convenience_fee != null ? Number(b.convenience_fee) : 0,
       total_price: b.total_price != null ? Number(b.total_price) : 0,
+      panaw_refund_status: b.panaw_refund_status,
+      adjusted_host_payout_amount: b.adjusted_host_payout_amount != null ? Number(b.adjusted_host_payout_amount) : 0,
     }));
 
     const metrics = calculateAdminDashboardMetrics(rows, DEFAULT_ADMIN_REVENUE_GOAL);

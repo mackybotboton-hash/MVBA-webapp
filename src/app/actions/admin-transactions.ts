@@ -209,3 +209,68 @@ export async function adminCancelBookingAction(payload: {
   }
 }
 
+/**
+ * Administrator records Panaw leg refund disbursement (uploads GCash transfer proof).
+ */
+export async function disbursePanawRefundAction(payload: {
+  bookingId: string;
+  receiptPath: string;
+}) {
+  try {
+    await assertAdminCaller();
+    const { bookingId, receiptPath } = payload;
+    if (!bookingId || !receiptPath) {
+      return { success: false, error: "Booking ID and receipt path are required." };
+    }
+
+    const supabaseAdmin = createAdminClient();
+    const { data: booking, error: fetchErr } = await supabaseAdmin
+      .from("bookings")
+      .select("id, status, host_refund_status, host_refund_amount")
+      .eq("id", bookingId)
+      .single();
+
+    if (fetchErr || !booking) {
+      return { success: false, error: "Booking not found." };
+    }
+
+    if (booking.status !== "cancelled") {
+      return { success: false, error: "Cannot disburse refund for a non-cancelled booking." };
+    }
+
+    const now = new Date().toISOString();
+    const updatePayload: Record<string, any> = {
+      panaw_refund_receipt_url: receiptPath,
+      panaw_refund_status: "sent",
+      panaw_refund_sent_at: now,
+    };
+
+    // If host leg is already sent or zero, mark whole booking as refunded
+    const hostDone =
+      booking.host_refund_status === "sent" ||
+      Number(booking.host_refund_amount || 0) === 0;
+    if (hostDone) {
+      updatePayload.payment_status = "refunded";
+      updatePayload.refunded_at = now;
+    }
+
+    const { error: updateErr } = await supabaseAdmin
+      .from("bookings")
+      .update(updatePayload)
+      .eq("id", bookingId);
+
+    if (updateErr) throw updateErr;
+
+    revalidatePath("/admin/transactions");
+    revalidatePath("/admin");
+    revalidatePath("/bookings");
+    revalidatePath("/homestay/bookings");
+    revalidatePath("/resort/bookings");
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to disburse Panaw refund." };
+  }
+}
+
+

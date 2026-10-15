@@ -17,10 +17,16 @@ import {
   Receipt,
   AlertCircle,
   Loader2,
+  Copy,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { submitHostRefundProofAction } from "@/app/actions/booking-actions";
 import {
   Dialog,
   DialogContent,
@@ -63,6 +69,8 @@ export interface OwnerBookingItem {
   host_refund_amount?: number | null;
   host_refund_status?: "none" | "pending" | "sent" | string | null;
   host_refund_due_at?: string | null;
+  host_refund_receipt_url?: string | null;
+  refund_gcash_number?: string | null;
 }
 
 export interface OwnerBookingCardProps {
@@ -86,6 +94,7 @@ export function OwnerBookingCard({
 }: OwnerBookingCardProps) {
   const [isUpdating, setIsUpdating] = React.useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = React.useState(false);
+  const [isUploadProofOpen, setIsUploadProofOpen] = React.useState(false);
   const [cancelReason, setCancelReason] = React.useState("Property maintenance / unavailable");
   const [customCancelReason, setCustomCancelReason] = React.useState("");
 
@@ -343,20 +352,77 @@ export function OwnerBookingCard({
 
               {booking.host_refund_amount != null && booking.host_refund_amount > 0 && (
                 <div className={cn(
-                  "rounded-lg border p-3 space-y-1.5 mt-2",
+                  "rounded-xl border p-3.5 space-y-2 mt-2",
                   booking.host_refund_status === "sent" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-300 bg-amber-50 text-amber-900"
                 )}>
                   <div className="flex items-center justify-between font-bold">
                     <span>Host Payout Refund Due: ₱{booking.host_refund_amount.toLocaleString()}</span>
                     <Badge variant="outline" className="text-[10px] bg-white capitalize">
-                      {booking.host_refund_status === "sent" ? "Disbursed" : "Pending Return"}
+                      {booking.host_refund_status === "sent" ? "Proof Submitted" : "Pending Return"}
                     </Badge>
                   </div>
+
                   <p className="text-[11px] leading-relaxed">
                     {booking.host_refund_status === "sent"
-                      ? "You have successfully returned the deposit payout for this cancelled booking."
+                      ? "You have submitted the return proof for this deposit payout."
                       : `Because this booking was cancelled under a refund-eligible policy after your deposit payout was disbursed, you are required to return ₱${booking.host_refund_amount.toLocaleString()} to Panaw platform ${booking.host_refund_due_at ? `by ${formatDate(new Date(booking.host_refund_due_at))}` : "within 72 hours"}.`}
                   </p>
+
+                  {booking.refund_gcash_number && (
+                    <div className="flex items-center justify-between text-[11px] bg-white/80 p-2 rounded-lg border border-amber-200">
+                      <span className="text-neutral-700 font-medium">Guest GCash Number:</span>
+                      <div className="flex items-center gap-1">
+                        <span className="font-mono font-bold text-neutral-900">{booking.refund_gcash_number}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-1.5 text-neutral-600 hover:text-black"
+                          onClick={() => {
+                            navigator.clipboard.writeText(booking.refund_gcash_number!);
+                            toast.success("Guest GCash number copied to clipboard!");
+                          }}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {booking.host_refund_due_at && booking.host_refund_status === "pending" && (
+                    <div className="text-[11px] font-semibold flex items-center justify-between pt-1 border-t border-amber-200/80">
+                      <span>Return Deadline:</span>
+                      <span className={cn(
+                        new Date(booking.host_refund_due_at).getTime() < Date.now() ? "text-red-700 font-extrabold" : "text-amber-800"
+                      )}>
+                        {formatDate(new Date(booking.host_refund_due_at))}
+                        {new Date(booking.host_refund_due_at).getTime() < Date.now() ? " (OVERDUE)" : ` (${Math.max(1, Math.round((new Date(booking.host_refund_due_at).getTime() - Date.now()) / (1000 * 60 * 60)))}h left)`}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex flex-wrap gap-2">
+                    {booking.host_refund_status === "pending" && (
+                      <Button
+                        size="sm"
+                        className="text-xs h-7 px-3 bg-amber-800 text-white hover:bg-amber-900"
+                        onClick={() => setIsUploadProofOpen(true)}
+                      >
+                        <Upload className="h-3 w-3 mr-1" />
+                        Submit Return Receipt
+                      </Button>
+                    )}
+                    {booking.host_refund_receipt_url && onViewPayoutReceipt && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7 px-2.5 border-neutral-300 bg-white"
+                        onClick={() => onViewPayoutReceipt(booking.host_refund_receipt_url!)}
+                      >
+                        <Receipt className="h-3 w-3 mr-1" />
+                        View Return Receipt
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -523,8 +589,149 @@ export function OwnerBookingCard({
               </DialogContent>
             </Dialog>
           )}
+
+          <HostRefundUploadModal
+            booking={booking}
+            isOpen={isUploadProofOpen}
+            onOpenChange={setIsUploadProofOpen}
+          />
         </div>
       </div>
     </div>
+  );
+}
+
+function HostRefundUploadModal({
+  booking,
+  isOpen,
+  onOpenChange,
+}: {
+  booking: OwnerBookingItem;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      setIsUploading(false);
+    }
+  }, [isOpen]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error("Please choose a receipt screenshot or photo to upload.");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const ext = selectedFile.name.split(".").pop() || "jpg";
+      const filePath = `host-refunds/refund-${booking.id}-${Date.now()}.${ext}`;
+
+      const supabase = createClient();
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from("payment-receipts")
+        .upload(filePath, selectedFile);
+
+      if (uploadErr) throw uploadErr;
+
+      const res = await submitHostRefundProofAction({
+        bookingId: booking.id,
+        receiptPath: uploadData.path,
+      });
+
+      if (!res.success) throw new Error(res.error);
+
+      toast.success("Return receipt submitted successfully!", {
+        description: "Admin and guest have been updated.",
+      });
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload return receipt.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold text-neutral-900">
+            Submit Host Refund Return Proof
+          </DialogTitle>
+          <DialogDescription className="text-xs text-neutral-500">
+            Booking #{booking.id.slice(0, 8)} • Due: ₱{(booking.host_refund_amount || 0).toLocaleString()}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3.5 py-1 text-xs">
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl text-xs space-y-1">
+            <p className="font-semibold">Required Payout Leg Return</p>
+            <p className="text-[11px] leading-relaxed">
+              Please transfer <strong>₱{(booking.host_refund_amount || 0).toLocaleString()}</strong> to the guest via GCash ({booking.refund_gcash_number || "Direct coordination"}) or to Panaw Platform, then upload the confirmation receipt below.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="font-semibold text-neutral-800 block">
+              GCash Transfer Screenshot <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="text-xs"
+            />
+          </div>
+
+          {previewUrl && (
+            <div className="relative rounded-xl overflow-hidden border border-neutral-200 aspect-video max-h-48 w-full bg-neutral-100 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={previewUrl} alt="Receipt preview" className="object-contain h-full w-full" />
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={isUploading}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            className="bg-black text-white hover:bg-neutral-800"
+            disabled={isUploading || !selectedFile}
+            onClick={handleUpload}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              "Confirm & Submit"
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

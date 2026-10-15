@@ -16,6 +16,18 @@ export async function getSignedReceiptUrl(storagePath: string) {
       return null;
     }
 
+    // Clean and normalize the storage path (strip prefixes like deposit_payout:, host_refund:, or pipe-delimiters)
+    let cleanPath = storagePath.trim();
+    if (cleanPath.includes("||")) {
+      const parts = cleanPath.split("||");
+      cleanPath = parts[parts.length - 1].trim();
+    }
+    cleanPath = cleanPath.replace(/^(?:(?:deposit_|balance_)?payout:|(?:host_|panaw_)?refund:)/, "").trim();
+
+    if (!cleanPath) {
+      return null;
+    }
+
     // 1. Authenticate the caller session
     const supabaseUser = await createClient();
     const {
@@ -41,13 +53,15 @@ export async function getSignedReceiptUrl(storagePath: string) {
     if (profile?.role === "admin" && profile?.is_approved) {
       isAuthorized = true;
     } else {
-      // 3. Check if caller is the tourist or host linked to this booking receipt
+      // 3. Check if caller is the tourist or host linked to this booking or refund receipt
       const supabaseAdmin = createAdminClient();
-      
+
       const { data: bookingMatch } = await supabaseAdmin
         .from("bookings")
         .select("id, tourist_id, owner_id")
-        .like("receipt_url", `%${storagePath}%`)
+        .or(
+          `receipt_url.ilike.%${cleanPath}%,panaw_refund_receipt_url.ilike.%${cleanPath}%,host_refund_receipt_url.ilike.%${cleanPath}%`
+        )
         .limit(1);
 
       const booking = bookingMatch?.[0] as { tourist_id?: string; owner_id?: string } | undefined;
@@ -59,7 +73,7 @@ export async function getSignedReceiptUrl(storagePath: string) {
         const { data: duesMatch } = await supabaseAdmin
           .from("association_dues")
           .select("id, owner_id")
-          .like("receipt_url", `%${storagePath}%`)
+          .ilike("receipt_url", `%${cleanPath}%`)
           .limit(1);
 
         const dues = duesMatch?.[0] as { owner_id?: string } | undefined;
@@ -70,7 +84,7 @@ export async function getSignedReceiptUrl(storagePath: string) {
     }
 
     if (!isAuthorized) {
-      console.warn(`[Security] User ${user.id} denied access to receipt at path: ${storagePath}`);
+      console.warn(`[Security] User ${user.id} denied access to receipt at path: ${cleanPath}`);
       return null;
     }
 
@@ -78,7 +92,7 @@ export async function getSignedReceiptUrl(storagePath: string) {
     const supabaseAdmin = createAdminClient();
     const { data, error } = await supabaseAdmin.storage
       .from("payment-receipts")
-      .createSignedUrl(storagePath, 3600);
+      .createSignedUrl(cleanPath, 3600);
 
     if (error) {
       console.error("Failed to generate signed URL for receipt:", error);

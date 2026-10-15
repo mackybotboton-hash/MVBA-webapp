@@ -94,6 +94,8 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
       host_refund_amount,
       host_refund_status,
       host_refund_due_at,
+      host_refund_receipt_url,
+      refund_gcash_number,
       profiles!tourist_id(full_name, phone_number, email),
       rooms!room_id(name),
       booking_addons (
@@ -141,6 +143,8 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
     host_refund_amount: b.host_refund_amount != null ? Number(b.host_refund_amount) : null,
     host_refund_status: b.host_refund_status,
     host_refund_due_at: b.host_refund_due_at,
+    host_refund_receipt_url: b.host_refund_receipt_url,
+    refund_gcash_number: b.refund_gcash_number,
   }));
 }
 

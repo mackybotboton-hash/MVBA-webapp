@@ -33,7 +33,8 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { estimateCancellationRefundAction } from "@/app/actions/booking-actions";
+import { estimateCancellationRefundAction, reportRefundIssueAction } from "@/app/actions/booking-actions";
+import { getSignedReceiptUrl } from "@/lib/actions/get-receipt-url";
 
 export interface BookingData {
   id: string;
@@ -64,6 +65,12 @@ export interface BookingData {
   refund_gcash_number?: string | null;
   panaw_refund_status?: "none" | "pending" | "sent" | string | null;
   host_refund_status?: "none" | "pending" | "sent" | string | null;
+  panaw_refund_receipt_url?: string | null;
+  host_refund_receipt_url?: string | null;
+  panaw_refund_amount?: number | null;
+  host_refund_amount?: number | null;
+  refund_issue_reported_at?: string | null;
+  refund_issue_reason?: string | null;
 }
 
 export interface BookingCardProps {
@@ -89,6 +96,16 @@ export function BookingCard({
   className,
 }: BookingCardProps) {
   const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
+  const [receiptModal, setReceiptModal] = React.useState<{
+    open: boolean;
+    title: string;
+    receiptPath: string | null;
+    amount?: number | null;
+  }>({ open: false, title: "", receiptPath: null, amount: null });
+  const [isReportIssueOpen, setIsReportIssueOpen] = React.useState(false);
+  const [issueReportedText, setIssueReportedText] = React.useState<string | null>(
+    booking.refund_issue_reason || null
+  );
   const checkIn = new Date(booking.check_in_date);
   const checkOut = new Date(booking.check_out_date);
 
@@ -303,7 +320,7 @@ export function BookingCard({
               )}
 
               {(booking.refund_total != null && booking.refund_total > 0) ? (
-                <div className="pt-2 border-t border-red-200/60 space-y-1">
+                <div className="pt-2 border-t border-red-200/60 space-y-2">
                   <div className="flex justify-between font-bold text-neutral-900">
                     <span>Scheduled Refund Total:</span>
                     <span className="text-emerald-700">₱{booking.refund_total.toLocaleString()}</span>
@@ -317,18 +334,79 @@ export function BookingCard({
                       <span className="font-mono font-medium text-neutral-800">{booking.refund_gcash_number}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-[11px] text-neutral-600 pt-1">
+                  <div className="flex justify-between items-center text-[11px] text-neutral-600 pt-1">
                     <span>Panaw Platform Leg:</span>
-                    <span className={cn("font-medium", booking.panaw_refund_status === "sent" ? "text-emerald-700 font-semibold" : "text-amber-700 font-medium")}>
-                      {booking.panaw_refund_status === "sent" ? "Disbursed" : "Processing"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn("font-medium", booking.panaw_refund_status === "sent" ? "text-emerald-700 font-semibold" : "text-amber-700 font-medium")}>
+                        {booking.panaw_refund_status === "sent" ? "Disbursed" : "Processing"}
+                      </span>
+                      {booking.panaw_refund_receipt_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] bg-white border-neutral-300 hover:bg-neutral-50"
+                          onClick={() => {
+                            setReceiptModal({
+                              open: true,
+                              title: "Panaw Refund Receipt",
+                              receiptPath: booking.panaw_refund_receipt_url!,
+                              amount: booking.panaw_refund_amount,
+                            });
+                          }}
+                        >
+                          <Receipt className="h-3 w-3 mr-1 text-emerald-600" />
+                          View Receipt
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   {booking.host_refund_status && booking.host_refund_status !== "none" && (
-                    <div className="flex justify-between text-[11px] text-neutral-600">
+                    <div className="flex justify-between items-center text-[11px] text-neutral-600">
                       <span>Host Refund Leg:</span>
-                      <span className={cn("font-medium", booking.host_refund_status === "sent" ? "text-emerald-700 font-semibold" : "text-amber-700 font-medium")}>
-                        {booking.host_refund_status === "sent" ? "Disbursed" : "Pending host return"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn("font-medium", booking.host_refund_status === "sent" ? "text-emerald-700 font-semibold" : "text-amber-700 font-medium")}>
+                          {booking.host_refund_status === "sent" ? "Disbursed" : "Pending host return"}
+                        </span>
+                        {booking.host_refund_receipt_url && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] bg-white border-neutral-300 hover:bg-neutral-50"
+                            onClick={() => {
+                              setReceiptModal({
+                                open: true,
+                                title: "Host Refund Receipt",
+                                receiptPath: booking.host_refund_receipt_url!,
+                                amount: booking.host_refund_amount,
+                              });
+                            }}
+                          >
+                            <Receipt className="h-3 w-3 mr-1 text-emerald-600" />
+                            View Receipt
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Issue reporting / feedback status */}
+                  {issueReportedText ? (
+                    <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 flex items-start gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold">Issue Reported:</span> &ldquo;{issueReportedText}&rdquo;
+                        <p className="text-[10px] text-amber-700 mt-0.5">Panaw admin support has been notified and is investigating.</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-1 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => setIsReportIssueOpen(true)}
+                        className="text-[11px] text-red-700 hover:text-red-900 underline font-medium"
+                      >
+                        Report an issue with this refund
+                      </button>
                     </div>
                   )}
                 </div>
@@ -456,6 +534,23 @@ export function BookingCard({
           )}
         </div>
       </div>
+
+      {/* Refund Receipt Viewer Modal */}
+      <TouristRefundReceiptModal
+        isOpen={receiptModal.open}
+        onOpenChange={(open) => setReceiptModal((prev) => ({ ...prev, open }))}
+        title={receiptModal.title}
+        receiptPath={receiptModal.receiptPath}
+        amount={receiptModal.amount}
+      />
+
+      {/* Report Refund Problem Modal */}
+      <TouristReportIssueModal
+        bookingId={booking.id}
+        isOpen={isReportIssueOpen}
+        onOpenChange={setIsReportIssueOpen}
+        onSuccess={(reportedReason) => setIssueReportedText(reportedReason)}
+      />
     </div>
   );
 }
@@ -707,6 +802,205 @@ function TouristCancellationModal({
               )}
             </Button>
           )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface TouristRefundReceiptModalProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  receiptPath: string | null;
+  amount?: number | null;
+}
+
+function TouristRefundReceiptModal({
+  isOpen,
+  onOpenChange,
+  title,
+  receiptPath,
+  amount,
+}: TouristRefundReceiptModalProps) {
+  const [signedUrl, setSignedUrl] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOpen && receiptPath) {
+      setLoading(true);
+      getSignedReceiptUrl(receiptPath)
+        .then((url) => {
+          setSignedUrl(url || receiptPath);
+        })
+        .catch(() => {
+          setSignedUrl(receiptPath);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setSignedUrl(null);
+    }
+  }, [isOpen, receiptPath]);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-white">
+        <DialogHeader className="p-4 border-b border-neutral-100 bg-neutral-50/50">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
+              <Receipt className="h-4 w-4 text-emerald-700" />
+            </div>
+            <div>
+              <DialogTitle className="text-sm font-bold text-neutral-900 leading-tight">
+                {title}
+              </DialogTitle>
+              {amount != null && (
+                <DialogDescription className="text-xs font-semibold text-emerald-700 mt-0.5">
+                  Amount Disbursed: ₱{amount.toLocaleString()}
+                </DialogDescription>
+              )}
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="p-4">
+          <div className="relative aspect-[3/4] w-full rounded-xl overflow-hidden border border-neutral-200 bg-neutral-100 flex items-center justify-center">
+            {loading ? (
+              <div className="flex flex-col items-center gap-2 text-neutral-500">
+                <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                <span className="text-xs">Loading receipt image...</span>
+              </div>
+            ) : signedUrl ? (
+              <img
+                src={signedUrl}
+                alt="Refund Receipt Proof"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <p className="text-xs text-neutral-400">Unable to load receipt image.</p>
+            )}
+          </div>
+        </div>
+
+        <DialogFooter className="p-3 bg-neutral-50 border-t border-neutral-100">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="text-xs w-full"
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface TouristReportIssueModalProps {
+  bookingId: string;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: (reason: string) => void;
+}
+
+function TouristReportIssueModal({
+  bookingId,
+  isOpen,
+  onOpenChange,
+  onSuccess,
+}: TouristReportIssueModalProps) {
+  const [reason, setReason] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmit = async () => {
+    if (!reason.trim()) {
+      toast.error("Please explain the issue with your refund.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const res = await reportRefundIssueAction({
+        bookingId,
+        reason: reason.trim(),
+      });
+      if (!res.success) {
+        throw new Error(res.error || "Failed to submit dispute.");
+      }
+      toast.success("Issue submitted. Our support team will investigate.");
+      onOpenChange(false);
+      if (onSuccess) onSuccess(reason.trim());
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit report.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+              <ShieldAlert className="h-4 w-4 text-red-600" />
+            </div>
+            <div>
+              <DialogTitle className="text-base font-bold text-neutral-900 leading-tight">
+                Report Refund Problem
+              </DialogTitle>
+              <DialogDescription className="text-xs text-neutral-500 mt-0.5">
+                Did you not receive your refund or notice an incorrect amount?
+              </DialogDescription>
+            </div>
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2 text-xs">
+          <p className="text-neutral-600 leading-relaxed">
+            Please provide details below. Include your GCash reference if available. Our administration team will review the transaction logs and contact you.
+          </p>
+          <textarea
+            className="w-full rounded-xl border border-neutral-300 p-3 text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-black min-h-[100px]"
+            placeholder="e.g. The GCash account has not received the transfer, or the amount received does not match the refund computation..."
+            value={reason}
+            maxLength={500}
+            onChange={(e) => setReason(e.target.value)}
+          />
+          <div className="flex justify-between text-[10px] text-neutral-400">
+            <span>Maximum 500 characters</span>
+            <span>{reason.length}/500</span>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !reason.trim()}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Issue Report"
+            )}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -108,6 +108,12 @@ export default function TouristBookingsPage() {
           refund_gcash_number,
           panaw_refund_status,
           host_refund_status,
+          panaw_refund_receipt_url,
+          host_refund_receipt_url,
+          panaw_refund_amount,
+          host_refund_amount,
+          refund_issue_reported_at,
+          refund_issue_reason,
           booking_addons (
             price_at_booking,
             commission_amount,
@@ -166,6 +172,12 @@ export default function TouristBookingsPage() {
           refund_gcash_number: b.refund_gcash_number,
           panaw_refund_status: b.panaw_refund_status,
           host_refund_status: b.host_refund_status,
+          panaw_refund_receipt_url: b.panaw_refund_receipt_url,
+          host_refund_receipt_url: b.host_refund_receipt_url,
+          panaw_refund_amount: b.panaw_refund_amount != null ? Number(b.panaw_refund_amount) : null,
+          host_refund_amount: b.host_refund_amount != null ? Number(b.host_refund_amount) : null,
+          refund_issue_reported_at: b.refund_issue_reported_at,
+          refund_issue_reason: b.refund_issue_reason,
         }));
         setBookings(mapped);
 
