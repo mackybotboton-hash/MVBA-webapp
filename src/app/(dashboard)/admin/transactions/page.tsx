@@ -81,6 +81,17 @@ function AdminTransactionsContent() {
           created_at,
           check_in_date,
           check_out_date,
+          cancelled_by,
+          cancelled_at,
+          cancellation_reason,
+          refund_total,
+          deposit_refund_amount,
+          fee_refund_amount,
+          panaw_refund_amount,
+          panaw_refund_status,
+          host_refund_amount,
+          host_refund_status,
+          refund_gcash_number,
           profiles!tourist_id (full_name),
           rooms (
             properties (
@@ -116,6 +127,16 @@ function AdminTransactionsContent() {
         check_out_date: d.check_out_date,
         host_gcash_number: d.rooms?.properties?.profiles?.payout_gcash_number,
         host_name: d.rooms?.properties?.profiles?.full_name,
+        refund_total: d.refund_total != null ? Number(d.refund_total) : null,
+        deposit_refund_amount: d.deposit_refund_amount != null ? Number(d.deposit_refund_amount) : null,
+        fee_refund_amount: d.fee_refund_amount != null ? Number(d.fee_refund_amount) : null,
+        panaw_refund_amount: d.panaw_refund_amount != null ? Number(d.panaw_refund_amount) : null,
+        panaw_refund_status: d.panaw_refund_status,
+        host_refund_amount: d.host_refund_amount != null ? Number(d.host_refund_amount) : null,
+        host_refund_status: d.host_refund_status,
+        refund_gcash_number: d.refund_gcash_number,
+        cancellation_reason: d.cancellation_reason,
+        cancelled_by: d.cancelled_by,
       })) as TransactionItem[];
     }
   });
@@ -564,29 +585,60 @@ function AdminTransactionsContent() {
             <DialogTitle className="text-lg font-bold text-neutral-900">Confirm Booking Refund</DialogTitle>
             <DialogDescription className="text-xs text-neutral-600 mt-2">
               {selectedRefundTransaction && (
-                (selectedRefundTransaction.payout_status === "deposit_paid" || selectedRefundTransaction.payout_status === "fully_paid") ? (
-                  <div className="space-y-3">
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-xs flex items-start gap-2">
+                <div className="space-y-3 pt-1">
+                  {(selectedRefundTransaction.payout_status === "deposit_paid" || selectedRefundTransaction.payout_status === "fully_paid") && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-xl text-xs flex items-start gap-2">
                       <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
                       <div>
-                        <strong className="block font-semibold">Warning: Host Payout Already Made!</strong>
-                        The host has already been disbursed the deposit payout for this booking (Payout Status: {selectedRefundTransaction.payout_status.replace('_', ' ')}). Marking this booking as refunded confirms the deposit was returned to the guest after host payout.
+                        <strong className="block font-semibold">Warning: Host Payout Already Disbursed!</strong>
+                        The host was already disbursed deposit payout for this booking ({selectedRefundTransaction.payout_status.replace('_', ' ')}). Host refund leg of ₱{(selectedRefundTransaction.host_refund_amount || 0).toLocaleString()} must be collected from the host.
                       </div>
                     </div>
-                    <p className="text-xs text-neutral-600">
-                      Booking #{selectedRefundTransaction.id.slice(0, 8)} ({selectedRefundTransaction.guest_name}) will be updated to <strong>refunded</strong> and excluded from platform commissions and pending payouts.
-                    </p>
+                  )}
+
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-3.5 space-y-2 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-neutral-800">Booking #{selectedRefundTransaction.id.slice(0, 8)}</span>
+                      <span className="text-[11px] text-neutral-500">Guest: {selectedRefundTransaction.guest_name}</span>
+                    </div>
+
+                    <div className="border-t border-neutral-200/80 pt-2 space-y-1">
+                      <div className="flex justify-between text-neutral-600">
+                        <span>Total Refund Due:</span>
+                        <span className="font-bold text-neutral-900">
+                          ₱{(selectedRefundTransaction.refund_total ?? selectedRefundTransaction.downpayment_amount).toLocaleString()}
+                        </span>
+                      </div>
+                      {selectedRefundTransaction.panaw_refund_amount != null && (
+                        <div className="flex justify-between text-[11px] text-neutral-600">
+                          <span>Panaw Platform Leg:</span>
+                          <span className="font-medium text-neutral-800">₱{selectedRefundTransaction.panaw_refund_amount.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {selectedRefundTransaction.host_refund_amount != null && selectedRefundTransaction.host_refund_amount > 0 && (
+                        <div className="flex justify-between text-[11px] text-neutral-600">
+                          <span>Host Leg:</span>
+                          <span className="font-medium text-neutral-800">₱{selectedRefundTransaction.host_refund_amount.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-[11px] text-neutral-600 pt-1 border-t border-neutral-200/60">
+                        <span>GCash Destination:</span>
+                        <span className="font-mono font-bold text-emerald-700">
+                          {selectedRefundTransaction.refund_gcash_number || "Not provided (contact guest)"}
+                        </span>
+                      </div>
+                      {selectedRefundTransaction.cancellation_reason && (
+                        <p className="text-[11px] text-neutral-600 italic pt-1">
+                          Reason: &ldquo;{selectedRefundTransaction.cancellation_reason}&rdquo;
+                        </p>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <p className="text-xs text-neutral-700">
-                      Are you sure you want to mark booking #{selectedRefundTransaction.id.slice(0, 8)} ({selectedRefundTransaction.guest_name}) as <strong>refunded</strong>?
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      This confirms the deposit of ₱{selectedRefundTransaction.downpayment_amount.toLocaleString()} was refunded to the guest. It will be excluded from platform commission totals and host pending payouts.
-                    </p>
-                  </div>
-                )
+
+                  <p className="text-xs text-neutral-500">
+                    Confirming this will update payment status to <strong>refunded</strong> and mark Panaw refund status as sent.
+                  </p>
+                </div>
               )}
             </DialogDescription>
           </DialogHeader>

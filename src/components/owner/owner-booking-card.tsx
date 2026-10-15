@@ -14,10 +14,13 @@ import {
   MessageSquare,
   Phone,
   PhilippinePeso,
-  Receipt
+  Receipt,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -53,11 +56,22 @@ export interface OwnerBookingItem {
   commission_amount?: number;
   convenience_fee?: number;
   addons?: { name: string; price: number; commission: number }[];
+  cancelled_by?: "tourist" | "host" | "admin" | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  refund_total?: number | null;
+  host_refund_amount?: number | null;
+  host_refund_status?: "none" | "pending" | "sent" | string | null;
+  host_refund_due_at?: string | null;
 }
 
 export interface OwnerBookingCardProps {
   booking: OwnerBookingItem;
-  onUpdateStatus: (bookingId: string, newStatus: "accepted" | "declined" | "cancelled") => Promise<void>;
+  onUpdateStatus: (
+    bookingId: string,
+    newStatus: "accepted" | "declined" | "cancelled",
+    reason?: string
+  ) => Promise<void>;
   onViewPayoutReceipt?: (receiptUrl: string) => void;
   chatHrefPrefix?: string;
   className?: string;
@@ -71,6 +85,9 @@ export function OwnerBookingCard({
   className,
 }: OwnerBookingCardProps) {
   const [isUpdating, setIsUpdating] = React.useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = React.useState(false);
+  const [cancelReason, setCancelReason] = React.useState("Property maintenance / unavailable");
+  const [customCancelReason, setCustomCancelReason] = React.useState("");
 
   const checkIn = new Date(booking.check_in_date);
   const checkOut = new Date(booking.check_out_date);
@@ -84,10 +101,16 @@ export function OwnerBookingCard({
       year: "numeric",
     });
 
-  const handleAction = async (status: "accepted" | "declined" | "cancelled") => {
+  const handleAction = async (
+    status: "accepted" | "declined" | "cancelled",
+    reason?: string
+  ) => {
     setIsUpdating(true);
     try {
-      await onUpdateStatus(booking.id, status);
+      await onUpdateStatus(booking.id, status, reason);
+      if (status === "cancelled") {
+        setIsCancelDialogOpen(false);
+      }
     } finally {
       setIsUpdating(false);
     }
@@ -298,6 +321,46 @@ export function OwnerBookingCard({
           <p className="text-[11px] text-neutral-500 pt-1">
             * Note: Guest pays a separate ₱{(booking.convenience_fee || 100).toLocaleString()} convenience fee directly to Panaw (not deducted from your earnings).
           </p>
+
+          {/* Cancellation & Refund Alert Banner */}
+          {booking.status === "cancelled" && (
+            <div className="rounded-xl border border-red-200 bg-red-50/70 p-3.5 space-y-2 mt-2">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-red-900 flex items-center gap-1.5">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  Booking Cancelled
+                </span>
+                <Badge variant="outline" className="text-[10px] bg-white border-red-200 text-red-800 capitalize font-medium">
+                  By {booking.cancelled_by === "host" ? "You (Host)" : booking.cancelled_by === "tourist" ? "Guest" : (booking.cancelled_by || "Guest")}
+                </Badge>
+              </div>
+
+              {booking.cancellation_reason && (
+                <p className="text-neutral-700 italic bg-white/70 p-2 rounded-lg border border-red-100">
+                  &ldquo;{booking.cancellation_reason}&rdquo;
+                </p>
+              )}
+
+              {booking.host_refund_amount != null && booking.host_refund_amount > 0 && (
+                <div className={cn(
+                  "rounded-lg border p-3 space-y-1.5 mt-2",
+                  booking.host_refund_status === "sent" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-amber-300 bg-amber-50 text-amber-900"
+                )}>
+                  <div className="flex items-center justify-between font-bold">
+                    <span>Host Payout Refund Due: ₱{booking.host_refund_amount.toLocaleString()}</span>
+                    <Badge variant="outline" className="text-[10px] bg-white capitalize">
+                      {booking.host_refund_status === "sent" ? "Disbursed" : "Pending Return"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    {booking.host_refund_status === "sent"
+                      ? "You have successfully returned the deposit payout for this cancelled booking."
+                      : `Because this booking was cancelled under a refund-eligible policy after your deposit payout was disbursed, you are required to return ₱${booking.host_refund_amount.toLocaleString()} to Panaw platform ${booking.host_refund_due_at ? `by ${formatDate(new Date(booking.host_refund_due_at))}` : "within 72 hours"}.`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -363,7 +426,7 @@ export function OwnerBookingCard({
             </>
           )}
           {booking.status === "accepted" && (
-            <Dialog>
+            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
               <DialogTrigger render={
                 <Button
                   variant="outline"
@@ -375,18 +438,87 @@ export function OwnerBookingCard({
                 <X className="h-3.5 w-3.5 mr-1" />
                 Cancel Booking
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Cancel Confirmed Booking</DialogTitle>
-                  <DialogDescription>
-                    Are you sure you want to cancel this booking? Cancelling a confirmed booking may require you to refund the guest and could affect your host rating.
+                  <DialogTitle className="text-lg font-bold text-neutral-900">Cancel Confirmed Booking</DialogTitle>
+                  <DialogDescription className="text-xs text-neutral-500">
+                    Guest: {booking.tourist_name} • Check-in: {booking.check_in_date}
                   </DialogDescription>
                 </DialogHeader>
-                <DialogFooter>
-                  <DialogClose render={<Button variant="outline" size="sm" />}>Keep Booking</DialogClose>
-                  <DialogClose render={<Button variant="destructive" size="sm" onClick={() => handleAction("cancelled")} />}>
-                    Yes, Cancel Booking
-                  </DialogClose>
+
+                <div className="space-y-3.5 py-1 text-xs">
+                  <div className="rounded-xl border border-red-200 bg-red-50/70 p-3.5 text-red-900 space-y-1.5">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4 text-red-600 shrink-0" />
+                      Host Cancellation Policy &amp; 100% Guest Refund
+                    </p>
+                    <p className="text-[11px] leading-relaxed text-red-800">
+                      When a host cancels a confirmed reservation, the guest is entitled to a <strong>100% full refund</strong> of their deposit and platform fees.
+                    </p>
+                    {(booking.payout_status === "deposit_paid" || booking.payout_status === "fully_paid") && (
+                      <p className="text-[11px] font-semibold text-red-900 pt-1 border-t border-red-200">
+                        ⚠️ Notice: You have already received a deposit payout. You will be required to return the payout funds to Panaw within 72 hours.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="font-semibold text-neutral-800 block">
+                      Cancellation Reason <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      className="w-full rounded-md border border-neutral-300 bg-white p-2 text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                    >
+                      <option value="Property maintenance / unavailable">Property maintenance / unavailable</option>
+                      <option value="Double booking / scheduling error">Double booking / scheduling error</option>
+                      <option value="Severe weather / safety concern">Severe weather / safety concern</option>
+                      <option value="Personal emergency">Personal emergency</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {cancelReason === "Other" && (
+                      <Input
+                        type="text"
+                        placeholder="Please state specific reason..."
+                        value={customCancelReason}
+                        maxLength={200}
+                        onChange={(e) => setCustomCancelReason(e.target.value)}
+                        className="text-xs mt-1.5"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCancelDialogOpen(false)}
+                    disabled={isUpdating}
+                  >
+                    Keep Booking
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={isUpdating}
+                    onClick={() => {
+                      const finalReason = cancelReason === "Other"
+                        ? (customCancelReason.trim() || "Host cancelled booking")
+                        : cancelReason;
+                      handleAction("cancelled", finalReason);
+                    }}
+                  >
+                    {isUpdating ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      "Yes, Cancel Booking"
+                    )}
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

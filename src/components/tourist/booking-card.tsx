@@ -15,9 +15,12 @@ import {
   Receipt,
   QrCode,
   Star,
+  Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { estimateCancellationRefundAction } from "@/app/actions/booking-actions";
 
 export interface BookingData {
   id: string;
@@ -50,11 +54,24 @@ export interface BookingData {
   commission_amount?: number;
   convenience_fee?: number;
   addons?: { name: string; price: number; commission: number }[];
+  cancelled_by?: "tourist" | "host" | "admin" | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  cancellation_policy?: string | null;
+  refund_total?: number | null;
+  deposit_refund_amount?: number | null;
+  fee_refund_amount?: number | null;
+  refund_gcash_number?: string | null;
+  panaw_refund_status?: "none" | "pending" | "sent" | string | null;
+  host_refund_status?: "none" | "pending" | "sent" | string | null;
 }
 
 export interface BookingCardProps {
   booking: BookingData;
-  onCancelBooking?: (bookingId: string) => void;
+  onCancelBooking?: (
+    bookingId: string,
+    details?: { reason: string; refundGcashNumber?: string }
+  ) => Promise<void> | void;
   onViewBoardingPass?: (booking: BookingData) => void;
   onPayDeposit?: (booking: BookingData) => void;
   onViewPayment?: (booking: BookingData) => void;
@@ -71,6 +88,7 @@ export function BookingCard({
   onRateStay,
   className,
 }: BookingCardProps) {
+  const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
   const checkIn = new Date(booking.check_in_date);
   const checkOut = new Date(booking.check_out_date);
 
@@ -264,6 +282,63 @@ export function BookingCard({
               </div>
             </>
           )}
+
+          {/* Cancelled Booking & Refund Summary */}
+          {booking.status === "cancelled" && (
+            <div className="rounded-xl border border-red-200/80 bg-red-50/70 p-3.5 text-xs text-neutral-800 space-y-2 mt-3">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-red-900 flex items-center gap-1.5">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  Booking Cancelled
+                </span>
+                <Badge variant="outline" className="text-[10px] bg-white border-red-200 text-red-800 capitalize font-medium">
+                  By {booking.cancelled_by === "tourist" ? "Guest" : booking.cancelled_by === "host" ? "Host" : (booking.cancelled_by || "Guest")}
+                </Badge>
+              </div>
+
+              {booking.cancellation_reason && (
+                <p className="text-neutral-700 italic bg-white/70 p-2 rounded-lg border border-red-100">
+                  &ldquo;{booking.cancellation_reason}&rdquo;
+                </p>
+              )}
+
+              {(booking.refund_total != null && booking.refund_total > 0) ? (
+                <div className="pt-2 border-t border-red-200/60 space-y-1">
+                  <div className="flex justify-between font-bold text-neutral-900">
+                    <span>Scheduled Refund Total:</span>
+                    <span className="text-emerald-700">₱{booking.refund_total.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-neutral-600">
+                    <span>Deposit refund: ₱{(booking.deposit_refund_amount || 0).toLocaleString()} • Fee refund: ₱{(booking.fee_refund_amount || 0).toLocaleString()}</span>
+                  </div>
+                  {booking.refund_gcash_number && (
+                    <div className="flex justify-between text-[11px] text-neutral-600">
+                      <span>GCash Destination:</span>
+                      <span className="font-mono font-medium text-neutral-800">{booking.refund_gcash_number}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[11px] text-neutral-600 pt-1">
+                    <span>Panaw Platform Leg:</span>
+                    <span className={cn("font-medium", booking.panaw_refund_status === "sent" ? "text-emerald-700 font-semibold" : "text-amber-700 font-medium")}>
+                      {booking.panaw_refund_status === "sent" ? "Disbursed" : "Processing"}
+                    </span>
+                  </div>
+                  {booking.host_refund_status && booking.host_refund_status !== "none" && (
+                    <div className="flex justify-between text-[11px] text-neutral-600">
+                      <span>Host Refund Leg:</span>
+                      <span className={cn("font-medium", booking.host_refund_status === "sent" ? "text-emerald-700 font-semibold" : "text-amber-700 font-medium")}>
+                        {booking.host_refund_status === "sent" ? "Disbursed" : "Pending host return"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (booking.payment_status === "verified" || booking.payment_status === "completed") ? (
+                <div className="pt-1 text-[11px] text-neutral-600">
+                  Deposit is non-refundable according to the property&apos;s cancellation policy.
+                </div>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
 
@@ -303,27 +378,26 @@ export function BookingCard({
           )}
 
           {(booking.status === "pending" || booking.status === "accepted") && onCancelBooking && (
-            <Dialog>
-              <DialogTrigger render={<Button variant="outline" size="sm" className="text-xs h-8 px-3 border-neutral-200 text-red-600 hover:bg-red-50 hover:border-red-200" />}>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-8 px-3 border-neutral-200 text-red-600 hover:bg-red-50 hover:border-red-200"
+                onClick={() => setIsCancelModalOpen(true)}
+              >
                 Cancel {booking.status === "accepted" ? "Booking" : "Request"}
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Cancel Booking</DialogTitle>
-                  <DialogDescription>
-                    {booking.status === "accepted" 
-                      ? "Are you sure you want to cancel this confirmed booking? As per our policy, your downpayment is non-refundable."
-                      : "Are you sure you want to cancel your booking request?"}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose render={<Button variant="outline" size="sm" />}>Keep Booking</DialogClose>
-                  <DialogClose render={<Button variant="destructive" size="sm" onClick={() => onCancelBooking(booking.id)} />}>
-                    Yes, Cancel
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              </Button>
+              <TouristCancellationModal
+                booking={booking}
+                isOpen={isCancelModalOpen}
+                onOpenChange={setIsCancelModalOpen}
+                onConfirmCancel={async (bookingId, details) => {
+                  if (onCancelBooking) {
+                    await onCancelBooking(bookingId, details);
+                  }
+                }}
+              />
+            </>
           )}
 
           {booking.status === "accepted" && booking.payment_status === "awaiting_deposit" && (
@@ -383,5 +457,258 @@ export function BookingCard({
         </div>
       </div>
     </div>
+  );
+}
+
+interface TouristCancellationModalProps {
+  booking: BookingData;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirmCancel: (
+    bookingId: string,
+    details: { reason: string; refundGcashNumber?: string }
+  ) => Promise<void>;
+}
+
+function TouristCancellationModal({
+  booking,
+  isOpen,
+  onOpenChange,
+  onConfirmCancel,
+}: TouristCancellationModalProps) {
+  const [isLoadingEstimate, setIsLoadingEstimate] = React.useState(false);
+  const [estimate, setEstimate] = React.useState<{
+    tier: string;
+    deposit_refund: number;
+    fee_refund: number;
+    refund_total: number;
+    days_before: number;
+    reason: string;
+  } | null>(null);
+  const [estimateError, setEstimateError] = React.useState<string | null>(null);
+  const [selectedReason, setSelectedReason] = React.useState("Change of travel plans");
+  const [customReason, setCustomReason] = React.useState("");
+  const [gcashNumber, setGcashNumber] = React.useState("");
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (booking.payment_status === "deposit_uploaded") {
+        setEstimateError(
+          "Your GCash deposit receipt is currently undergoing verification by our admin team. Direct cancellation is locked until verification is resolved. Please contact support if you need immediate assistance."
+        );
+        return;
+      }
+
+      setIsLoadingEstimate(true);
+      setEstimateError(null);
+      estimateCancellationRefundAction(booking.id)
+        .then((res) => {
+          if (res.success && res.data) {
+            setEstimate(res.data);
+          } else {
+            setEstimateError(res.error || "Unable to retrieve cancellation refund estimate.");
+          }
+        })
+        .catch((err) => {
+          setEstimateError(err.message || "Failed to load cancellation preview.");
+        })
+        .finally(() => {
+          setIsLoadingEstimate(false);
+        });
+    } else {
+      setEstimate(null);
+      setEstimateError(null);
+      setCustomReason("");
+      setGcashNumber("");
+      setIsSubmitting(false);
+    }
+  }, [isOpen, booking.id, booking.payment_status]);
+
+  const sanitizedGcash = gcashNumber.replace(/[\s-]/g, "");
+  const requiresGcash = (estimate?.refund_total || 0) > 0;
+  const isGcashValid = !requiresGcash || /^09\d{9}$/.test(sanitizedGcash);
+
+  const handleSubmit = async () => {
+    if (requiresGcash && !isGcashValid) {
+      toast.error("Please enter a valid 11-digit GCash mobile number (09XXXXXXXXX).");
+      return;
+    }
+
+    const finalReason =
+      selectedReason === "Other"
+        ? customReason.trim() || "Other reason"
+        : selectedReason;
+
+    try {
+      setIsSubmitting(true);
+      await onConfirmCancel(booking.id, {
+        reason: finalReason,
+        refundGcashNumber: requiresGcash ? sanitizedGcash : undefined,
+      });
+      onOpenChange(false);
+    } catch {
+      // Error handled by parent
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-lg font-bold text-neutral-900">
+            Cancel {booking.status === "accepted" ? "Booking" : "Request"}
+          </DialogTitle>
+          <DialogDescription className="text-xs text-neutral-500">
+            {booking.property_name} • Check-in: {booking.check_in_date}
+          </DialogDescription>
+        </DialogHeader>
+
+        {booking.payment_status === "deposit_uploaded" ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 space-y-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
+              Deposit Verification In Progress
+            </div>
+            <p className="text-amber-800 leading-relaxed">
+              Your GCash deposit receipt is currently being verified by an admin. Cancellation is paused during verification. Please contact Panaw support if you need immediate assistance.
+            </p>
+          </div>
+        ) : isLoadingEstimate ? (
+          <div className="py-8 flex flex-col items-center justify-center gap-2 text-neutral-500">
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <span className="text-xs">Calculating cancellation policy and refund eligibility...</span>
+          </div>
+        ) : (
+          <div className="space-y-4 py-1 text-xs">
+            {estimateError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-red-800">
+                {estimateError}
+              </div>
+            )}
+
+            {estimate && (
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-neutral-900">Policy Preview</span>
+                  <Badge variant="outline" className="text-[10px] uppercase font-bold bg-white text-neutral-700">
+                    {estimate.tier} refund tier
+                  </Badge>
+                </div>
+                <p className="text-neutral-600 text-[11px] leading-relaxed">
+                  {estimate.reason}
+                </p>
+
+                <div className="border-t border-neutral-200/80 pt-2 space-y-1.5">
+                  <div className="flex justify-between text-neutral-600">
+                    <span>Notice before check-in:</span>
+                    <span className="font-medium text-neutral-900">{estimate.days_before} days</span>
+                  </div>
+                  {estimate.deposit_refund > 0 && (
+                    <div className="flex justify-between text-neutral-600">
+                      <span>Deposit refund:</span>
+                      <span className="font-medium text-neutral-900">₱{estimate.deposit_refund.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {estimate.fee_refund > 0 && (
+                    <div className="flex justify-between text-neutral-600">
+                      <span>Convenience fee refund:</span>
+                      <span className="font-medium text-neutral-900">₱{estimate.fee_refund.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-bold text-neutral-900 pt-1 border-t border-neutral-200/60">
+                    <span>Total Refund Due:</span>
+                    <span className={estimate.refund_total > 0 ? "text-emerald-700 font-extrabold" : "text-neutral-700"}>
+                      ₱{estimate.refund_total.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {requiresGcash && (
+              <div className="space-y-1.5">
+                <label className="font-semibold text-neutral-900 block">
+                  GCash Mobile Number for Refund <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="tel"
+                  placeholder="09171234567"
+                  value={gcashNumber}
+                  maxLength={11}
+                  onChange={(e) => setGcashNumber(e.target.value)}
+                  className="font-mono text-sm"
+                />
+                <p className="text-[10px] text-neutral-500">
+                  Required: 11-digit mobile number starting with 09 where your refund will be disbursed.
+                </p>
+                {gcashNumber && !isGcashValid && (
+                  <p className="text-[10px] text-red-600 font-medium">
+                    Please enter a valid Philippine mobile number (e.g. 09171234567).
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="font-semibold text-neutral-900 block">
+                Reason for Cancellation
+              </label>
+              <select
+                className="w-full rounded-md border border-neutral-300 bg-white p-2 text-xs text-neutral-800 focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                value={selectedReason}
+                onChange={(e) => setSelectedReason(e.target.value)}
+              >
+                <option value="Change of travel plans">Change of travel plans</option>
+                <option value="Found alternative accommodation">Found alternative accommodation</option>
+                <option value="Personal / Medical emergency">Personal / Medical emergency</option>
+                <option value="Transportation or weather concern">Transportation or weather concern</option>
+                <option value="Other">Other</option>
+              </select>
+              {selectedReason === "Other" && (
+                <Input
+                  type="text"
+                  placeholder="Please specify reason..."
+                  value={customReason}
+                  maxLength={200}
+                  onChange={(e) => setCustomReason(e.target.value)}
+                  className="text-xs mt-1.5"
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter className="gap-2 sm:gap-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            disabled={isSubmitting}
+          >
+            Keep Reservation
+          </Button>
+          {booking.payment_status !== "deposit_uploaded" && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleSubmit}
+              disabled={isSubmitting || isLoadingEstimate || (requiresGcash && !isGcashValid)}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Cancellation"
+              )}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

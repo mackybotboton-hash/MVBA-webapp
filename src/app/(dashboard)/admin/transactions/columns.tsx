@@ -29,6 +29,16 @@ export type TransactionItem = {
   check_out_date?: string;
   host_gcash_number?: string;
   host_name?: string;
+  refund_total?: number | null;
+  deposit_refund_amount?: number | null;
+  fee_refund_amount?: number | null;
+  panaw_refund_amount?: number | null;
+  panaw_refund_status?: string | null;
+  host_refund_amount?: number | null;
+  host_refund_status?: string | null;
+  refund_gcash_number?: string | null;
+  cancellation_reason?: string | null;
+  cancelled_by?: string | null;
 };
 
 interface VerifyModalProps {

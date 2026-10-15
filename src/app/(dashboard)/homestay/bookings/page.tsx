@@ -87,6 +87,13 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
       receipt_url,
       created_at,
       notes,
+      cancelled_by,
+      cancelled_at,
+      cancellation_reason,
+      refund_total,
+      host_refund_amount,
+      host_refund_status,
+      host_refund_due_at,
       profiles!tourist_id(full_name, phone_number, email),
       rooms!room_id(name),
       booking_addons (
@@ -127,6 +134,13 @@ async function fetchHomestayBookings(userId: string): Promise<OwnerBookingItem[]
     receipt_url: b.receipt_url,
     created_at: b.created_at,
     notes: b.notes,
+    cancelled_by: b.cancelled_by,
+    cancelled_at: b.cancelled_at,
+    cancellation_reason: b.cancellation_reason,
+    refund_total: b.refund_total != null ? Number(b.refund_total) : null,
+    host_refund_amount: b.host_refund_amount != null ? Number(b.host_refund_amount) : null,
+    host_refund_status: b.host_refund_status,
+    host_refund_due_at: b.host_refund_due_at,
   }));
 }
 
@@ -172,10 +186,11 @@ export default function HomestayBookingsPage() {
 
   const handleUpdateStatus = React.useCallback(async (
     bookingId: string,
-    newStatus: "accepted" | "declined" | "cancelled"
+    newStatus: "accepted" | "declined" | "cancelled",
+    reason?: string
   ) => {
     try {
-      const res = await updateBookingStatusAction(bookingId, newStatus);
+      const res = await updateBookingStatusAction(bookingId, newStatus, reason);
       if (!res.success) throw new Error(res.error);
 
       // Optimistic UI update

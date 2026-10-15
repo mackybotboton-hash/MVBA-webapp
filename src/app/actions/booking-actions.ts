@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { notifyNewBooking } from "@/app/actions/notify-actions";
+import { notifyNewBooking, notifyBookingCancelled, notifyBookingStatusChange } from "@/app/actions/notify-actions";
 import { resolveDownpaymentPercent, calculatePaymentBreakdown } from "@/lib/pricing/downpayment";
 
 const ALLOWED_TRANSITIONS = {
@@ -401,49 +401,209 @@ export async function getRoomAvailabilityAction(roomId: string) {
   }
 }
 
-/**
- * Tourist can cancel their own booking.
- */
-export async function cancelBookingAction(bookingId: string) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
+export type CancelBookingPayload =
+  | string
+  | {
+      bookingId: string;
+      reason?: string;
+      refundGcashNumber?: string;
+      forceMajeure?: boolean;
+    };
 
+/**
+ * Preview / estimate cancellation refund breakdown for a booking before cancelling.
+ * Calls public.estimate_cancellation_refund(uuid).
+ */
+export async function estimateCancellationRefundAction(bookingId: string) {
+  try {
+    if (!bookingId) {
+      return { success: false, error: "Booking ID is required." };
+    }
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    const { data, error } = await (supabase.rpc as any)(
+      "estimate_cancellation_refund",
+      { p_booking_id: bookingId }
+    );
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) {
+      return { success: false, error: "Unable to calculate refund estimate." };
+    }
+
+    return {
+      success: true,
+      data: {
+        tier: row.tier as string,
+        deposit_refund: Number(row.deposit_refund || 0),
+        fee_refund: Number(row.fee_refund || 0),
+        refund_total: Number(row.refund_total || 0),
+        host_leg: Number(row.host_leg || 0),
+        panaw_leg: Number(row.panaw_leg || 0),
+        adjusted_host_payout: Number(row.adjusted_host_payout || 0),
+        days_before: Number(row.days_before || 0),
+        snapshot_source: row.snapshot_source as string,
+        reason: row.reason as string,
+      },
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || "Failed to estimate refund.",
+    };
+  }
+}
+
+/**
+ * Atomic cancellation action for tourist, host, or admin.
+ * Uses cancel_booking_atomic RPC with financial recalculation, leg isolation,
+ * idempotency, and tamper guards.
+ */
+export async function cancelBookingAction(
+  payload: CancelBookingPayload
+): Promise<{ success: boolean; error?: string; data?: any }> {
+  try {
+    const bookingId = typeof payload === "string" ? payload : payload.bookingId;
+    const reason =
+      typeof payload === "string"
+        ? "Cancelled by user"
+        : payload.reason || "Cancelled by user";
+    const refundGcashNumber =
+      typeof payload === "string" ? null : payload.refundGcashNumber || null;
+    const forceMajeure =
+      typeof payload === "string" ? false : payload.forceMajeure || false;
+
+    if (!bookingId) {
+      return { success: false, error: "Booking ID is required." };
+    }
+
+    // GCash number sanitization and check if provided
+    let sanitizedGcash: string | null = null;
+    if (refundGcashNumber) {
+      sanitizedGcash = refundGcashNumber.replace(/[\s-]/g, "");
+      if (!/^09\d{9}$/.test(sanitizedGcash)) {
+        return {
+          success: false,
+          error: "Invalid GCash number format. Must be an 11-digit number starting with 09.",
+        };
+      }
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authErr,
+    } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    // Call atomic cancellation engine
+    const { data: result, error: rpcErr } = await (supabase.rpc as any)(
+      "cancel_booking_atomic",
+      {
+        p_booking_id: bookingId,
+        p_reason: reason,
+        p_force_majeure: forceMajeure,
+        p_refund_gcash_number: sanitizedGcash,
+      }
+    );
+
+    if (rpcErr) {
+      return { success: false, error: rpcErr.message };
+    }
+
+    // Fetch booking details for notifications
     const supabaseAdmin = createAdminClient();
-    const { data: booking, error: fetchErr } = await supabaseAdmin
+    const { data: booking } = await supabaseAdmin
       .from("bookings")
-      .select("status, tourist_id")
+      .select("tourist_id, check_in_date, rooms!inner(name, properties!inner(name, owner_id))")
       .eq("id", bookingId)
       .single();
 
-    if (fetchErr || !booking) throw new Error("Booking not found");
-    if (booking.tourist_id !== user.id) throw new Error("Forbidden: Not your booking");
+    if (booking) {
+      const propertyName =
+        (booking.rooms as any)?.properties?.name ||
+        (booking.rooms as any)?.name ||
+        "Bretania Island Stay";
+      const ownerId = (booking.rooms as any)?.properties?.owner_id;
+      const touristId = booking.tourist_id;
+      const checkIn = booking.check_in_date;
 
-    const allowed = ALLOWED_TRANSITIONS.tourist[booking.status] || [];
-    if (!allowed.includes("cancelled")) {
-      throw new Error(`Cannot cancel booking in ${booking.status} status`);
+      if (user.id === touristId && ownerId) {
+        // Tourist cancelled -> notify property host
+        const { data: profile } = await supabaseAdmin
+          .from("profiles")
+          .select("full_name")
+          .eq("id", touristId)
+          .single();
+
+        notifyBookingCancelled({
+          ownerId,
+          touristName: profile?.full_name || "Guest",
+          propertyName,
+          checkIn,
+        }).catch((e) => console.error("[Notify] cancel notify failed:", e));
+      } else if (user.id === ownerId && touristId) {
+        // Host cancelled -> notify tourist
+        notifyBookingStatusChange({
+          touristId,
+          newStatus: "cancelled",
+          propertyName,
+          checkIn,
+        }).catch((e) => console.error("[Notify] host cancel notify failed:", e));
+      }
     }
 
-    const { error: updateErr } = await supabaseAdmin
-      .from("bookings")
-      .update({ status: "cancelled" } as any)
-      .eq("id", bookingId);
-
-    if (updateErr) throw new Error(updateErr.message);
-
     revalidatePath("/bookings");
-    return { success: true };
+    revalidatePath("/homestay/bookings");
+    revalidatePath("/resort/bookings");
+    revalidatePath("/admin/transactions");
+    revalidatePath("/admin");
+
+    return {
+      success: true,
+      data: result,
+    };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    return {
+      success: false,
+      error: error.message || "Failed to cancel booking.",
+    };
   }
 }
 
 /**
  * Host/Owner can update booking status.
+ * If transitioning to 'cancelled', delegates directly to cancelBookingAction
+ * to ensure 100% guest refund and host payout leg return rules are computed.
  */
-export async function updateBookingStatusAction(bookingId: string, newStatus: string) {
+export async function updateBookingStatusAction(
+  bookingId: string,
+  newStatus: string,
+  cancellationReason?: string
+): Promise<{ success: boolean; error?: string; data?: any }> {
   try {
+    if (newStatus === "cancelled") {
+      return await cancelBookingAction({
+        bookingId,
+        reason: cancellationReason || "Host cancelled booking",
+      });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Unauthorized");
@@ -456,7 +616,7 @@ export async function updateBookingStatusAction(bookingId: string, newStatus: st
       .single();
 
     if (fetchErr || !booking) throw new Error("Booking not found");
-    
+
     // Check ownership
     const ownerId = (booking.rooms as any).properties.owner_id;
     if (ownerId !== user.id) throw new Error("Forbidden: Not your property");

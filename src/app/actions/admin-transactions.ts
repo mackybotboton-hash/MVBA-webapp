@@ -153,15 +153,59 @@ export async function markBookingRefundedAction(bookingId: string) {
 
     const { error } = await supabaseAdmin
       .from("bookings")
-      .update({ payment_status: "refunded" })
+      .update({
+        payment_status: "refunded",
+        panaw_refund_status: "sent",
+        panaw_refund_sent_at: new Date().toISOString(),
+      })
       .eq("id", bookingId);
 
     if (error) throw error;
 
     revalidatePath("/admin/transactions");
     revalidatePath("/admin");
+    revalidatePath("/bookings");
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Failed to mark booking as refunded." };
   }
 }
+
+/**
+ * Administrator cancellation action.
+ * Can trigger standard guest cancellation policy or declare force majeure (100% full refund).
+ */
+export async function adminCancelBookingAction(payload: {
+  bookingId: string;
+  reason?: string;
+  forceMajeure?: boolean;
+}) {
+  try {
+    await assertAdminCaller();
+    const { bookingId, reason, forceMajeure } = payload;
+    if (!bookingId) {
+      return { success: false, error: "Booking ID is required." };
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await (supabase.rpc as any)("cancel_booking_atomic", {
+      p_booking_id: bookingId,
+      p_reason: reason || "Administrative cancellation",
+      p_force_majeure: forceMajeure ?? false,
+      p_refund_gcash_number: null,
+    });
+
+    if (error) throw error;
+
+    revalidatePath("/admin/transactions");
+    revalidatePath("/admin");
+    revalidatePath("/bookings");
+    revalidatePath("/homestay/bookings");
+    revalidatePath("/resort/bookings");
+
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to cancel booking." };
+  }
+}
+

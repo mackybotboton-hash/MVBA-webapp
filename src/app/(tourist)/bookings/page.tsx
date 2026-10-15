@@ -98,6 +98,16 @@ export default function TouristBookingsPage() {
           convenience_fee,
           receipt_url,
           created_at,
+          cancelled_by,
+          cancelled_at,
+          cancellation_reason,
+          cancellation_policy,
+          refund_total,
+          deposit_refund_amount,
+          fee_refund_amount,
+          refund_gcash_number,
+          panaw_refund_status,
+          host_refund_status,
           booking_addons (
             price_at_booking,
             commission_amount,
@@ -146,6 +156,16 @@ export default function TouristBookingsPage() {
           receipt_url: b.receipt_url,
           status: b.status,
           owner_id: b.rooms?.properties?.owner_id,
+          cancelled_by: b.cancelled_by,
+          cancelled_at: b.cancelled_at,
+          cancellation_reason: b.cancellation_reason,
+          cancellation_policy: b.cancellation_policy,
+          refund_total: b.refund_total != null ? Number(b.refund_total) : null,
+          deposit_refund_amount: b.deposit_refund_amount != null ? Number(b.deposit_refund_amount) : null,
+          fee_refund_amount: b.fee_refund_amount != null ? Number(b.fee_refund_amount) : null,
+          refund_gcash_number: b.refund_gcash_number,
+          panaw_refund_status: b.panaw_refund_status,
+          host_refund_status: b.host_refund_status,
         }));
         setBookings(mapped);
 
@@ -214,20 +234,29 @@ export default function TouristBookingsPage() {
     };
   }, [fetchBookings]);
 
-  const handleCancelBooking = async (bookingId: string) => {
+  const handleCancelBooking = async (
+    bookingId: string,
+    details?: { reason: string; refundGcashNumber?: string }
+  ) => {
     try {
-      const res = await cancelBookingAction(bookingId);
+      const res = await cancelBookingAction({
+        bookingId,
+        reason: details?.reason || "Cancelled by guest",
+        refundGcashNumber: details?.refundGcashNumber,
+      });
       if (!res.success) {
         throw new Error(res.error);
       }
-      setBookings((prev) =>
-        prev.map((b) => (b.id === bookingId ? { ...b, status: "cancelled" } : b))
-      );
-      toast.success("Booking request cancelled", {
-        description: "The property owner has been notified.",
+      toast.success("Booking cancelled successfully", {
+        description:
+          res.data?.refund_total && Number(res.data.refund_total) > 0
+            ? `Estimated refund of ₱${Number(res.data.refund_total).toLocaleString()} scheduled for GCash.`
+            : "The reservation has been cancelled.",
       });
-    } catch {
-      toast.error("Failed to cancel booking. Please try again.");
+      await fetchBookings();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel booking. Please try again.");
+      throw err;
     }
   };
 
