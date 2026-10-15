@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { RefreshCw, Filter, Wallet, DollarSign, ChevronDown, ChevronUp, AlertCircle, Copy, Receipt } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { approveBookingDeposit } from "@/app/actions/admin-actions";
 import { markPayoutPaidAction, markBookingRefundedAction, disbursePanawRefundAction } from "@/app/actions/admin-transactions";
@@ -614,7 +614,14 @@ function AdminTransactionsContent() {
       <Dialog open={!!selectedRefundTransaction} onOpenChange={(open) => !open && setSelectedRefundTransaction(null)}>
         <DialogContent className="max-w-md p-6 bg-white rounded-2xl shadow-xl">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-neutral-900">Confirm Booking Refund</DialogTitle>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                <Receipt className="h-4 w-4 text-red-600" />
+              </div>
+              <DialogTitle className="text-lg font-bold text-neutral-900 leading-tight">
+                Disburse Guest Refund via GCash
+              </DialogTitle>
+            </div>
             <DialogDescription className="text-xs text-neutral-600 mt-2">
               {selectedRefundTransaction && (
                 <div className="space-y-3 pt-1">
@@ -637,7 +644,7 @@ function AdminTransactionsContent() {
                     <div className="border-t border-neutral-200/80 pt-2 space-y-1">
                       <div className="flex justify-between text-neutral-600">
                         <span>Total Refund Due:</span>
-                        <span className="font-bold text-neutral-900">
+                        <span className="font-bold text-neutral-900 text-sm">
                           ₱{(selectedRefundTransaction.refund_total ?? selectedRefundTransaction.downpayment_amount).toLocaleString()}
                         </span>
                       </div>
@@ -653,11 +660,27 @@ function AdminTransactionsContent() {
                           <span className="font-medium text-neutral-800">₱{selectedRefundTransaction.host_refund_amount.toLocaleString()}</span>
                         </div>
                       )}
-                      <div className="flex justify-between text-[11px] text-neutral-600 pt-1 border-t border-neutral-200/60">
-                        <span>GCash Destination:</span>
-                        <span className="font-mono font-bold text-emerald-700">
-                          {selectedRefundTransaction.refund_gcash_number || "Not provided (contact guest)"}
-                        </span>
+                      <div className="flex justify-between items-center text-[11px] text-neutral-700 pt-1.5 border-t border-neutral-200/60">
+                        <span className="font-medium">Guest GCash Number:</span>
+                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-neutral-200">
+                          <span className="font-mono font-bold text-emerald-700 text-xs">
+                            {selectedRefundTransaction.refund_gcash_number || "Not provided"}
+                          </span>
+                          {selectedRefundTransaction.refund_gcash_number && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0 text-neutral-500 hover:text-black"
+                              onClick={() => {
+                                navigator.clipboard.writeText(selectedRefundTransaction.refund_gcash_number!);
+                                toast.success("Guest GCash number copied to clipboard!");
+                              }}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       {selectedRefundTransaction.cancellation_reason && (
                         <p className="text-[11px] text-neutral-600 italic pt-1">
@@ -689,23 +712,30 @@ function AdminTransactionsContent() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="font-semibold text-neutral-800 block text-xs">
-                      Upload Panaw Refund Proof Screenshot (Optional)
+                  {/* Upload Panaw Screenshot proof */}
+                  <div className="space-y-1.5 bg-neutral-50/80 border border-neutral-200 rounded-xl p-3">
+                    <label className="font-semibold text-neutral-800 block text-xs flex items-center justify-between">
+                      <span>Attach Panaw GCash Refund Proof (Screenshot)</span>
+                      <span className="text-[10px] text-neutral-400 font-normal">Optional</span>
                     </label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={(e) => setRefundProofFile(e.target.files?.[0] || null)}
-                      className="text-xs w-full text-neutral-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border file:border-neutral-200 file:text-xs file:font-semibold file:bg-neutral-50 file:text-neutral-700 hover:file:bg-neutral-100"
+                      className="text-xs w-full text-neutral-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border file:border-neutral-200 file:text-xs file:font-semibold file:bg-white file:text-neutral-700 hover:file:bg-neutral-100 cursor-pointer"
                     />
+                    {refundProofFile && (
+                      <p className="text-[11px] text-emerald-700 font-medium">
+                        ✓ Selected: {refundProofFile.name}
+                      </p>
+                    )}
                     <p className="text-[10px] text-neutral-500">
-                      Uploading receipt saves proof directly to panaw_refund_receipt_url.
+                      Uploading the screenshot allows the tourist to view and download their refund receipt in their booking pass.
                     </p>
                   </div>
 
                   <p className="text-xs text-neutral-500">
-                    Confirming this will update payment status to <strong>refunded</strong> and mark Panaw refund status as sent.
+                    Confirming this will mark Panaw refund status as <strong>sent</strong> and update booking payment status to <strong>refunded</strong>.
                   </p>
                 </div>
               )}
@@ -725,9 +755,9 @@ function AdminTransactionsContent() {
               size="sm"
               disabled={isRefunding}
               onClick={handleConfirmRefund}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-1.5"
             >
-              {isRefunding ? "Processing..." : "Confirm Refund"}
+              {isRefunding ? "Processing..." : "Confirm & Send Refund"}
             </Button>
           </div>
         </DialogContent>

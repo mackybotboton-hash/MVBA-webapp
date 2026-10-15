@@ -3,7 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, X, CheckCircle, Copy } from "lucide-react";
+import { RefreshCw, X, CheckCircle, Copy, Receipt } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
 import { toast } from "sonner";
@@ -256,7 +256,7 @@ export function TransactionActions({
 }) {
   const t = transaction;
   const isDepositUploaded = t.payment_status === "deposit_uploaded" && !!t.receipt_url;
-  const isPayoutDue = t.payment_status === "verified" && (!t.payout_status || t.payout_status === "pending");
+  const isPayoutDue = t.status !== "cancelled" && t.payment_status === "verified" && (!t.payout_status || t.payout_status === "pending");
   const isCancelledVerified = t.status === "cancelled" && t.payment_status === "verified" && !!onMarkRefundedClick;
   const hasReceiptToView = !!t.receipt_url && !isDepositUploaded;
 
@@ -288,11 +288,11 @@ export function TransactionActions({
       return (
         <Button
           size="sm"
-          variant="outline"
           onClick={(e) => { e.stopPropagation(); onMarkRefundedClick!(t); }}
-          className="border-red-200 text-red-600 hover:bg-red-50 text-xs h-8 px-3"
+          className="bg-red-600 hover:bg-red-700 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow-xs"
         >
-          Mark as Refunded
+          <Receipt className="h-3.5 w-3.5" />
+          Disburse Refund
         </Button>
       );
     }
@@ -327,11 +327,11 @@ export function TransactionActions({
         {isCancelledVerified && !isDepositUploaded && (
           <Button
             size="sm"
-            variant="outline"
             onClick={() => onMarkRefundedClick!(t)}
-            className="border-red-200 text-red-600 hover:bg-red-50 text-xs h-8 px-3"
+            className="bg-red-600 hover:bg-red-700 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow-xs"
           >
-            Mark as Refunded
+            <Receipt className="h-3.5 w-3.5" />
+            Disburse Refund
           </Button>
         )}
       </div>
@@ -354,11 +354,11 @@ export function TransactionActions({
       {isCancelledVerified && (
         <Button
           size="sm"
-          variant="outline"
           onClick={() => onMarkRefundedClick!(t)}
-          className="border-red-200 text-red-600 hover:bg-red-50 text-xs"
+          className="bg-red-600 hover:bg-red-700 text-white text-xs h-7 px-2.5 shadow-xs flex items-center gap-1.5"
         >
-          Mark as Refunded
+          <Receipt className="h-3 w-3" />
+          Disburse Refund
         </Button>
       )}
     </div>

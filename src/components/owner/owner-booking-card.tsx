@@ -222,6 +222,24 @@ export function OwnerBookingCard({
             const hostDeposit = payouts.depositPayout;
             const collectAtCheckin = payouts.balancePayout;
             const isDepositPaid = booking.payout_status === "deposit_paid" || booking.payout_status === "fully_paid";
+
+            if (booking.status === "cancelled") {
+              const retained = Number((booking as any).adjusted_host_payout_amount || 0);
+              return (
+                <div className="flex flex-col items-end mt-1 space-y-0.5">
+                  {retained > 0 ? (
+                    <span className="text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded">
+                      Retained Host Share: ₱{retained.toLocaleString()}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-red-600 font-semibold bg-red-50 px-2 py-0.5 rounded">
+                      Cancelled • Check-in Voided
+                    </span>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <div className="flex flex-col items-end mt-1 space-y-0.5">
                 <span className="text-[11px] text-green-700 font-medium">
@@ -322,8 +340,13 @@ export function OwnerBookingCard({
 
           {/* Final Payout */}
           <div className="flex justify-between items-center font-bold text-neutral-900 text-sm">
-            <span>Net Earnings (Your Payout)</span>
-            <span className="text-emerald-700">₱{(booking.host_payout_amount || ((booking.total_price - (booking.convenience_fee || 0)) - (booking.commission_amount || 0))).toLocaleString()}</span>
+            <span>{booking.status === "cancelled" ? "Cancelled Reservation Payout" : "Net Earnings (Your Payout)"}</span>
+            <span className={cn(booking.status === "cancelled" ? "text-neutral-700 font-semibold" : "text-emerald-700")}>
+              {booking.status === "cancelled"
+                ? `₱${Number((booking as any).adjusted_host_payout_amount || 0).toLocaleString()}`
+                : `₱${(booking.host_payout_amount || ((booking.total_price - (booking.convenience_fee || 0)) - (booking.commission_amount || 0))).toLocaleString()}`
+              }
+            </span>
           </div>
 
           {/* Informational Note for Guest Convenience Fee */}
@@ -348,6 +371,20 @@ export function OwnerBookingCard({
                 <p className="text-neutral-700 italic bg-white/70 p-2 rounded-lg border border-red-100">
                   &ldquo;{booking.cancellation_reason}&rdquo;
                 </p>
+              )}
+
+              {(!booking.host_refund_amount || booking.host_refund_amount === 0) && (
+                <div className="rounded-lg bg-neutral-100/90 p-2.5 border border-neutral-200/80 text-[11px] text-neutral-700 mt-2 space-y-1">
+                  <p className="font-semibold text-neutral-900 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    Deposit & Payout Status:
+                  </p>
+                  <p className="text-neutral-600">
+                    {booking.payout_status === "deposit_paid"
+                      ? "Deposit payout was retained by host according to policy. No refund return required."
+                      : "No deposit return required from host. The guest refund is handled directly by Panaw platform from held funds."}
+                  </p>
+                </div>
               )}
 
               {booking.host_refund_amount != null && booking.host_refund_amount > 0 && (
