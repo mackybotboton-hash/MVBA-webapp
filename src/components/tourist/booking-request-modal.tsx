@@ -50,7 +50,13 @@ interface BookingRequestModalProps {
 
 export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubmit, isSubmitting = false, errorMessage = null }: BookingRequestModalProps) {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to?: Date }>({ from: undefined });
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to?: Date }>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayAfter = new Date();
+    dayAfter.setDate(dayAfter.getDate() + 2);
+    return { from: tomorrow, to: dayAfter };
+  });
   const [guestCount, setGuestCount] = useState<number>(1);
   const [arrivalTime, setArrivalTime] = useState<string>("");
   const [selectedAddonIds, setSelectedAddonIds] = useState<Set<string>>(new Set());
@@ -281,16 +287,17 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                   onSelect={(range) => setDateRange(range as any)}
                   numberOfMonths={1}
                   disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    if (date < today) return true;
-                    if (dateRange?.from && date < dateRange.from) {
-                      return true;
-                    }
-                    return false;
+                    const earliestAllowed = new Date();
+                    earliestAllowed.setDate(earliestAllowed.getDate() + 1);
+                    earliestAllowed.setHours(0, 0, 0, 0);
+                    return date < earliestAllowed;
                   }}
                   className="w-full flex justify-center"
                 />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-zinc-500 px-1 pt-1 font-medium">
+                <span>⚡ Minimum 1-day advance booking</span>
+                <span>Check-in: 2:00 PM</span>
               </div>
             </motion.div>
           )}

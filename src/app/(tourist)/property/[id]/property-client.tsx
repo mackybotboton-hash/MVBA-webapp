@@ -111,9 +111,10 @@ export default function PropertyStorefrontPage() {
     images: [],
     currentIndex: 0,
   });
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
-    from: addDays(new Date(), 2),
-    to: addDays(new Date(), 4),
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(() => {
+    const tomorrow = addDays(new Date(), 1);
+    const dayAfter = addDays(new Date(), 2);
+    return { from: tomorrow, to: dayAfter };
   });
   
   const formatLocalDate = (date: Date) => {
@@ -180,6 +181,20 @@ export default function PropertyStorefrontPage() {
   React.useEffect(() => {
     fetchRoomAvailability();
   }, [fetchRoomAvailability]);
+
+  // Ensure selected dates start at least tomorrow whenever booking modal opens
+  React.useEffect(() => {
+    if (selectedRoom) {
+      const tomorrow = addDays(new Date(), 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      if (!dateRange?.from || dateRange.from < tomorrow) {
+        setDateRange({
+          from: tomorrow,
+          to: addDays(tomorrow, 1),
+        });
+      }
+    }
+  }, [selectedRoom]);
 
   // High-performance memoized date conflict checker
   // Interval overlap: (A.start < B.end) AND (A.end > B.start)
@@ -1051,16 +1066,20 @@ export default function PropertyStorefrontPage() {
                   onSelect={setDateRange}
                   numberOfMonths={1}
                   disabled={(date) => {
-                    const earliestAllowed = addDays(new Date(), 2);
+                    const earliestAllowed = addDays(new Date(), 1);
                     earliestAllowed.setHours(0, 0, 0, 0);
                     if (date < earliestAllowed) return true;
-                    if (dateRange?.from && date < dateRange.from) return true;
                     return disabledDates.some(
-                      (range) => date >= range.from && date <= range.to
+                      (range) => date >= range.from && date < range.to
                     );
                   }}
                   className="w-full flex justify-center"
                 />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-neutral-500 px-1 pt-1 font-medium">
+                <span>⚡ Minimum 1-day advance booking</span>
+                <span>Standard Check-in: 2:00 PM</span>
               </div>
 
               {checkInDate >= checkOutDate && dateRange?.to && (
