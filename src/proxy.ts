@@ -64,6 +64,8 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = PUBLIC_AUTH_ROUTES.has(pathname);
   const isTouristPublic =
     TOURIST_PUBLIC_EXACT.has(pathname) || pathname.startsWith("/property/");
+  const isBypassRoute =
+    pathname.startsWith("/auth/") || pathname.startsWith("/api/");
 
   // --------------------------------------------------------------------------
   // 2. SESSION VALIDATION VIA EDGE COOKIES
@@ -74,7 +76,7 @@ export async function proxy(request: NextRequest) {
   // 3. UNAUTHENTICATED USERS (Edge Redirect to Prevent Hydration on Private Routes)
   // --------------------------------------------------------------------------
   if (!user) {
-    if (isAuthRoute || isTouristPublic) {
+    if (isAuthRoute || isTouristPublic || isBypassRoute) {
       return supabaseResponse;
     }
 

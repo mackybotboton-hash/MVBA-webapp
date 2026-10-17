@@ -111,9 +111,20 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       const currentPath = window.location.pathname;
 
       let returnPath = "/";
-      if (redirectParam && redirectParam.startsWith("/")) {
+      if (
+        redirectParam &&
+        redirectParam.startsWith("/") &&
+        !redirectParam.startsWith("/auth") &&
+        !redirectParam.startsWith("/login") &&
+        !redirectParam.startsWith("/register")
+      ) {
         returnPath = redirectParam;
-      } else if (currentPath && currentPath !== "/login" && currentPath !== "/register") {
+      } else if (
+        currentPath &&
+        currentPath !== "/login" &&
+        currentPath !== "/register" &&
+        !currentPath.startsWith("/auth")
+      ) {
         returnPath = currentPath + (window.location.search || "");
       }
 
