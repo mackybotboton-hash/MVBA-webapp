@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -82,6 +82,7 @@ const formatGuestName = (fullName?: string) => {
 export default function PropertyStorefrontPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const propertyId = params?.id as string;
   const { isSaved, toggleSave } = useWishlist();
 
@@ -143,6 +144,40 @@ export default function PropertyStorefrontPage() {
   const [bookingError, setBookingError] = React.useState<string | null>(null);
   const [highlightPolicy, setHighlightPolicy] = React.useState<boolean>(false);
   const policyBoxRef = React.useRef<HTMLDivElement>(null);
+  const hasAutoOpenedFromQueryRef = React.useRef<boolean>(false);
+
+  // Auto-reopen Request Reservation modal and restore selections if returning from Terms page
+  React.useEffect(() => {
+    if (!hasAutoOpenedFromQueryRef.current && rooms.length > 0) {
+      const openBooking = searchParams.get("openBooking");
+      if (openBooking === "true") {
+        hasAutoOpenedFromQueryRef.current = true;
+        const targetRoomId = searchParams.get("roomId");
+        const foundRoom = targetRoomId ? rooms.find((r) => r.id === targetRoomId) : rooms[0];
+        if (foundRoom) {
+          setSelectedRoom(foundRoom);
+        }
+
+        const checkInParam = searchParams.get("checkIn");
+        const checkOutParam = searchParams.get("checkOut");
+        if (checkInParam && checkOutParam) {
+          const [inY, inM, inD] = checkInParam.split("-").map(Number);
+          const [outY, outM, outD] = checkOutParam.split("-").map(Number);
+          if (inY && inM && inD && outY && outM && outD) {
+            setDateRange({
+              from: new Date(inY, inM - 1, inD),
+              to: new Date(outY, outM - 1, outD),
+            });
+          }
+        }
+
+        const guestsParam = searchParams.get("guests");
+        if (guestsParam && !isNaN(Number(guestsParam))) {
+          setGuestCount(Number(guestsParam));
+        }
+      }
+    }
+  }, [rooms, searchParams]);
 
   // Load User Data
   React.useEffect(() => {
@@ -1260,7 +1295,14 @@ export default function PropertyStorefrontPage() {
                     >
                       <div className="font-bold flex items-center justify-between">
                         <span>{formatPolicyName(policy)}</span>
-                        <Link href="/terms" target="_blank" className="text-amber-800 underline font-medium hover:text-black">
+                        <Link
+                          href={`/terms?from=booking&propertyId=${propertyId}${
+                            selectedRoom ? `&roomId=${selectedRoom.id}` : ""
+                          }${checkInDate ? `&checkIn=${checkInDate}` : ""}${
+                            checkOutDate ? `&checkOut=${checkOutDate}` : ""
+                          }&guests=${guestCount}`}
+                          className="text-amber-800 underline font-medium hover:text-black"
+                        >
                           View Terms
                         </Link>
                       </div>

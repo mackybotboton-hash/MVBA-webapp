@@ -79,6 +79,12 @@ export async function generateMetadata(
   }
 }
 
+import { Suspense } from "react";
+
 export default function Page() {
-  return <PropertyClient />;
+  return (
+    <Suspense fallback={null}>
+      <PropertyClient />
+    </Suspense>
+  );
 }

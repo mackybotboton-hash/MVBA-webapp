@@ -450,7 +450,20 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                   >
                     <div className="font-bold flex items-center justify-between">
                       <span>{formatPolicyName(propertyPolicy)}</span>
-                      <Link href="/terms" target="_blank" className="text-amber-800 underline font-medium hover:text-black">
+                      <Link
+                        href={`/terms?from=booking&propertyId=${propertyId}${
+                          selectedRoomId ? `&roomId=${selectedRoomId}` : ""
+                        }${
+                          dateRange?.from
+                            ? `&checkIn=${dateRange.from.getFullYear()}-${String(dateRange.from.getMonth() + 1).padStart(2, "0")}-${String(dateRange.from.getDate()).padStart(2, "0")}`
+                            : ""
+                        }${
+                          dateRange?.to
+                            ? `&checkOut=${dateRange.to.getFullYear()}-${String(dateRange.to.getMonth() + 1).padStart(2, "0")}-${String(dateRange.to.getDate()).padStart(2, "0")}`
+                            : ""
+                        }&guests=${guestCount}`}
+                        className="text-amber-800 underline font-medium hover:text-black"
+                      >
                         View Terms
                       </Link>
                     </div>

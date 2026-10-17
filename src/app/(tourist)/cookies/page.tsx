@@ -3,6 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, Cookie, Server, HardDrive, ShieldCheck } from "lucide-react";
 import { PolicyNav } from "@/components/layouts/policy-nav";
 
+import { Suspense } from "react";
+import { PolicyHeader } from "@/components/layouts/policy-header";
+
 export const metadata: Metadata = {
   title: "Cookie Policy | Panaw",
   description:
@@ -13,20 +16,9 @@ export default function CookiePolicyPage() {
   return (
     <div className="min-h-screen bg-neutral-50/50">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 w-full border-b border-neutral-200 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-xs font-semibold text-neutral-600 hover:text-black transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Back to Discovery</span>
-          </Link>
-          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-            Legal & Governance
-          </span>
-        </div>
-      </header>
+      <Suspense fallback={<div className="h-14 border-b border-neutral-200 bg-white" />}>
+        <PolicyHeader category="Legal & Governance" />
+      </Suspense>
 
       <main className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12 space-y-8">
         {/* Page Header */}
