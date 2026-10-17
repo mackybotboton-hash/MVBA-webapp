@@ -4,6 +4,7 @@ import * as React from "react";
 import { Loader2, AlertCircle, Inbox, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { LoadingLogo } from "@/components/shared/loading-logo";
 
 export interface StateViewProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
@@ -68,10 +69,8 @@ export function StateView({
       >
         {loadingComponent || (
           <div className="flex flex-col items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-800 animate-pulse">
-              <Loader2 className="h-5 w-5 animate-spin text-neutral-900" />
-            </div>
-            <p className="text-xs font-semibold text-neutral-600 tracking-wide">
+            <LoadingLogo size="default" />
+            <p className="text-xs font-semibold text-neutral-600 tracking-wide animate-pulse">
               {loadingText}
             </p>
           </div>

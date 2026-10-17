@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Users,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,10 +51,15 @@ export function PropertyCard({
   priority = false,
 }: PropertyCardProps) {
   const [imageError, setImageError] = React.useState(false);
+  const [isNavigating, setIsNavigating] = React.useState(false);
   const { isSaved, toggleSave } = useWishlist();
   
   // A property is favorited if it's in localStorage OR if the DB says so
   const isFavorited = isSaved(property.id) || Boolean(property.is_favorited);
+
+  const handleNavigate = () => {
+    setIsNavigating(true);
+  };
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -198,13 +204,23 @@ export function PropertyCard({
               )}
             </div>
 
-            <Link href={`/property/${property.id}`}>
+            <Link href={`/property/${property.id}`} onClick={handleNavigate}>
               <Button
                 size="sm"
-                className="bg-black text-white hover:bg-neutral-800 font-medium text-xs h-9 px-4 rounded-lg"
+                disabled={isNavigating}
+                className="bg-black text-white hover:bg-neutral-800 font-medium text-xs h-9 px-4 rounded-lg flex items-center gap-1.5"
               >
-                View Rooms
-                <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                {isNavigating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Opening...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>View Rooms</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </>
+                )}
               </Button>
             </Link>
           </div>
@@ -319,10 +335,20 @@ export function PropertyCard({
 
           <Link
             href={`/property/${property.id}`}
-            className="text-sm font-semibold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-0.5"
+            onClick={handleNavigate}
+            className="text-sm font-semibold text-neutral-900 hover:text-neutral-600 transition-colors flex items-center gap-1"
           >
-            Details
-            <ChevronRight className="h-3.5 w-3.5" />
+            {isNavigating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Opening...</span>
+              </>
+            ) : (
+              <>
+                <span>Details</span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </>
+            )}
           </Link>
         </div>
       </div>

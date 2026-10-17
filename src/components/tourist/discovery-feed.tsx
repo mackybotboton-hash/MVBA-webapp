@@ -152,6 +152,17 @@ export function DiscoveryFeed() {
     });
   };
 
+  if (isLoading && properties.length === 0) {
+    return (
+      <div className="w-full h-[100dvh] bg-black flex flex-col items-center justify-center p-4">
+        <LoadingLogo size="large" />
+        <p className="mt-6 text-xs sm:text-sm font-bold tracking-wider uppercase text-white/50 animate-pulse text-center">
+          Discovering Bretania Stays...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-[100dvh] bg-black overflow-hidden">
       
