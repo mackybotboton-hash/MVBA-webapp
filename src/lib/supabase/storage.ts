@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { STORAGE_BUCKETS } from "@/lib/constants";
+import { compressImage } from "@/lib/image-compression";
 
 type BucketName = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];
 
@@ -19,9 +20,16 @@ export async function uploadFile(
 ): Promise<string> {
   const supabase = createClient();
 
+  // Automatically compress images before upload (visually lossless)
+  const isReceipt = bucket === STORAGE_BUCKETS.PAYMENT_RECEIPTS;
+  const fileToUpload = await compressImage(file, {
+    maxDimension: isReceipt ? 1600 : 1920,
+    quality: isReceipt ? 0.88 : 0.85,
+  });
+
   const { data, error } = await supabase.storage
     .from(bucket)
-    .upload(path, file, {
+    .upload(path, fileToUpload, {
       cacheControl: "3600",
       upsert: true,
     });

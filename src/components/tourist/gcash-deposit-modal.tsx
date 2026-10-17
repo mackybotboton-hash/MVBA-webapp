@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/image-compression";
 
 interface GCashDepositModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
     staleTime: 1000 * 60 * 5, // Cache for 5 mins
   });
 
-  const handleFile = (selectedFile: File) => {
+  const handleFile = async (selectedFile: File) => {
     // Strict restriction to images only
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!validTypes.includes(selectedFile.type)) {
@@ -54,14 +55,20 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
       return;
     }
     
-    // Restrict size to 5MB
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error("File is too large. Maximum size is 5MB.");
+    // Restrict raw file size to 15MB
+    if (selectedFile.size > 15 * 1024 * 1024) {
+      toast.error("File is too large. Maximum size is 15MB.");
       return;
     }
 
-    setFile(selectedFile);
-    const objectUrl = URL.createObjectURL(selectedFile);
+    // Automatically optimize receipt preserving 100% sharp text
+    const optimized = await compressImage(selectedFile, {
+      maxDimension: 1600,
+      quality: 0.88,
+    });
+
+    setFile(optimized);
+    const objectUrl = URL.createObjectURL(optimized);
     setPreviewUrl(objectUrl);
   };
 
