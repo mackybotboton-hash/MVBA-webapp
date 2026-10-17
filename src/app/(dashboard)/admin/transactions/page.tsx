@@ -17,6 +17,7 @@ import {
 } from "./columns";
 import { AdminPayoutModal } from "@/components/admin/admin-payout-modal";
 import { calculatePayout } from "@/lib/payout-helper";
+import { extractGcashRef } from "@/lib/ocr-scanner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRealtimeTransactions } from "@/hooks/use-realtime-transactions";
 import { MetricCard } from "@/components/ui/metric-card";
@@ -448,6 +449,7 @@ function AdminTransactionsContent() {
         ) : (
           filteredTransactions.map((t) => {
             const isExpanded = expandedCardId === t.id;
+            const gcashRef = extractGcashRef(t.receipt_url);
             const payouts = calculatePayout({
               totalPrice: t.total_price,
               downpaymentAmount: t.downpayment_amount,
@@ -474,6 +476,12 @@ function AdminTransactionsContent() {
                     <p className="text-xs text-neutral-600 truncate mt-0.5">
                       {t.property_name}
                     </p>
+                    {gcashRef && (
+                      <div className="flex items-center gap-1.5 text-xs text-blue-900 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md w-fit mt-1.5 font-mono">
+                        <span className="text-[10px] text-blue-700 font-sans font-medium">Ref:</span>
+                        <span className="font-bold">#{gcashRef}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-end gap-1 shrink-0">

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { compressImage } from "@/lib/image-compression";
+import { scanGcashReceipt } from "@/lib/ocr-scanner";
 
 interface GCashDepositModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
   const [refError, setRefError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isScanningOcr, setIsScanningOcr] = useState(false);
+  const [ocrDetected, setOcrDetected] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,6 +73,23 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
     setFile(optimized);
     const objectUrl = URL.createObjectURL(optimized);
     setPreviewUrl(objectUrl);
+
+    // Trigger client-side OCR scan to auto-detect GCash reference number
+    setIsScanningOcr(true);
+    setOcrDetected(false);
+    try {
+      const scanResult = await scanGcashReceipt(optimized);
+      if (scanResult.referenceNumber) {
+        setReferenceNumber(scanResult.referenceNumber);
+        setRefError("");
+        setOcrDetected(true);
+        toast.success("Reference number auto-detected from receipt!");
+      }
+    } catch {
+      // Non-blocking fallback: tourist can still type manually
+    } finally {
+      setIsScanningOcr(false);
+    }
   };
 
   const onDragOver = (e: React.DragEvent) => {
@@ -236,12 +256,29 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
             </AnimatePresence>
           </div>
 
-          <div className="space-y-3">
-            <Label htmlFor="refNumber" className="text-zinc-700 font-medium">GCash Reference No.</Label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="refNumber" className="text-zinc-700 font-medium text-xs">GCash Reference No.</Label>
+              {isScanningOcr && (
+                <div className="flex items-center gap-1.5 text-[11px] text-blue-600 font-medium">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Scanning receipt...</span>
+                </div>
+              )}
+              {ocrDetected && !isScanningOcr && (
+                <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                  Auto-detected
+                </span>
+              )}
+            </div>
             <Input
               id="refNumber"
               placeholder="e.g. 1002394829103"
-              className={cn("rounded-xl bg-zinc-50 border-zinc-200 focus-visible:ring-black", refError && "border-red-500 focus-visible:ring-red-500")}
+              className={cn(
+                "rounded-xl bg-zinc-50 border-zinc-200 focus-visible:ring-black text-xs sm:text-sm font-mono font-medium",
+                refError && "border-red-500 focus-visible:ring-red-500",
+                ocrDetected && "border-emerald-300 bg-emerald-50/30"
+              )}
               value={referenceNumber}
               onChange={(e) => {
                 const val = e.target.value;
@@ -255,6 +292,11 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
               disabled={isUploading || isSuccess}
             />
             {refError && <p className="text-xs text-red-500 mt-1">{refError}</p>}
+            {ocrDetected && !refError && (
+              <p className="text-[11px] text-neutral-500">
+                Please double check that the reference number matches your screenshot.
+              </p>
+            )}
           </div>
 
           <Button 

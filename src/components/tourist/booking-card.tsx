@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { estimateCancellationRefundAction, reportRefundIssueAction } from "@/app/actions/booking-actions";
 import { getSignedReceiptUrl } from "@/lib/actions/get-receipt-url";
+import { extractGcashRef } from "@/lib/ocr-scanner";
 
 export interface BookingData {
   id: string;
@@ -159,6 +160,8 @@ export function BookingCard({
     },
   };
 
+  const gcashRef = extractGcashRef(booking.receipt_url);
+
   let currentStatus = statusConfig[booking.status] || statusConfig.pending;
   
   if (booking.status === "accepted") {
@@ -204,6 +207,23 @@ export function BookingCard({
           <p className="text-xs font-medium text-neutral-600 mt-0.5">
             {booking.room_name}
           </p>
+          {gcashRef && (
+            <div className="inline-flex items-center gap-1.5 text-xs bg-blue-50 border border-blue-200 text-blue-900 px-2.5 py-1 rounded-lg mt-2">
+              <Receipt className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+              <span className="font-medium text-blue-700">GCash Ref:</span>
+              <span className="font-mono font-bold tracking-tight">#{gcashRef}</span>
+              {booking.payment_status === "deposit_uploaded" && (
+                <span className="text-[10px] bg-blue-100 text-blue-700 font-medium px-1.5 py-0.5 rounded ml-1">
+                  Verifying
+                </span>
+              )}
+              {booking.payment_status === "verified" && (
+                <span className="text-[10px] bg-emerald-100 text-emerald-700 font-medium px-1.5 py-0.5 rounded ml-1">
+                  Verified
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <Badge variant={currentStatus.variant} className="shrink-0 gap-1">
@@ -506,7 +526,7 @@ export function BookingCard({
               onClick={() => onViewPayment(booking)}
             >
               <Receipt className="h-3.5 w-3.5 mr-1" />
-              View Payment
+              {gcashRef ? `Payment (Ref: #${gcashRef.slice(-6)})` : "View Payment"}
             </Button>
           )}
 

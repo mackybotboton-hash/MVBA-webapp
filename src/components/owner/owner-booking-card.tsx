@@ -38,6 +38,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { extractGcashRef } from "@/lib/ocr-scanner";
 
 export interface OwnerBookingItem {
   id: string;
@@ -164,6 +165,7 @@ export function OwnerBookingCard({
 
   const currentStatus = statusConfig[booking.status] || statusConfig.pending;
   const StatusIcon = currentStatus.icon;
+  const gcashRef = extractGcashRef(booking.receipt_url);
 
   return (
     <div
@@ -205,6 +207,13 @@ export function OwnerBookingCard({
               </span>
             )}
           </div>
+          {gcashRef && (
+            <div className="inline-flex items-center gap-1.5 text-xs bg-blue-50 border border-blue-200 text-blue-900 px-2 py-0.5 rounded-md mt-1.5 w-fit">
+              <Receipt className="h-3 w-3 text-blue-600 shrink-0" />
+              <span className="font-medium text-blue-700">Guest GCash Ref:</span>
+              <span className="font-mono font-bold tracking-tight">#{gcashRef}</span>
+            </div>
+          )}
         </div>
 
         <div className="text-left sm:text-right flex flex-col items-end">

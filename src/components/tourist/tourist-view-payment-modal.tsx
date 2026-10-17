@@ -3,10 +3,12 @@
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Receipt, Hash, RefreshCw } from "lucide-react";
+import { X, Receipt, Hash, RefreshCw, Copy } from "lucide-react";
 import Image from "next/image";
+import { toast } from "sonner";
 import { BookingData } from "@/components/tourist/booking-card";
 import { getSignedReceiptUrl } from "@/lib/actions/get-receipt-url";
+import { extractGcashRef } from "@/lib/ocr-scanner";
 
 interface TouristViewPaymentModalProps {
   isOpen: boolean;
@@ -20,9 +22,9 @@ export function TouristViewPaymentModal({ isOpen, onClose, booking }: TouristVie
 
   // Parse receipt_url which is stored as "path|refNumber"
   const rawReceipt = booking?.receipt_url || "";
-  const parts = rawReceipt.split("|");
+  const parts = rawReceipt.split("||")[0].split("|");
   const receiptPath = parts[0];
-  const gcashReference = parts.length > 1 ? parts[1] : "N/A";
+  const gcashReference = extractGcashRef(booking?.receipt_url) || (parts.length > 1 ? parts[1] : "N/A");
 
   React.useEffect(() => {
     async function fetchSignedUrl() {
@@ -90,6 +92,21 @@ export function TouristViewPaymentModal({ isOpen, onClose, booking }: TouristVie
                 <p className="text-sm font-mono font-bold text-neutral-900">{gcashReference}</p>
               </div>
             </div>
+            {gcashReference !== "N/A" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs bg-white border-neutral-200 hover:bg-neutral-100"
+                onClick={() => {
+                  navigator.clipboard.writeText(gcashReference);
+                  toast.success("Reference number copied to clipboard!");
+                }}
+              >
+                <Copy className="h-3.5 w-3.5 mr-1 text-neutral-600" />
+                Copy
+              </Button>
+            )}
           </div>
 
           {/* Screenshot Preview */}

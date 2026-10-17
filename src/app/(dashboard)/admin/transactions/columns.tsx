@@ -9,6 +9,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { calculatePayout } from "@/lib/payout-helper";
+import { extractGcashRef } from "@/lib/ocr-scanner";
 
 export type TransactionItem = {
   id: string;
@@ -90,6 +91,8 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
 
   if (!transaction) return null;
 
+  const gcashRef = extractGcashRef(transaction.receipt_url);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div 
@@ -156,6 +159,32 @@ export function VerifyModal({ transaction, onClose, onVerify, isVerifying }: Ver
                 </div>
               </div>
             </div>
+
+            {gcashRef && (
+              <div className="p-3.5 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider block">
+                    GCash Reference Number
+                  </span>
+                  <span className="text-sm sm:text-base font-mono font-bold text-blue-950">
+                    {gcashRef}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs bg-white border-blue-200 hover:bg-blue-100 text-blue-700 font-medium"
+                  onClick={() => {
+                    navigator.clipboard.writeText(gcashRef);
+                    toast.success("Reference number copied to clipboard!");
+                  }}
+                >
+                  <Copy className="h-3.5 w-3.5 mr-1" />
+                  Copy
+                </Button>
+              </div>
+            )}
 
             <div>
               <h4 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2.5">Disbursement Info (Host)</h4>
@@ -423,7 +452,22 @@ export const getColumns = (
   {
     accessorKey: "payment_status",
     header: "Deposit Status",
-    cell: ({ row }) => <DepositStatusBadge status={row.getValue("payment_status") as string} />,
+    cell: ({ row }) => {
+      const status = row.getValue("payment_status") as string;
+      const gcashRef = extractGcashRef(row.original.receipt_url);
+
+      return (
+        <div className="space-y-1">
+          <DepositStatusBadge status={status} />
+          {gcashRef && (
+            <div className="flex items-center gap-1 text-[11px] font-mono text-neutral-700 bg-neutral-100 px-1.5 py-0.5 rounded w-fit">
+              <span className="text-[10px] text-neutral-400 font-sans">Ref:</span>
+              <span className="font-semibold text-neutral-900">{gcashRef}</span>
+            </div>
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "payout_status",
