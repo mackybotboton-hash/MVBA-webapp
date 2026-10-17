@@ -6,6 +6,7 @@ import { PushInitializer } from "@/components/shared/PushInitializer";
 import { QueryProvider } from "@/providers/query-provider";
 import { NotificationCountsProvider } from "@/hooks/use-notification-counts";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthListener } from "@/components/shared/auth-listener";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -67,6 +68,7 @@ export default function RootLayout({
           <NotificationCountsProvider>
             {children}
             <PushInitializer />
+            <AuthListener />
           </NotificationCountsProvider>
         </QueryProvider>
         <Toaster position="bottom-right" richColors />
