@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, CalendarRange, BedDouble } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarRange, BedDouble, UserCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,9 +122,10 @@ export default function HomestayCalendarPage() {
           <Button
             onClick={() => setIsModalOpen(true)}
             disabled={!propertyId || rooms.length === 0}
-            className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-4 font-semibold"
+            className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-3.5 font-bold flex items-center gap-1.5"
           >
-            + Add Event
+            <UserCheck className="h-4 w-4" />
+            <span>Record Walk-in / Block</span>
           </Button>
 
           <div className="flex items-center gap-2">
@@ -270,6 +271,7 @@ export default function HomestayCalendarPage() {
         }}
         propertyId={propertyId}
         rooms={rooms}
+        initialEventType="offline_booking"
       />
     </div>
   );

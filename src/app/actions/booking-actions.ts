@@ -99,6 +99,31 @@ export async function createReservationAction(payload: {
     }
 
     const supabaseAdmin = createAdminClient();
+
+    // Auto-expire stale pending bookings older than 24 hours so unapproved requests do not block new bookings
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    await (supabaseAdmin as any)
+      .from("bookings")
+      .update({
+        status: "cancelled",
+        cancellation_reason: "Expired: Request was not accepted within 24 hours",
+      })
+      .eq("room_id", payload.roomId)
+      .eq("status", "pending")
+      .lt("created_at", twentyFourHoursAgo);
+
+    // Validate that dates are not blocked by host calendar events (e.g., walk-in guests or maintenance)
+    const { data: eventConflicts } = await (supabaseAdmin as any)
+      .from("calendar_events")
+      .select("id, title")
+      .eq("room_id", payload.roomId)
+      .lt("start_date", payload.checkOutDate)
+      .gt("end_date", payload.checkInDate)
+      .limit(1);
+
+    if (eventConflicts && eventConflicts.length > 0) {
+      throw new Error("These dates are unavailable (reserved for walk-in guest or room maintenance). Please choose different dates.");
+    }
     
     // Fetch the system settings to get the dynamic commission percentage and convenience fee
     const { data: systemSettings, error: settingsError } = await (supabaseAdmin as any)
@@ -378,11 +403,35 @@ export async function getRoomAvailabilityAction(roomId: string) {
     
     const { data: bookingsData, error: bookingsError } = await supabaseAdmin
       .from("bookings")
-      .select("id, check_in_date, check_out_date, status")
+      .select("id, check_in_date, check_out_date, status, created_at")
       .eq("room_id", roomId)
       .in("status", ["accepted", "pending", "completed"]);
 
     if (bookingsError) throw bookingsError;
+
+    // Filter out stale pending bookings (pending > 24 hours without host response)
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const stalePendingIds = (bookingsData || [])
+      .filter((b: any) => b.status === "pending" && b.created_at && b.created_at < twentyFourHoursAgo)
+      .map((b: any) => b.id);
+
+    if (stalePendingIds.length > 0) {
+      // Auto-expire stale pending bookings so they release calendar availability and locks
+      await (supabaseAdmin as any)
+        .from("bookings")
+        .update({
+          status: "cancelled",
+          cancellation_reason: "Expired: Request was not accepted within 24 hours",
+        })
+        .in("id", stalePendingIds);
+    }
+
+    const activeBookings = (bookingsData || []).filter((b: any) => {
+      if (b.status === "pending" && b.created_at && b.created_at < twentyFourHoursAgo) {
+        return false;
+      }
+      return true;
+    });
 
     const { data: eventsData, error: eventsError } = await supabaseAdmin
       .from("calendar_events")
@@ -392,7 +441,7 @@ export async function getRoomAvailabilityAction(roomId: string) {
     if (eventsError) throw eventsError;
 
     const mergedRanges = [
-      ...(bookingsData || []),
+      ...activeBookings,
       ...(eventsData || []).map((e: any) => ({
         id: e.id,
         check_in_date: e.start_date,

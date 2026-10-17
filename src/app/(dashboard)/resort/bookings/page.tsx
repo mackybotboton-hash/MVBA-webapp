@@ -11,7 +11,8 @@ import {
   Filter,
   ChevronDown,
   Search,
-  X
+  X,
+  UserCheck
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -36,6 +37,7 @@ const QRCheckinScannerModal = dynamic(
   () => import("@/components/owner/qr-checkin-scanner-modal").then(mod => mod.QRCheckinScannerModal),
   { ssr: false }
 );
+import { CalendarEventModal } from "@/components/owner/calendar-event-modal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useRealtimeBookings } from "@/hooks/use-realtime-bookings";
@@ -154,7 +156,33 @@ export default function ResortBookingsPage() {
   const [activeTab, setActiveTab] = React.useState<BookingTab>("pending");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isScannerOpen, setIsScannerOpen] = React.useState(false);
+  const [isWalkInModalOpen, setIsWalkInModalOpen] = React.useState(false);
   const [viewReceiptPath, setViewReceiptPath] = React.useState<string | null>(null);
+
+  // Fetch resort properties and rooms for walk-in booking management
+  const { data: hostPropertyData } = useQuery({
+    queryKey: ["resort-owner-rooms", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { propertyId: "", rooms: [] };
+      const supabase = createClient();
+      const { data: propData } = await supabase
+        .from("properties")
+        .select("id")
+        .eq("owner_id", user.id)
+        .eq("type", "resort");
+      const propIds = ((propData as any[]) || []).map((p) => p.id);
+      if (propIds.length === 0) return { propertyId: "", rooms: [] };
+      const { data: roomsData } = await supabase
+        .from("rooms")
+        .select("id, name")
+        .in("property_id", propIds);
+      return {
+        propertyId: propIds[0],
+        rooms: (roomsData as any[]) || [],
+      };
+    },
+    enabled: !!user?.id,
+  });
 
   // React Query — data fetching with cache
   const { data: bookings = [], isLoading, refetch } = useQuery({
@@ -271,6 +299,15 @@ export default function ResortBookingsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setIsWalkInModalOpen(true)}
+            variant="outline"
+            className="border-neutral-300 hover:bg-neutral-50 text-xs h-9 px-3.5 font-bold flex items-center gap-1.5"
+          >
+            <UserCheck className="h-4 w-4 text-neutral-700" />
+            <span>Record Walk-in</span>
+          </Button>
+
           <Button
             onClick={() => setIsScannerOpen(true)}
             className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-3.5 font-bold flex items-center gap-1.5"
@@ -432,6 +469,19 @@ export default function ResortBookingsPage() {
         isOpen={!!viewReceiptPath}
         onClose={() => setViewReceiptPath(null)}
         receiptPath={viewReceiptPath}
+      />
+
+      {/* Walk-in Booking Modal */}
+      <CalendarEventModal
+        isOpen={isWalkInModalOpen}
+        onClose={() => setIsWalkInModalOpen(false)}
+        onSuccess={() => {
+          refetch();
+          queryClient.invalidateQueries({ queryKey: ["resort-calendar"] });
+        }}
+        propertyId={hostPropertyData?.propertyId || ""}
+        rooms={hostPropertyData?.rooms || []}
+        initialEventType="offline_booking"
       />
     </div>
   );

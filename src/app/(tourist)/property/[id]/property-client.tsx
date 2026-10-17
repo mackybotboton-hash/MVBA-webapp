@@ -1078,7 +1078,7 @@ export default function PropertyStorefrontPage() {
               </div>
 
               <div className="flex items-center justify-between text-[11px] text-neutral-500 px-1 pt-1 font-medium">
-                <span>⚡ Minimum 1-day advance booking</span>
+                <span>Minimum 1-day advance booking</span>
                 <span>Standard Check-in: 2:00 PM</span>
               </div>
 

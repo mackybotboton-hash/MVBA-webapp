@@ -296,7 +296,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
                 />
               </div>
               <div className="flex items-center justify-between text-[11px] text-zinc-500 px-1 pt-1 font-medium">
-                <span>⚡ Minimum 1-day advance booking</span>
+                <span>Minimum 1-day advance booking</span>
                 <span>Check-in: 2:00 PM</span>
               </div>
             </motion.div>

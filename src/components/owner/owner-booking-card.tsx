@@ -572,7 +572,7 @@ export function OwnerBookingCard({
                     </p>
                     {(booking.payout_status === "deposit_paid" || booking.payout_status === "fully_paid") && (
                       <p className="text-[11px] font-semibold text-red-900 pt-1 border-t border-red-200">
-                        ⚠️ Notice: You have already received a deposit payout. You will be required to return the payout funds to Panaw within 72 hours.
+                        Notice: You have already received a deposit payout. You will be required to return the payout funds to Panaw within 72 hours.
                       </p>
                     )}
                   </div>
