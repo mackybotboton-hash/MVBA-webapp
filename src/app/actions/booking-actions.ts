@@ -12,6 +12,7 @@ import {
   notifyRefundIssueReported,
 } from "@/app/actions/notify-actions";
 import { resolveDownpaymentPercent, calculatePaymentBreakdown } from "@/lib/pricing/downpayment";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const ALLOWED_TRANSITIONS = {
   tourist: {
@@ -44,6 +45,12 @@ export async function createReservationAction(payload: {
 
     if (authError || !user) {
       throw new Error("Unauthorized: You must be logged in to create a booking.");
+    }
+
+    // Rate Limit: Prevent booking flood/spam attacks (max 8 requests per 5 minutes per user)
+    const rateLimit = checkRateLimit(`reservation:${user.id}`, 8, 300);
+    if (!rateLimit.success) {
+      throw new Error(rateLimit.message || "Too many booking requests. Please wait a moment.");
     }
 
     if (!payload.roomId || typeof payload.roomId !== "string") {
@@ -329,6 +336,12 @@ export async function submitDepositReceiptAction(payload: {
       return { success: false, error: "Unauthorized: Please sign in." };
     }
 
+    // Rate Limit: Prevent automated spamming of receipt uploads (max 5 per 5 minutes per user)
+    const rateLimit = checkRateLimit(`deposit_receipt:${user.id}`, 5, 300);
+    if (!rateLimit.success) {
+      return { success: false, error: rateLimit.message };
+    }
+
     if (!payload.bookingId || !payload.receiptPath || !payload.referenceNumber) {
       return { success: false, error: "Missing required booking or receipt information." };
     }
@@ -565,6 +578,12 @@ export async function cancelBookingAction(
 
     if (authErr || !user) {
       return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    // Rate Limit: Prevent rapid cancellation spam (max 6 cancellations per 10 minutes per user)
+    const rateLimit = checkRateLimit(`cancel_booking:${user.id}`, 6, 600);
+    if (!rateLimit.success) {
+      return { success: false, error: rateLimit.message };
     }
 
     // Call atomic cancellation engine
@@ -883,6 +902,12 @@ export async function reportRefundIssueAction(payload: {
     } = await supabase.auth.getUser();
     if (authErr || !user) {
       return { success: false, error: "Unauthorized: Please sign in." };
+    }
+
+    // Rate Limit: Prevent dispute submission flood (max 4 reports per 10 minutes per user)
+    const rateLimit = checkRateLimit(`report_issue:${user.id}`, 4, 600);
+    if (!rateLimit.success) {
+      return { success: false, error: rateLimit.message };
     }
 
     const supabaseAdmin = createAdminClient();
