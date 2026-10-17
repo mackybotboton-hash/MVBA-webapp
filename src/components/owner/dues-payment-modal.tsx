@@ -186,11 +186,11 @@ export function DuesPaymentModal({
               Payment Instructions
             </h3>
             <p className="text-[11px] text-neutral-600 leading-relaxed">
-              Send payment via <strong>GCash</strong> to the Panaw Municipal Treasurer:
+              Send payment via <strong>GCash</strong> to the Panaw Association Treasurer:
             </p>
             <div className="bg-neutral-100 p-3 rounded-lg font-mono text-[11px] text-neutral-800 space-y-1">
               <p><strong>GCash Number:</strong> 0917-849-2041</p>
-              <p><strong>Account Name:</strong> PANAW TREASURY (San Agustin)</p>
+              <p><strong>Account Name:</strong> PANAW TREASURY (Britania)</p>
               <p><strong>Reference:</strong> {propertyName.slice(0, 15)} Dues</p>
             </div>
           </div>

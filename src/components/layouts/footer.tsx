@@ -75,7 +75,7 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Tourism Office Information */}
+          {/* Contact Information */}
           <div className="space-y-2.5">
             <h4 className="font-bold text-neutral-900 uppercase tracking-wider text-[11px]">
               Contact Us
@@ -83,15 +83,17 @@ export function Footer() {
             <ul className="space-y-2 text-neutral-500">
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-neutral-400 shrink-0 mt-0.5" />
-                <span>Municipal Tourism Office, San Agustin, Surigao del Sur, Philippines</span>
+                <span>Bretania, San Agustin, Surigao del Sur, Philippines</span>
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-neutral-400 shrink-0" />
-                <span>tourism@sanagustin.gov.ph</span>
+                <a href="mailto:panaw.britania@gmail.com" className="hover:text-neutral-900 transition-colors">
+                  panaw.britania@gmail.com
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-neutral-400 shrink-0" />
-                <span>Bretania Pier Dispatch: Local 104</span>
+                <span>Panaw Guest Support Desk</span>
               </li>
             </ul>
           </div>

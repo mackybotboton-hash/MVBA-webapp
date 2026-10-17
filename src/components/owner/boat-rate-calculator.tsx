@@ -110,7 +110,7 @@ export function BoatRateCalculator({ onDispatchCreated }: BoatRateCalculatorProp
                 />
                 <div>
                   <p className="font-bold text-xs text-neutral-900">
-                    Municipal Ecological & Island Fee
+                    Ecological & Island Conservation Fee
                   </p>
                   <p className="text-[11px] text-neutral-600">
                     Required for entry to Boslon & Naked Island

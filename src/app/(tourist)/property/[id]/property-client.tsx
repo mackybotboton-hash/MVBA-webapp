@@ -761,7 +761,7 @@ export default function PropertyStorefrontPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600" />
-                  <span>Municipal tourism certified sanitary facilities</span>
+                  <span>Verified sanitary and clean facilities</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600" />
@@ -769,7 +769,7 @@ export default function PropertyStorefrontPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-emerald-600" />
-                  <span>Emergency contact coordination with San Agustin MDRRMO</span>
+                  <span>Emergency contact coordination and responder support</span>
                 </div>
               </div>
             </div>

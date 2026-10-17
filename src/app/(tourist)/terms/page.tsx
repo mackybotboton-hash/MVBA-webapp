@@ -146,7 +146,7 @@ export default async function TermsOfServicePage() {
           <section className="space-y-3 pt-4 border-t border-neutral-200">
             <h2 className="text-base font-bold text-neutral-950">Contact and Inquiries</h2>
             <p className="text-neutral-600">
-              For questions regarding these terms, please contact Panaw Support at <strong>support@panaw.test</strong>.
+              For questions regarding these terms, please contact Panaw Support at <strong>panaw.britania@gmail.com</strong>.
             </p>
           </section>
         </div>

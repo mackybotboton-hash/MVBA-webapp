@@ -124,7 +124,7 @@ export async function renderBoardingPassToCanvas(
   // Header Subtitle
   ctx.fillStyle = "#a1a1aa";
   ctx.font = "14px system-ui, -apple-system, sans-serif";
-  ctx.fillText("Official Municipal Check-in & Island Dispatch Pass", cardX + 32, cardY + 112);
+  ctx.fillText("Official Check-in & Island Dispatch Pass", cardX + 32, cardY + 112);
   ctx.restore();
 
   // 4. Booking Reference Bar

@@ -144,7 +144,7 @@ export default function PoliciesHubPage() {
               <h2>4. Regulated Boat Tariffs and Island Hopping Circuits</h2>
             </div>
             <p>
-              Motorized boat rates for island-hopping activities are regulated by the Municipal Government of San Agustin. Panaw displays and encourages compliance with the official municipal rate matrix as a courtesy to guests and hosts, but operators remain independently responsible for adhering to municipal regulations. Panaw does not set, enforce, or hold regulatory authority over boat rates.
+              Motorized boat rates for island-hopping activities follow standardized operator association guidelines and maritime safety practices. Panaw displays and encourages compliance with the official rate matrix as a courtesy to guests and hosts, but operators remain independently responsible for adhering to safety regulations. Panaw does not set, enforce, or hold regulatory authority over boat rates.
             </p>
           </section>
 
