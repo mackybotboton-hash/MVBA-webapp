@@ -143,7 +143,7 @@ export default function PrivacyPolicyPage() {
           <section className="space-y-3 pt-4 border-t border-neutral-200">
             <h2 className="text-base font-bold text-neutral-950">Data Protection Officer</h2>
             <p className="text-neutral-600">
-              To exercise your data privacy rights or file an inquiry, contact our Data Protection Officer at <strong>panaw.britania@gmail.com</strong>.
+              To exercise your data privacy rights or file an inquiry, contact our Data Protection Officer at <strong>support@bpanaw.com</strong>.
             </p>
           </section>
         </div>
