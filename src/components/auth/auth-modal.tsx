@@ -38,6 +38,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -93,10 +94,35 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
+      setError("");
+      setIsGoogleLoading(false);
       loginForm.reset();
       registerForm.reset();
     }
   }, [isOpen, initialMode, loginForm.reset, registerForm.reset]);
+
+  async function handleGoogleSignIn() {
+    setError("");
+    setIsGoogleLoading(true);
+    try {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback`;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+        },
+      });
+
+      if (oauthError) {
+        setError(oauthError.message);
+        setIsGoogleLoading(false);
+      }
+    } catch {
+      setError("An unexpected error occurred during Google sign in.");
+      setIsGoogleLoading(false);
+    }
+  }
 
   async function onLoginSubmit(data: LoginFormData) {
     setError("");
@@ -281,6 +307,34 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
           </div>
         )}
 
+        {/* Continue with Google Button */}
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isLoading || isGoogleLoading}
+          onClick={handleGoogleSignIn}
+          className="w-full h-11 rounded-xl border border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 text-neutral-800 text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all shadow-xs"
+        >
+          {isGoogleLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-neutral-600" />
+          ) : (
+            <>
+              <GoogleIcon className="h-4 w-4 shrink-0" />
+              <span>Continue with Google</span>
+            </>
+          )}
+        </Button>
+
+        {/* Divider */}
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-neutral-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white px-2.5 text-neutral-400 font-medium">or continue with email</span>
+          </div>
+        </div>
+
         {/* LOGIN MODE */}
         {mode === "login" && (
           <div className="space-y-4">
@@ -344,7 +398,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
 
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || isGoogleLoading}
                   className="w-full h-10 rounded-xl bg-black text-white hover:bg-neutral-800 text-xs font-bold transition-all mt-2"
                 >
                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Sign In to Portal"}
@@ -463,7 +517,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
 
               <Button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isGoogleLoading}
                 className="w-full h-10 rounded-xl bg-black text-white hover:bg-neutral-800 text-xs font-bold transition-all mt-3"
               >
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Complete Registration"}
@@ -504,3 +558,27 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
     document.body
   );
 }
+
+function GoogleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.15z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.94H1.24v3.15C3.26 21.36 7.34 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.26c-.25-.72-.38-1.49-.38-2.26s.13-1.54.38-2.26V6.59H1.24C.45 8.16 0 9.97 0 12c0 2.03.45 3.84 1.24 5.41l4.04-3.15z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.24 6.59l4.04 3.15c.95-2.84 3.6-4.99 6.72-4.99z"
+      />
+    </svg>
+  );
+}
+
