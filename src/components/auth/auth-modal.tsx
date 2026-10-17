@@ -106,11 +106,26 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
     setIsGoogleLoading(true);
     try {
       const supabase = createClient();
-      const redirectTo = `${window.location.origin}/auth/callback`;
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirectParam = searchParams.get("redirect");
+      const currentPath = window.location.pathname;
+
+      let returnPath = "/";
+      if (redirectParam && redirectParam.startsWith("/")) {
+        returnPath = redirectParam;
+      } else if (currentPath && currentPath !== "/login" && currentPath !== "/register") {
+        returnPath = currentPath + (window.location.search || "");
+      }
+
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      if (returnPath && returnPath !== "/") {
+        callbackUrl.searchParams.set("next", returnPath);
+      }
+
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo,
+          redirectTo: callbackUrl.toString(),
         },
       });
 
