@@ -233,7 +233,7 @@ export default function AdminUsersPage() {
             <tbody className="divide-y divide-neutral-100">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-neutral-500">
+                  <td colSpan={5} className="py-6 sm:py-8 text-center text-xs text-neutral-500">
                     No users matching the filters found.
                   </td>
                 </tr>

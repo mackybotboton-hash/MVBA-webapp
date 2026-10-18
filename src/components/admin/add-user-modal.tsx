@@ -40,11 +40,11 @@ export function AddUserModal({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
       {/* Modal */}
       <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
-        <div className="flex flex-col p-6 sm:p-8">
-          <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-col p-5 sm:p-6">
+          <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-neutral-900 tracking-tight">Add New Owner</h2>
-              <p className="text-sm text-neutral-600 mt-1">Create an account for a Homestay or Resort owner.</p>
+              <h2 className="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight">Add New Owner</h2>
+              <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">Create an account for a Homestay or Resort owner.</p>
             </div>
             <button
               onClick={onClose}

@@ -401,7 +401,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Tables Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
         {/* Recent Registrations */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-5 space-y-4 shadow-xs">
           <div className="flex items-center justify-between border-b border-neutral-100 pb-3">

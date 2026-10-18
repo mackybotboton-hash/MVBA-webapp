@@ -245,9 +245,9 @@ export default function WishlistPage() {
 
         {/* Loading State */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <LoadingLogo size="large" className="mb-4" />
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">
+          <div className="flex flex-col items-center justify-center py-10 sm:py-14 text-center">
+            <LoadingLogo size="large" className="mb-3" />
+            <h3 className="text-lg sm:text-xl font-bold text-neutral-900 mb-1">
               Loading your wishlist...
             </h3>
           </div>
@@ -359,7 +359,7 @@ export default function WishlistPage() {
           </div>
         ) : (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center text-center p-6 sm:p-8 bg-white border border-neutral-200 rounded-2xl shadow-2xs space-y-3">
+          <div className="flex flex-col items-center justify-center text-center p-5 sm:p-6 bg-white border border-neutral-200 rounded-2xl shadow-2xs space-y-2.5">
             <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
               <Heart className="h-6 w-6 text-red-400" />
             </div>

@@ -482,9 +482,9 @@ export default function TouristDiscoveryPage() {
 
         {/* 5. Listing Content: Loading State, Empty State, or Results */}
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-24">
+          <div className="flex flex-col items-center justify-center py-10 sm:py-14">
             <LoadingLogo size="large" />
-            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading available stays</p>
+            <p className="mt-3 text-xs sm:text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">Loading available stays</p>
           </div>
         ) : filteredProperties.length === 0 ? (
           <EmptyState

@@ -223,7 +223,7 @@ export default function HomestayServicesPage() {
           onAction={() => setIsModalOpen(true)}
         />
       ) : filteredServices.length === 0 && searchQuery.trim() !== "" ? (
-        <div className="py-16 text-center text-neutral-500 text-sm">
+        <div className="py-6 sm:py-8 text-center text-neutral-500 text-xs sm:text-sm">
           No services found matching &quot;{searchQuery}&quot;
         </div>
       ) : (
@@ -297,7 +297,7 @@ export default function HomestayServicesPage() {
             onClick={() => setIsModalOpen(false)}
           />
 
-          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-6 space-y-4">
+          <div className="relative w-full max-w-md rounded-2xl bg-white border border-neutral-200 shadow-2xl p-4 sm:p-5 space-y-3.5">
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
               <h3 className="font-bold text-base text-neutral-900">
                 Add Homestay Service Package

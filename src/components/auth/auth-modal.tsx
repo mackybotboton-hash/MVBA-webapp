@@ -269,7 +269,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       <div
         role="dialog"
         aria-modal="true"
-        className="relative z-10 w-full max-w-md my-auto rounded-3xl bg-white p-6 sm:p-8 shadow-2xl ring-1 ring-black/10 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in-0 duration-200"
+        className="relative z-10 w-full max-w-md my-auto rounded-3xl bg-white p-5 sm:p-7 shadow-2xl ring-1 ring-black/10 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 fade-in-0 duration-200"
       >
         {/* Close Button */}
         <button
@@ -282,8 +282,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
         </button>
 
         {/* Brand Header */}
-        <div className="text-center space-y-2 mb-6">
-          <div className="flex justify-center mb-3">
+        <div className="text-center space-y-1.5 mb-4">
+          <div className="flex justify-center mb-2.5">
             <Logo size="large" />
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
@@ -297,7 +297,7 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
         </div>
 
         {/* Mode Switcher Tabs */}
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 mb-6">
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 mb-4">
           <button
             type="button"
             onClick={() => {

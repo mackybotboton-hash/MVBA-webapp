@@ -1303,17 +1303,17 @@ function ChatSystemContent({
           {/* Contacts Scroll List */}
           <div className="flex-1 overflow-y-auto divide-y divide-neutral-100 p-1.5 min-h-0 space-y-1">
             {isLoadingContacts ? (
-              <div className="p-8 text-center text-xs text-neutral-500 space-y-2">
+              <div className="py-6 px-4 text-center text-xs text-neutral-500 space-y-2">
                 <Loader2 className="h-5 w-5 animate-spin mx-auto text-neutral-500" />
                 <span>Loading conversations...</span>
               </div>
             ) : filteredContacts.length === 0 ? (
-              <div className="p-8 text-center text-xs text-neutral-500 space-y-3">
-                <div className="h-12 w-12 rounded-2xl bg-neutral-200/60 flex items-center justify-center mx-auto">
-                  <MessageSquare className="h-6 w-6 text-neutral-500" />
+              <div className="py-6 px-4 text-center text-xs text-neutral-500 space-y-2.5">
+                <div className="h-10 w-10 rounded-xl bg-neutral-200/60 flex items-center justify-center mx-auto">
+                  <MessageSquare className="h-5 w-5 text-neutral-500" />
                 </div>
-                <p className="text-base font-bold text-neutral-700">No active conversations</p>
-                <p className="text-sm mt-1 text-neutral-500 leading-relaxed max-w-[200px] mx-auto">
+                <p className="text-sm font-bold text-neutral-700">No active conversations</p>
+                <p className="text-xs mt-1 text-neutral-500 leading-relaxed max-w-[200px] mx-auto">
                   {currentRole === "tourist"
                     ? "When you message a homestay or resort host, your conversations will appear here."
                     : currentRole === "admin"
@@ -1632,16 +1632,16 @@ function ChatSystemContent({
               <div
                 ref={messagesContainerRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-white min-h-0 overscroll-contain"
+                className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-3.5 bg-white min-h-0 overscroll-contain"
               >
                 {isLoadingMessages ? (
-                  <div className="py-12 text-center text-xs text-neutral-500 space-y-2">
+                  <div className="py-6 text-center text-xs text-neutral-500 space-y-2">
                     <Loader2 className="h-5 w-5 animate-spin mx-auto text-neutral-500" />
                     <span>Loading conversation history...</span>
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="py-16 text-center text-xs text-neutral-500 space-y-2">
-                    <MessageSquare className="h-8 w-8 mx-auto text-neutral-300" />
+                  <div className="py-8 text-center text-xs text-neutral-500 space-y-2">
+                    <MessageSquare className="h-7 w-7 mx-auto text-neutral-300" />
                     <p className="font-bold text-neutral-700">No messages yet</p>
                     <p className="text-neutral-600">
                       Send a message below to start coordinating with {activeContact.name}!
@@ -1782,13 +1782,13 @@ function ChatSystemContent({
           ) : null;
 
           const emptyState = (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-neutral-500 space-y-3">
-              <div className="h-20 w-20 rounded-2xl bg-neutral-100 flex items-center justify-center">
-                <MessageSquare className="h-10 w-10 text-neutral-500" />
+            <div className="flex-1 flex flex-col items-center justify-center p-5 sm:p-6 text-center text-neutral-500 space-y-2.5">
+              <div className="h-14 w-14 rounded-2xl bg-neutral-100 flex items-center justify-center">
+                <MessageSquare className="h-7 w-7 text-neutral-500" />
               </div>
               <div>
                 <h3 className="font-bold text-base text-neutral-800">No conversation selected</h3>
-                <p className="text-sm text-neutral-600 mt-2 max-w-sm leading-relaxed">
+                <p className="text-xs sm:text-sm text-neutral-600 mt-1 max-w-sm leading-relaxed">
                   {currentRole === "tourist"
                     ? "Pick a conversation from the left, or visit a homestay/resort page to message a host directly."
                     : currentRole === "admin"
@@ -1887,7 +1887,7 @@ function ChatSystemContent({
 
             <div className="max-h-72 overflow-y-auto p-2 space-y-1 divide-y divide-neutral-100">
               {filteredAvailableHosts.length === 0 ? (
-                <div className="p-8 text-center text-xs text-neutral-500 space-y-1">
+                <div className="py-6 px-4 text-center text-xs text-neutral-500 space-y-1">
                   <p className="font-semibold text-neutral-600">No hosts found</p>
                   <p className="text-[11px]">No registered homestay or resort owners matching search</p>
                 </div>
@@ -1937,8 +1937,8 @@ export function ConnectedChatSystem(props: ConnectedChatSystemProps) {
   return (
     <React.Suspense
       fallback={
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <LoadingLogo size="large" className="mb-4" />
+        <div className="flex flex-col items-center justify-center py-10 sm:py-12 text-center">
+          <LoadingLogo size="large" className="mb-3" />
           <p className="text-sm font-medium text-neutral-500">Loading messages...</p>
         </div>
       }

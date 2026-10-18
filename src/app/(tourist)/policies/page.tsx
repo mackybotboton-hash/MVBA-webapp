@@ -29,17 +29,17 @@ export default function PoliciesHubPage() {
         <PolicyHeader category="Platform Guidelines" />
       </Suspense>
 
-      <main className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+      <main className="mx-auto max-w-4xl px-3.5 sm:px-6 py-5 sm:py-7 space-y-5">
         {/* Page Header */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-semibold border border-emerald-200">
             <Anchor className="h-3.5 w-3.5 text-emerald-600" />
             <span>Bretania 24 Islands Eco-Tourism Code</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
             Eco-Tourism & Safety Policies
           </h1>
-          <p className="text-sm text-neutral-600">
+          <p className="text-xs sm:text-sm text-neutral-600">
             Platform guidelines governing island excursions and sustainable tourism in Lianga Bay.
           </p>
         </div>
@@ -48,7 +48,7 @@ export default function PoliciesHubPage() {
         <PolicyNav />
 
         {/* Content Body */}
-        <div className="rounded-3xl border border-neutral-200 bg-white p-6 sm:p-10 shadow-xs space-y-8 text-neutral-800 text-sm leading-relaxed">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-7 shadow-xs space-y-6 text-neutral-800 text-sm leading-relaxed">
           {/* Section 1: Maritime Safety */}
           <section className="space-y-4">
             <div className="flex items-center gap-2.5 text-base font-bold text-neutral-950">

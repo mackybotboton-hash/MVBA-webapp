@@ -620,7 +620,7 @@ function AdminTransactionsContent() {
       />
 
       <Dialog open={!!selectedRefundTransaction} onOpenChange={(open) => !open && setSelectedRefundTransaction(null)}>
-        <DialogContent className="max-w-md p-6 bg-white rounded-2xl shadow-xl">
+        <DialogContent className="max-w-md p-5 sm:p-6 bg-white rounded-2xl shadow-xl">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-1">
               <div className="h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
@@ -776,7 +776,7 @@ function AdminTransactionsContent() {
 
 export default function AdminTransactionsPage() {
   return (
-    <React.Suspense fallback={<div className="p-8 text-center text-xs text-neutral-500">Loading transactions...</div>}>
+    <React.Suspense fallback={<div className="py-6 px-4 text-center text-xs text-neutral-500">Loading transactions...</div>}>
       <AdminTransactionsContent />
     </React.Suspense>
   );

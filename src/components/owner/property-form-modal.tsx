@@ -283,14 +283,14 @@ export function PropertyFormModal({
 
       <div className="relative w-full max-w-lg rounded-2xl bg-white border border-neutral-200 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Sticky Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 shrink-0 bg-white">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-neutral-100 shrink-0 bg-white">
           <div className="flex items-center gap-2">
             {formData.type === "resort" ? (
               <Building2 className="h-5 w-5 text-neutral-900" />
             ) : (
               <Home className="h-5 w-5 text-neutral-900" />
             )}
-            <h2 className="text-base font-bold text-neutral-900">
+            <h2 className="text-sm sm:text-base font-bold text-neutral-900">
               {formData.id ? "Edit Property Details" : "List New Property"}
             </h2>
           </div>
@@ -308,7 +308,7 @@ export function PropertyFormModal({
         <form
           id="property-modal-form"
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto p-6 space-y-4 text-xs"
+          className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs"
         >
           {/* Property Name */}
           <div className="space-y-1.5">
@@ -545,7 +545,7 @@ export function PropertyFormModal({
         </form>
 
         {/* Sticky Action Footer (Always visible!) */}
-        <div className="px-6 py-3.5 border-t border-neutral-200 bg-neutral-50/90 shrink-0 flex items-center justify-between gap-3">
+        <div className="px-4 sm:px-5 py-3 border-t border-neutral-200 bg-neutral-50/90 shrink-0 flex items-center justify-between gap-3">
           <p className="text-[11px] text-neutral-600 font-medium hidden sm:block">
             {formData.id ? "Changes take effect immediately" : "Lists stay on Panaw marketplace"}
           </p>

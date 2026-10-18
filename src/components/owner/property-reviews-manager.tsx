@@ -108,12 +108,12 @@ export function PropertyReviewsManager({ propertyType }: { propertyType: "homest
       </div>
 
       {/* Reviews List */}
-      <div className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-neutral-900 mb-4">Guest Feedback</h2>
+      <div className="bg-white rounded-2xl border border-neutral-200 p-4 sm:p-5 shadow-sm">
+        <h2 className="text-base sm:text-lg font-bold text-neutral-900 mb-3">Guest Feedback</h2>
         
         {reviews.length === 0 ? (
-          <div className="text-center py-12">
-            <MessageSquareQuote className="h-10 w-10 text-neutral-300 mx-auto mb-3" />
+          <div className="text-center py-6 sm:py-8">
+            <MessageSquareQuote className="h-8 w-8 text-neutral-300 mx-auto mb-2" />
             <p className="text-sm font-medium text-neutral-900">No reviews yet</p>
             <p className="text-xs text-neutral-500 mt-1">
               Once tourists complete a booking at your {propertyType}, they will be prompted to leave a review.

@@ -956,33 +956,33 @@ export default function PropertyStorefrontPage() {
             </h2>
             
             {services.length === 0 ? (
-              <div className="text-center py-10 bg-neutral-50 rounded-2xl border border-neutral-200 border-dashed">
-                <Ship className="h-8 w-8 text-neutral-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-neutral-600">No extra services listed currently.</p>
+              <div className="text-center py-6 sm:py-8 bg-neutral-50 rounded-2xl border border-neutral-200 border-dashed">
+                <Ship className="h-7 w-7 text-neutral-400 mx-auto mb-2" />
+                <p className="text-xs sm:text-sm font-medium text-neutral-600">No extra services listed currently.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {services.map((service) => {
                   const typeIcons: any = { boat: Ship, tour: MapPin, food: Ship, spa: Sparkles };
                   const Icon = typeIcons[service.service_type] || Sparkles;
                   return (
                     <div
                       key={service.id}
-                      className="rounded-xl border border-neutral-200 p-5 space-y-2 bg-neutral-50/50"
+                      className="rounded-xl border border-neutral-200 p-4 space-y-2 bg-neutral-50/50"
                     >
                       <div className="flex items-center justify-between">
-                        <Icon className="h-5 w-5 text-neutral-800" />
+                        <Icon className="h-4.5 w-4.5 text-neutral-800" />
                         <Badge variant={service.payment_type === "upfront" ? "default" : "secondary"} size="sm" className="text-[10px]">
                           {service.payment_type === "upfront" ? "Pay Online" : "Pay at Property"}
                         </Badge>
                       </div>
-                      <h3 className="font-semibold text-sm text-neutral-900 mt-2">
+                      <h3 className="font-semibold text-sm text-neutral-900 mt-1.5">
                         {service.name}
                       </h3>
                       {service.description && (
                         <p className="text-xs text-neutral-600 line-clamp-3">{service.description}</p>
                       )}
-                      <p className="text-sm font-bold text-neutral-900 pt-1 border-t border-neutral-100 mt-3">
+                      <p className="text-sm font-bold text-neutral-900 pt-1 border-t border-neutral-100 mt-2.5">
                         ₱{Number(service.price).toLocaleString()}
                       </p>
                     </div>
@@ -996,7 +996,7 @@ export default function PropertyStorefrontPage() {
         {/* Tab 4: Reviews */}
         {activeTab === "reviews" && (
           <div className="space-y-4 sm:space-y-5">
-            <div className="flex items-center gap-4 border-b border-neutral-100 pb-4">
+            <div className="flex items-center gap-4 border-b border-neutral-100 pb-3">
               <div className="flex items-center gap-1.5 text-2xl font-bold text-neutral-900">
                 <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
                 <span>
@@ -1010,14 +1010,14 @@ export default function PropertyStorefrontPage() {
             </div>
 
             {reviews.length === 0 ? (
-              <div className="text-center py-10 bg-neutral-50 rounded-2xl border border-neutral-200 border-dashed">
-                <p className="text-sm font-medium text-neutral-600">Be the first to leave a review after your stay!</p>
+              <div className="text-center py-6 sm:py-8 bg-neutral-50 rounded-2xl border border-neutral-200 border-dashed">
+                <p className="text-xs sm:text-sm font-medium text-neutral-600">Be the first to leave a review after your stay!</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3.5">
                 {reviews.map((review) => (
-                  <div key={review.id} className="p-5 rounded-xl border border-neutral-200 bg-white shadow-xs">
-                    <div className="flex items-center gap-3 mb-3">
+                  <div key={review.id} className="p-4 sm:p-4.5 rounded-xl border border-neutral-200 bg-white shadow-xs">
+                    <div className="flex items-center gap-3 mb-2.5">
                       <div className="h-10 w-10 rounded-full bg-neutral-200 overflow-hidden flex-shrink-0">
                         {review.tourist?.avatar_url ? (
                           <img src={review.tourist.avatar_url} alt="" className="h-full w-full object-cover" />

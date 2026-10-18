@@ -253,7 +253,7 @@ export default function AdminDuesPage() {
             <tbody className="divide-y divide-neutral-100 font-medium">
               {filteredDues.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center text-neutral-500 text-xs">
+                  <td colSpan={6} className="py-6 sm:py-8 text-center text-neutral-500 text-xs">
                     No dues records yet. Once owners register and dues are tracked, they will appear here.
                   </td>
                 </tr>

@@ -105,17 +105,17 @@ export function AdminPayoutModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] border-zinc-200 p-0 overflow-hidden bg-white">
-        <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="text-xl font-medium">Verify {payoutStage === "balance" ? "Balance" : "Deposit"} Payout Paid</DialogTitle>
-          <DialogDescription className="text-zinc-500">
+        <DialogHeader className="p-4 sm:p-5 pb-2">
+          <DialogTitle className="text-lg sm:text-xl font-medium">Verify {payoutStage === "balance" ? "Balance" : "Deposit"} Payout Paid</DialogTitle>
+          <DialogDescription className="text-zinc-500 text-xs sm:text-sm">
             Upload the GCash receipt showing you have disbursed the {payoutStage === "balance" ? "remaining balance" : "deposit funds"} to the host.
           </DialogDescription>
         </DialogHeader>
 
         {payoutAmount !== undefined && (
-          <div className="px-6 py-4 bg-blue-50 border-y border-blue-100 flex flex-col gap-2">
+          <div className="px-4 sm:px-5 py-3 bg-blue-50 border-y border-blue-100 flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
-              <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">Host details</span>
+              <span className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">Host details</span>
             </div>
             <div className="flex justify-between items-center">
               <div>
@@ -142,16 +142,16 @@ export function AdminPayoutModal({
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Amount</p>
-                <p className="text-lg font-bold text-blue-700">₱{payoutAmount.toLocaleString()}</p>
+                <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider mb-0.5">Amount</p>
+                <p className="text-base sm:text-lg font-bold text-blue-700">₱{payoutAmount.toLocaleString()}</p>
               </div>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
-          <div className="space-y-3">
-            <Label className="text-zinc-700 font-medium">Payout Screenshot</Label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 sm:p-5">
+          <div className="space-y-2">
+            <Label className="text-zinc-700 font-medium text-xs sm:text-sm">Payout Screenshot</Label>
             
             <AnimatePresence mode="wait">
               {!file ? (
@@ -165,7 +165,7 @@ export function AdminPayoutModal({
                   onDrop={onDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={`
-                    relative border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors
+                    relative border-2 border-dashed rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors
                     ${isDragging ? 'border-blue-500 bg-blue-50/50' : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100/50 hover:border-zinc-300'}
                   `}
                 >

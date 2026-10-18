@@ -166,7 +166,7 @@ export default function AdminAnnouncementsPage() {
       </div>
 
       {/* Broadcast Form Card */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs space-y-5">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex items-center gap-2 border-b border-neutral-100 pb-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-white">
             <Megaphone className="h-4 w-4" />
@@ -311,7 +311,7 @@ export default function AdminAnnouncementsPage() {
       </div>
 
       {/* Announcement History */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
           <h2 className="text-base font-bold text-neutral-900">
             Previous Broadcasts

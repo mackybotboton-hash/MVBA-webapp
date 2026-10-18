@@ -169,7 +169,7 @@ export default function ResortDashboardPage() {
       <WeatherAlertBanner />
 
       {!property ? (
-        <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/60 p-6 sm:p-8 text-center space-y-3">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/60 p-4 sm:p-6 text-center space-y-2.5">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white border border-neutral-200 mx-auto shadow-xs">
             <Building2 className="h-6 w-6 text-neutral-800" />
           </div>

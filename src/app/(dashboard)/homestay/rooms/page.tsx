@@ -196,7 +196,7 @@ export default function HomestayRoomsPage() {
           }}
         />
       ) : filteredRooms.length === 0 && searchQuery.trim() !== "" ? (
-        <div className="py-16 text-center text-neutral-500 text-sm">
+        <div className="py-6 sm:py-8 text-center text-neutral-500 text-xs sm:text-sm">
           No rooms found matching &quot;{searchQuery}&quot;
         </div>
       ) : (

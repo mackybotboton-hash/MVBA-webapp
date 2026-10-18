@@ -251,11 +251,11 @@ export function NotificationsDropdown() {
 
         <div className="max-h-[300px] overflow-y-auto">
           {loading ? (
-            <div className="p-8 text-center text-xs text-neutral-500 flex items-center justify-center">
+            <div className="py-5 px-4 text-center text-xs text-neutral-500 flex items-center justify-center">
               <span className="animate-pulse">Loading...</span>
             </div>
           ) : notifications.length === 0 ? (
-            <div className="p-8 text-center text-xs text-neutral-500">No recent notifications</div>
+            <div className="py-5 px-4 text-center text-xs text-neutral-500">No recent notifications</div>
           ) : (
             notifications.map((notif) => (
               <div

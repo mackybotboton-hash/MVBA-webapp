@@ -550,9 +550,9 @@ export default function TouristBookingsPage() {
 
         {/* Content: Loading Skeleton, Empty State, or Booking Cards List */}
         {isLoading || authLoading ? (
-          <div className="flex flex-col items-center justify-center py-20">
+          <div className="flex flex-col items-center justify-center py-10 sm:py-14">
             <LoadingLogo size="large" />
-            <p className="mt-6 text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">
+            <p className="mt-3 text-xs sm:text-sm font-semibold tracking-wider uppercase text-neutral-400 animate-pulse">
               Loading your reservations
             </p>
           </div>

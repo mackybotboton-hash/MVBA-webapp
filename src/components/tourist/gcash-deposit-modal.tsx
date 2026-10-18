@@ -152,17 +152,17 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] border-zinc-200 p-0 overflow-hidden bg-white">
-        <DialogHeader className="p-6 pb-2">
-          <DialogTitle className="text-xl font-medium">Verify Deposit</DialogTitle>
-          <DialogDescription className="text-zinc-500">
+        <DialogHeader className="p-4 sm:p-5 pb-2">
+          <DialogTitle className="text-lg sm:text-xl font-medium">Verify Deposit</DialogTitle>
+          <DialogDescription className="text-zinc-500 text-xs sm:text-sm">
             Upload your GCash payment screenshot to secure your booking.
           </DialogDescription>
         </DialogHeader>
 
         {amount && (
-          <div className="px-6 py-4 bg-blue-50 border-y border-blue-100 flex items-center justify-between">
+          <div className="px-4 sm:px-5 py-3 bg-blue-50 border-y border-blue-100 flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">
+              <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider mb-0.5">
                 Send Payment To
               </p>
               {isLoadingSettings ? (
@@ -179,16 +179,16 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
               )}
             </div>
             <div className="text-right">
-              <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">Required Deposit</p>
-              <p className="text-lg font-bold text-blue-700">₱{amount.toLocaleString()}</p>
+              <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider mb-0.5">Required Deposit</p>
+              <p className="text-base sm:text-lg font-bold text-blue-700">₱{amount.toLocaleString()}</p>
             </div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-6">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 sm:p-5">
           {/* Animated Dropzone */}
-          <div className="space-y-3">
-            <Label className="text-zinc-700 font-medium">Payment Screenshot</Label>
+          <div className="space-y-2">
+            <Label className="text-zinc-700 font-medium text-xs sm:text-sm">Payment Screenshot</Label>
             
             <AnimatePresence mode="wait">
               {!file ? (
@@ -202,7 +202,7 @@ export function GCashDepositModal({ isOpen, onClose, bookingId, amount, onUpload
                   onDrop={onDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={`
-                    relative border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors
+                    relative border-2 border-dashed rounded-2xl p-5 sm:p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors
                     ${isDragging ? 'border-blue-500 bg-blue-50/50' : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100/50 hover:border-zinc-300'}
                   `}
                 >

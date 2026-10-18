@@ -138,16 +138,16 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
   }
 
   return (
-    <form onSubmit={handleSave} className="space-y-8 max-w-4xl">
+    <form onSubmit={handleSave} className="space-y-5 max-w-4xl">
       {/* Basic Info Section */}
-      <section className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-6 shadow-sm">
-        <div className="border-b border-neutral-100 pb-4">
-          <h2 className="text-lg font-bold text-neutral-900">Property Overview</h2>
-          <p className="text-xs text-neutral-500 mt-1">Manage your public description, photos, and location.</p>
+      <section className="bg-white rounded-2xl border border-neutral-200 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div className="border-b border-neutral-100 pb-3">
+          <h2 className="text-base sm:text-lg font-bold text-neutral-900">Property Overview</h2>
+          <p className="text-xs text-neutral-500 mt-0.5">Manage your public description, photos, and location.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4 col-span-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          <div className="space-y-3.5 col-span-2">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-neutral-800 uppercase tracking-wider">Property Description</label>
               <textarea
@@ -203,7 +203,7 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
         </div>
 
         {/* Social Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mt-4">
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-neutral-800 uppercase tracking-wider">Facebook Page URL</label>
             <div className="relative">
@@ -235,15 +235,15 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
       </section>
 
       {/* Policies Section */}
-      <section className="bg-white rounded-2xl border border-neutral-200 p-6 space-y-6 shadow-sm">
-        <div className="border-b border-neutral-100 pb-4">
-          <h2 className="text-lg font-bold text-neutral-900">
+      <section className="bg-white rounded-2xl border border-neutral-200 p-4 sm:p-5 space-y-4 shadow-sm">
+        <div className="border-b border-neutral-100 pb-3">
+          <h2 className="text-base sm:text-lg font-bold text-neutral-900">
             {propertyType === "resort" ? "Resort Rules & Policies" : "House Rules & Policies"}
           </h2>
-          <p className="text-xs text-neutral-500 mt-1">Set clear expectations for tourists booking your property.</p>
+          <p className="text-xs text-neutral-500 mt-0.5">Set clear expectations for tourists booking your property.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
           {/* Check-in / Check-out */}
           <div className="space-y-4">
             <div className="space-y-1.5">

@@ -194,11 +194,11 @@ export default function ResortServicesPage() {
             <tbody className="divide-y divide-neutral-100 font-medium">
               {services.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-16 text-center text-neutral-500 text-xs">No services found. Click &quot;Create Package&quot; to add one.</td>
+                  <td colSpan={4} className="py-6 sm:py-8 text-center text-neutral-500 text-xs">No services found. Click &quot;Create Package&quot; to add one.</td>
                 </tr>
               ) : filteredServices.length === 0 && searchQuery.trim() !== "" ? (
                 <tr>
-                  <td colSpan={4} className="py-16 text-center text-neutral-500 text-xs">No services found matching &quot;{searchQuery}&quot;</td>
+                  <td colSpan={4} className="py-6 sm:py-8 text-center text-neutral-500 text-xs">No services found matching &quot;{searchQuery}&quot;</td>
                 </tr>
               ) : (
                 filteredServices.map((service) => (

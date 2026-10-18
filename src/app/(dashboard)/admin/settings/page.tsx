@@ -160,8 +160,8 @@ export default function AdminSettingsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 space-y-3">
-          <Loader2 className="h-7 w-7 animate-spin text-neutral-400" />
+        <div className="flex flex-col items-center justify-center py-8 space-y-2.5">
+          <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
           <p className="text-xs font-medium text-neutral-500">Loading settings...</p>
         </div>
       ) : isError ? (
