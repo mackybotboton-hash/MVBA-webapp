@@ -150,16 +150,13 @@ function ChatSystemContent({
     if (typeof window !== "undefined" && window.visualViewport) {
       const updateHeight = () => {
         setViewportHeight(`${window.visualViewport!.height}px`);
-        window.scrollTo(0, 0); // Prevent body from scrolling up
       };
       
       window.visualViewport.addEventListener("resize", updateHeight);
-      window.visualViewport.addEventListener("scroll", updateHeight);
       updateHeight(); // initial
       
       return () => {
         window.visualViewport!.removeEventListener("resize", updateHeight);
-        window.visualViewport!.removeEventListener("scroll", updateHeight);
       };
     }
   }, []);
@@ -232,22 +229,15 @@ function ChatSystemContent({
     };
   }, [currentUser]);
   
-  // Prevent body scroll and iOS viewport pan when thread is open on mobile
+  // Prevent body scroll when thread is open on mobile
   React.useEffect(() => {
     if (isMobile && activeContact) {
       document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
-      // prevent layout shift
     } else {
       document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
     }
     return () => {
       document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
     };
   }, [isMobile, activeContact]);
 
