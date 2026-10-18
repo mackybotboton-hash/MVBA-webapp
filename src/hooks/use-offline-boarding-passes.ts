@@ -69,9 +69,25 @@ export function useOfflineBoardingPasses() {
 
       const current = loadCachedPasses();
       const existingIdx = current.findIndex((p: CachedBoardingPass) => p.id === pass.id);
+
+      if (existingIdx >= 0) {
+        const existing = current[existingIdx];
+        if (
+          existing.status === pass.status &&
+          existing.property_name === pass.property_name &&
+          existing.room_name === pass.room_name &&
+          existing.check_in === pass.check_in &&
+          existing.check_out === pass.check_out &&
+          existing.total_price === pass.total_price &&
+          existing.guests_count === pass.guests_count
+        ) {
+          return; // Identical, skip unnecessary update
+        }
+      }
+
       const newEntry: CachedBoardingPass = {
         ...pass,
-        cached_at: new Date().toISOString(),
+        cached_at: existingIdx >= 0 ? current[existingIdx].cached_at : new Date().toISOString(),
       };
 
       let updated: CachedBoardingPass[];
@@ -113,6 +129,12 @@ export function useOfflineBoardingPasses() {
         });
 
       const updated = Array.from(passMap.values());
+      const isSame =
+        current.length === updated.length &&
+        updated.every((u, i) => current[i] && current[i].id === u.id && current[i].status === u.status);
+
+      if (isSame) return;
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setCachedPasses(updated);
     } catch (e) {
@@ -136,6 +158,26 @@ export function useOfflineBoardingPasses() {
           ...p,
           cached_at: currentMap.get(p.id)?.cached_at || now,
         }));
+
+      // Check if actually changed to avoid unnecessary re-renders
+      const isSame =
+        current.length === validOnly.length &&
+        validOnly.every((v, i) => {
+          const c = current[i];
+          return (
+            c &&
+            c.id === v.id &&
+            c.status === v.status &&
+            c.property_name === v.property_name &&
+            c.room_name === v.room_name &&
+            c.check_in === v.check_in &&
+            c.check_out === v.check_out
+          );
+        });
+
+      if (isSame) {
+        return; // Avoid loop
+      }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(validOnly));
       setCachedPasses(validOnly);
@@ -166,6 +208,7 @@ export function useOfflineBoardingPasses() {
     try {
       const current = loadCachedPasses();
       const filtered = current.filter((p: CachedBoardingPass) => p.id !== bookingId);
+      if (filtered.length === current.length) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
       setCachedPasses(filtered);
     } catch (e) {
@@ -177,6 +220,7 @@ export function useOfflineBoardingPasses() {
     cachedPasses,
     isOnline,
     isLoaded,
+    loadCachedPasses,
     savePass,
     saveMultiplePasses,
     syncPasses,

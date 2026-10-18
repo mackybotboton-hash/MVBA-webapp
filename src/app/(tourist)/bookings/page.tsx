@@ -43,8 +43,8 @@ type BookingFilterTab =
 
 export default function TouristBookingsPage() {
   const [bookings, setBookings] = React.useState<BookingData[]>([]);
-  const [userName, setUserName] = React.useState<string>("Tourist Guest");
   const [isLoading, setIsLoading] = React.useState(true);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<BookingFilterTab>("all");
   const [selectedPassBooking, setSelectedPassBooking] =
     React.useState<BoardingPassData | null>(null);
@@ -58,7 +58,7 @@ export default function TouristBookingsPage() {
   const {
     cachedPasses,
     isOnline,
-    saveMultiplePasses,
+    loadCachedPasses,
     syncPasses,
     hasPass,
     removePass,
@@ -66,7 +66,207 @@ export default function TouristBookingsPage() {
 
   const { user, profile, isLoading: authLoading } = useAuth();
 
-  const fetchBookings = React.useCallback(async () => {
+  const userName =
+    profile?.full_name ||
+    user?.user_metadata?.full_name ||
+    user?.email?.split("@")[0] ||
+    "Tourist Guest";
+
+  const fetchBookings = React.useCallback(
+    async (isSilent = false) => {
+      if (authLoading) return;
+      
+      if (!user) {
+        setBookings([]);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!isSilent) {
+        setIsLoading(true);
+      }
+
+      try {
+        const supabase = createClient();
+
+        // Fetch bookings joined with room and property
+        const { data, error } = await supabase
+          .from("bookings")
+          .select(`
+            id,
+            check_in_date,
+            check_out_date,
+            guest_count,
+            total_price,
+            status,
+            payment_status,
+            downpayment_amount,
+            commission_amount,
+            convenience_fee,
+            receipt_url,
+            created_at,
+            cancelled_by,
+            cancelled_at,
+            cancellation_reason,
+            cancellation_policy,
+            refund_total,
+            deposit_refund_amount,
+            fee_refund_amount,
+            refund_gcash_number,
+            panaw_refund_status,
+            host_refund_status,
+            panaw_refund_receipt_url,
+            host_refund_receipt_url,
+            panaw_refund_amount,
+            host_refund_amount,
+            refund_issue_reported_at,
+            refund_issue_reason,
+            booking_addons (
+              price_at_booking,
+              commission_amount,
+              extra_services(name)
+            ),
+            rooms (
+              id,
+              name,
+              properties (
+                id,
+                name,
+                type,
+                owner_id
+              )
+            )
+          `)
+          .eq("tourist_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          if (!navigator.onLine) {
+            toast.info("Offline mode active. Displaying saved passes.");
+          } else {
+            toast.error("Failed to load bookings.");
+          }
+        } else {
+          // Fetch reviews by this tourist to show rating badges and track unreviewed stays
+          const { data: userReviews } = await supabase
+            .from("reviews")
+            .select("id, booking_id, rating, comment")
+            .eq("tourist_id", user.id);
+
+          const reviewMap = new Map<
+            string,
+            { id: string; rating: number; comment?: string | null }
+          >();
+          (userReviews || []).forEach((r: any) => {
+            if (r.booking_id) {
+              reviewMap.set(r.booking_id, {
+                id: r.id,
+                rating: Number(r.rating || 5),
+                comment: r.comment,
+              });
+            }
+          });
+
+          const mapped: BookingData[] = (data || []).map((b: any) => ({
+            id: b.id,
+            property_id: b.rooms?.properties?.id,
+            property_name: b.rooms?.properties?.name || "Bretania Island Stay",
+            property_type: b.rooms?.properties?.type,
+            room_name: b.rooms?.name || "Standard Accommodation",
+            check_in_date: b.check_in_date,
+            check_out_date: b.check_out_date,
+            guest_count: b.guest_count,
+            total_price: Number(b.total_price),
+            downpayment_amount: Number(b.downpayment_amount),
+            commission_amount: Number(b.commission_amount || 0),
+            convenience_fee: Number(b.convenience_fee || 0),
+            addons: (b.booking_addons || []).map((a: any) => ({
+              name: a.extra_services?.name || "Add-on",
+              price: Number(a.price_at_booking || 0),
+              commission: Number(a.commission_amount || 0),
+            })),
+            payment_status: b.payment_status,
+            receipt_url: b.receipt_url,
+            status: b.status,
+            owner_id: b.rooms?.properties?.owner_id,
+            cancelled_by: b.cancelled_by,
+            cancelled_at: b.cancelled_at,
+            cancellation_reason: b.cancellation_reason,
+            cancellation_policy: b.cancellation_policy,
+            refund_total: b.refund_total != null ? Number(b.refund_total) : null,
+            deposit_refund_amount: b.deposit_refund_amount != null ? Number(b.deposit_refund_amount) : null,
+            fee_refund_amount: b.fee_refund_amount != null ? Number(b.fee_refund_amount) : null,
+            refund_gcash_number: b.refund_gcash_number,
+            panaw_refund_status: b.panaw_refund_status,
+            host_refund_status: b.host_refund_status,
+            panaw_refund_receipt_url: b.panaw_refund_receipt_url,
+            host_refund_receipt_url: b.host_refund_receipt_url,
+            panaw_refund_amount: b.panaw_refund_amount != null ? Number(b.panaw_refund_amount) : null,
+            host_refund_amount: b.host_refund_amount != null ? Number(b.host_refund_amount) : null,
+            refund_issue_reported_at: b.refund_issue_reported_at,
+            refund_issue_reason: b.refund_issue_reason,
+            review: reviewMap.get(b.id) || null,
+          }));
+          setBookings(mapped);
+
+          // Authoritatively sync confirmed & completed reservations for offline island boarding
+          // Strictly filters out cancelled or unverified bookings so cache stays clean
+          const passesToCache: BoardingPassData[] = mapped
+            .filter(
+              (b) =>
+                b.status !== "cancelled" &&
+                (b.status === "completed" ||
+                  (b.status === "accepted" && b.payment_status === "verified"))
+            )
+            .map((b) => ({
+              id: b.id,
+              property_name: b.property_name,
+              room_name: b.room_name,
+              guest_name: userName,
+              check_in: b.check_in_date,
+              check_out: b.check_out_date,
+              guests_count: b.guest_count,
+              total_price: b.total_price,
+              status: b.status,
+              reference_code: `PANAW-${b.id.slice(0, 4).toUpperCase()}`,
+            }));
+
+          syncPasses(passesToCache);
+        }
+      } catch {
+        if (!navigator.onLine) {
+          toast.info("Offline mode active. Saved passes are available.");
+          const offlinePasses = loadCachedPasses();
+          if (offlinePasses.length > 0) {
+            const offlineFallback: BookingData[] = offlinePasses.map((p) => ({
+              id: p.id,
+              property_name: p.property_name || "Bretania Island Stay",
+              room_name: p.room_name || "Standard Accommodation",
+              check_in_date: p.check_in,
+              check_out_date: p.check_out,
+              guest_count: p.guests_count,
+              total_price: p.total_price,
+              status: (p.status as any) || "accepted",
+              payment_status: "verified",
+            }));
+            setBookings(offlineFallback);
+          }
+        } else {
+          toast.error("An error occurred while loading your bookings.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [authLoading, user, userName, syncPasses, loadCachedPasses]
+  );
+
+  const fetchBookingsRef = React.useRef(fetchBookings);
+  React.useEffect(() => {
+    fetchBookingsRef.current = fetchBookings;
+  }, [fetchBookings]);
+
+  React.useEffect(() => {
     if (authLoading) return;
     
     if (!user) {
@@ -75,219 +275,32 @@ export default function TouristBookingsPage() {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const supabase = createClient();
+    // Initial load
+    fetchBookingsRef.current(false);
 
-      if (profile?.full_name) {
-        setUserName(profile.full_name);
-      } else if (user.email) {
-        setUserName(user.email.split("@")[0]);
-      }
-
-      // Fetch bookings joined with room and property
-      const { data, error } = await supabase
-        .from("bookings")
-        .select(`
-          id,
-          check_in_date,
-          check_out_date,
-          guest_count,
-          total_price,
-          status,
-          payment_status,
-          downpayment_amount,
-          commission_amount,
-          convenience_fee,
-          receipt_url,
-          created_at,
-          cancelled_by,
-          cancelled_at,
-          cancellation_reason,
-          cancellation_policy,
-          refund_total,
-          deposit_refund_amount,
-          fee_refund_amount,
-          refund_gcash_number,
-          panaw_refund_status,
-          host_refund_status,
-          panaw_refund_receipt_url,
-          host_refund_receipt_url,
-          panaw_refund_amount,
-          host_refund_amount,
-          refund_issue_reported_at,
-          refund_issue_reason,
-          booking_addons (
-            price_at_booking,
-            commission_amount,
-            extra_services(name)
-          ),
-          rooms (
-            id,
-            name,
-            properties (
-              id,
-              name,
-              type,
-              owner_id
-            )
-          )
-        `)
-        .eq("tourist_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        if (!navigator.onLine) {
-          toast.info("Offline mode active. Displaying saved passes.");
-        } else {
-          toast.error("Failed to load bookings.");
-        }
-      } else {
-        // Fetch reviews by this tourist to show rating badges and track unreviewed stays
-        const { data: userReviews } = await supabase
-          .from("reviews")
-          .select("id, booking_id, rating, comment")
-          .eq("tourist_id", user.id);
-
-        const reviewMap = new Map<
-          string,
-          { id: string; rating: number; comment?: string | null }
-        >();
-        (userReviews || []).forEach((r: any) => {
-          if (r.booking_id) {
-            reviewMap.set(r.booking_id, {
-              id: r.id,
-              rating: Number(r.rating || 5),
-              comment: r.comment,
-            });
-          }
-        });
-
-        const mapped: BookingData[] = (data || []).map((b: any) => ({
-          id: b.id,
-          property_id: b.rooms?.properties?.id,
-          property_name: b.rooms?.properties?.name || "Bretania Island Stay",
-          property_type: b.rooms?.properties?.type,
-          room_name: b.rooms?.name || "Standard Accommodation",
-          check_in_date: b.check_in_date,
-          check_out_date: b.check_out_date,
-          guest_count: b.guest_count,
-          total_price: Number(b.total_price),
-          downpayment_amount: Number(b.downpayment_amount),
-          commission_amount: Number(b.commission_amount || 0),
-          convenience_fee: Number(b.convenience_fee || 0),
-          addons: (b.booking_addons || []).map((a: any) => ({
-            name: a.extra_services?.name || "Add-on",
-            price: Number(a.price_at_booking || 0),
-            commission: Number(a.commission_amount || 0),
-          })),
-          payment_status: b.payment_status,
-          receipt_url: b.receipt_url,
-          status: b.status,
-          owner_id: b.rooms?.properties?.owner_id,
-          cancelled_by: b.cancelled_by,
-          cancelled_at: b.cancelled_at,
-          cancellation_reason: b.cancellation_reason,
-          cancellation_policy: b.cancellation_policy,
-          refund_total: b.refund_total != null ? Number(b.refund_total) : null,
-          deposit_refund_amount: b.deposit_refund_amount != null ? Number(b.deposit_refund_amount) : null,
-          fee_refund_amount: b.fee_refund_amount != null ? Number(b.fee_refund_amount) : null,
-          refund_gcash_number: b.refund_gcash_number,
-          panaw_refund_status: b.panaw_refund_status,
-          host_refund_status: b.host_refund_status,
-          panaw_refund_receipt_url: b.panaw_refund_receipt_url,
-          host_refund_receipt_url: b.host_refund_receipt_url,
-          panaw_refund_amount: b.panaw_refund_amount != null ? Number(b.panaw_refund_amount) : null,
-          host_refund_amount: b.host_refund_amount != null ? Number(b.host_refund_amount) : null,
-          refund_issue_reported_at: b.refund_issue_reported_at,
-          refund_issue_reason: b.refund_issue_reason,
-          review: reviewMap.get(b.id) || null,
-        }));
-        setBookings(mapped);
-
-        // Authoritatively sync confirmed & completed reservations for offline island boarding
-        // Strictly filters out cancelled or unverified bookings so cache stays clean
-        const passesToCache: BoardingPassData[] = mapped
-          .filter(
-            (b) =>
-              b.status !== "cancelled" &&
-              (b.status === "completed" ||
-                (b.status === "accepted" && b.payment_status === "verified"))
-          )
-          .map((b) => ({
-            id: b.id,
-            property_name: b.property_name,
-            room_name: b.room_name,
-            guest_name: user.user_metadata?.full_name || userName || "Tourist Guest",
-            check_in: b.check_in_date,
-            check_out: b.check_out_date,
-            guests_count: b.guest_count,
-            total_price: b.total_price,
-            status: b.status,
-            reference_code: `PANAW-${b.id.slice(0, 4).toUpperCase()}`,
-          }));
-
-        syncPasses(passesToCache);
-      }
-    } catch {
-      if (!navigator.onLine) {
-        toast.info("Offline mode active. Saved passes are available.");
-        // Hydrate from cached passes if available
-        if (cachedPasses.length > 0 && bookings.length === 0) {
-          const offlineFallback: BookingData[] = cachedPasses.map((p) => ({
-            id: p.id,
-            property_name: p.property_name || "Bretania Island Stay",
-            room_name: p.room_name || "Standard Accommodation",
-            check_in_date: p.check_in,
-            check_out_date: p.check_out,
-            guest_count: p.guests_count,
-            total_price: p.total_price,
-            status: (p.status as any) || "accepted",
-            payment_status: "verified",
-          }));
-          setBookings(offlineFallback);
-        }
-      } else {
-        toast.error("An error occurred while loading your bookings.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [syncPasses, user, profile, authLoading, userName, cachedPasses, bookings.length]);
-
-  React.useEffect(() => {
-    fetchBookings();
-    
-    // Set up Realtime listener
+    // Set up Realtime listener once per authenticated user
     const supabase = createClient();
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    
-    const initRealtime = async () => {
-      if (!user) return;
-      
-      channel = supabase
-        .channel(`bookings_tourist_${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "bookings",
-            filter: `tourist_id=eq.${user.id}`,
-          },
-          () => {
-            fetchBookings();
-          }
-        )
-        .subscribe();
-    };
-    
-    initRealtime();
+    const channel = supabase
+      .channel(`bookings_tourist_${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "bookings",
+          filter: `tourist_id=eq.${user.id}`,
+        },
+        () => {
+          // Silent refresh on Realtime update without full-screen loading flash
+          fetchBookingsRef.current(true);
+        }
+      )
+      .subscribe();
     
     return () => {
-      if (channel) supabase.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
-  }, [fetchBookings]);
+  }, [user?.id, authLoading]);
 
   const handleCancelBooking = async (
     bookingId: string,
@@ -310,7 +323,7 @@ export default function TouristBookingsPage() {
             ? `Estimated refund of ₱${Number(res.data.refund_total).toLocaleString()} scheduled for GCash.`
             : "The reservation has been cancelled.",
       });
-      await fetchBookings();
+      await fetchBookings(true);
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel booking. Please try again.");
       throw err;
@@ -480,11 +493,14 @@ export default function TouristBookingsPage() {
           </div>
 
           <button
-            onClick={fetchBookings}
-            disabled={isLoading}
-            className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-black font-medium self-start sm:self-auto transition-colors"
+            onClick={() => {
+              setIsRefreshing(true);
+              fetchBookings(true).finally(() => setIsRefreshing(false));
+            }}
+            disabled={isLoading || isRefreshing}
+            className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-black font-medium self-start sm:self-auto transition-colors cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3 w-3 ${isLoading || isRefreshing ? "animate-spin" : ""}`} />
             Refresh
           </button>
         </div>
@@ -560,7 +576,10 @@ export default function TouristBookingsPage() {
             actionLabel="Discover Stays in Bretania"
             onAction={() => (window.location.href = "/")}
             secondaryActionLabel="Refresh"
-            onSecondaryAction={fetchBookings}
+            onSecondaryAction={() => {
+              setIsRefreshing(true);
+              fetchBookings(true).finally(() => setIsRefreshing(false));
+            }}
           />
         ) : (
           <div className="space-y-4">
@@ -631,7 +650,7 @@ export default function TouristBookingsPage() {
             }
 
             toast.success("Payment submitted successfully!");
-            await fetchBookings();
+            await fetchBookings(true);
           } catch (error) {
             console.error("Failed to upload deposit:", error);
             throw error;
@@ -645,7 +664,7 @@ export default function TouristBookingsPage() {
         onClose={() => setSelectedReviewBooking(null)}
         booking={selectedReviewBooking}
         onSuccess={async () => {
-          await fetchBookings();
+          await fetchBookings(true);
         }}
       />
 
