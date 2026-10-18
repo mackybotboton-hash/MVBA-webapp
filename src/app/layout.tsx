@@ -17,6 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://mvba-webapp.vercel.app"),
   title: "Panaw — book direct sa Britania, San Agustin",
   description: "Panaw — book direct sa Britania, San Agustin",
   keywords: [
@@ -36,9 +37,28 @@ export const metadata: Metadata = {
     title: "Panaw",
   },
   icons: {
-    apple: [
-      { url: '/icons/icon-192.png' },
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
+    apple: [
+      { url: "/icons/icon-192.png" },
+    ],
+    shortcut: "/icons/icon-192.png",
+  },
+  openGraph: {
+    title: "Panaw — book direct sa Britania, San Agustin",
+    description: "Panaw — book direct sa Britania, San Agustin",
+    siteName: "Panaw",
+    images: [
+      {
+        url: "/icons/icon-512.png",
+        width: 512,
+        height: 512,
+        alt: "Panaw Bretania",
+      },
+    ],
+    type: "website",
   },
 };
 

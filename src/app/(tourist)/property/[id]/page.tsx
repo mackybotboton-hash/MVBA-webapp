@@ -29,7 +29,7 @@ export async function generateMetadata(
   try {
     const { data: property } = await supabase
       .from("properties")
-      .select("name, description, address, cover_image_url")
+      .select("name, description, address, cover_image_url, updated_at")
       .eq("id", propertyId)
       .maybeSingle();
 
@@ -44,9 +44,15 @@ export async function generateMetadata(
     const description = property.description
       ? property.description.substring(0, 160) + "..."
       : `Book your accredited stay at ${property.name} in Bretania, San Agustin, Surigao del Sur.`;
-    const imageUrl = property.cover_image_url || "/placeholder-image.jpg";
+
+    const timestamp = property.updated_at
+      ? new Date(property.updated_at).getTime()
+      : Date.now();
+    const proxyImageUrl = `https://mvba-webapp.vercel.app/api/property/${propertyId}/og-image?v=${timestamp}`;
+    const directImageUrl = property.cover_image_url || "https://mvba-webapp.vercel.app/icons/icon-512.png";
 
     return {
+      metadataBase: new URL("https://mvba-webapp.vercel.app"),
       title,
       description,
       openGraph: {
@@ -56,9 +62,16 @@ export async function generateMetadata(
         siteName: "Panaw",
         images: [
           {
-            url: imageUrl,
+            url: proxyImageUrl,
+            secureUrl: proxyImageUrl,
             width: 1200,
             height: 630,
+            alt: property.name,
+            type: "image/jpeg",
+          },
+          {
+            url: directImageUrl,
+            secureUrl: directImageUrl,
             alt: property.name,
           },
         ],
@@ -68,7 +81,7 @@ export async function generateMetadata(
         card: "summary_large_image",
         title,
         description,
-        images: [imageUrl],
+        images: [proxyImageUrl],
       },
     };
   } catch (_error) {
