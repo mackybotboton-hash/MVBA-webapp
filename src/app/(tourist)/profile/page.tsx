@@ -70,20 +70,20 @@ export default async function TouristProfilePage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl p-4 sm:p-6 space-y-8 pb-24 md:pb-12 mt-4">
+      <main className="mx-auto max-w-4xl px-3.5 sm:px-6 py-4 sm:py-6 space-y-5 pb-20 md:pb-10">
         {/* Profile Heading Section */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 text-center sm:text-left">
-          <div className="w-24 h-24 rounded-full bg-black text-white flex items-center justify-center text-3xl font-bold shrink-0 shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 text-center sm:text-left">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-black text-white flex items-center justify-center text-2xl sm:text-3xl font-bold shrink-0 shadow-xs">
             {getInitials(userProfile.full_name || userProfile.email || "User")}
           </div>
 
-          <div className="space-y-2 flex-1 pt-2">
-            <h1 className="text-3xl font-bold text-neutral-900 tracking-tight">
+          <div className="space-y-1.5 flex-1 pt-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900 tracking-tight">
               {userProfile.full_name || "Account User"}
             </h1>
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-              <p className="text-sm text-neutral-600 font-medium">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+              <p className="text-xs sm:text-sm text-neutral-600 font-medium">
                 {userProfile.email}
               </p>
               <Badge
@@ -91,26 +91,26 @@ export default async function TouristProfilePage() {
                 size="sm"
                 className="bg-emerald-50 text-emerald-700 border border-emerald-100"
               >
-                <ShieldCheck className="h-3.5 w-3.5 mr-1" />
+                <ShieldCheck className="h-3 w-3 mr-1" />
                 Verified Guest
               </Badge>
             </div>
 
-            <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-neutral-500 pt-1">
-              <MapPin className="h-4 w-4" />
+            <div className="flex items-center justify-center sm:justify-start gap-1 text-xs text-neutral-500 pt-0.5">
+              <MapPin className="h-3.5 w-3.5" />
               <span>San Agustin, Surigao del Sur</span>
             </div>
           </div>
         </div>
 
         {/* Quick Activity Stats */}
-        <div className="pt-2">
+        <div>
           <ProfileActivityStats />
         </div>
 
         {/* Settings Grid - Airbnb Style with Full Interactive Modals */}
-        <div className="pt-4">
-          <h2 className="text-2xl font-bold text-neutral-900 mb-6">
+        <div>
+          <h2 className="text-lg sm:text-xl font-bold text-neutral-900 mb-3 sm:mb-4">
             Account settings
           </h2>
 
@@ -121,7 +121,7 @@ export default async function TouristProfilePage() {
         </div>
 
         {/* Sign Out Action */}
-        <div className="pt-8 border-t border-neutral-200 flex justify-center sm:justify-start">
+        <div className="pt-4 sm:pt-5 border-t border-neutral-200 flex justify-center sm:justify-start">
           <div className="w-full sm:w-auto">
             <SignOutButton />
           </div>

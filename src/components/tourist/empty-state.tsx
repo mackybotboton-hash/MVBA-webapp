@@ -31,25 +31,25 @@ export function EmptyState({
       role="status"
       aria-live="polite"
       className={cn(
-        "flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/50 p-8 transition-colors",
-        compact ? "py-8 px-4" : "py-16 px-6",
+        "flex flex-col items-center justify-center text-center rounded-2xl border border-dashed border-neutral-200 bg-neutral-50/60 transition-colors",
+        compact ? "py-5 px-3" : "py-7 sm:py-9 px-4 sm:px-6",
         className
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white border border-neutral-200 shadow-sm text-neutral-800 mb-4">
-        <Icon className="h-6 w-6 stroke-[1.75]" aria-hidden="true" />
+      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white border border-neutral-200 shadow-xs text-neutral-800 mb-3">
+        <Icon className="h-5 w-5 stroke-[1.75]" aria-hidden="true" />
       </div>
 
-      <h3 className="text-base font-semibold text-neutral-900 tracking-tight">
+      <h3 className="text-sm sm:text-base font-semibold text-neutral-900 tracking-tight">
         {title}
       </h3>
 
-      <p className="mt-1.5 text-sm text-neutral-600 max-w-sm leading-relaxed">
+      <p className="mt-1 text-xs sm:text-sm text-neutral-600 max-w-sm leading-relaxed">
         {description}
       </p>
 
       {(actionLabel || secondaryActionLabel) && (
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+        <div className="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-2">
           {actionLabel && (
             <Button
               onClick={onAction}

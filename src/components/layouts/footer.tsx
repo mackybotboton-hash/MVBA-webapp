@@ -6,9 +6,9 @@ import { Logo } from "@/components/shared/logo";
 
 export function Footer() {
   return (
-    <footer className="w-full border-t border-neutral-200 bg-neutral-50/80 text-neutral-600 text-xs mt-12 pb-24 md:pb-8">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14 space-y-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+    <footer className="w-full border-t border-neutral-200 bg-neutral-50/80 text-neutral-600 text-xs mt-8 pb-20 md:pb-6">
+      <div className="mx-auto max-w-6xl px-3.5 sm:px-6 py-6 sm:py-8 space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 sm:gap-6">
           {/* Brand & Mission */}
           <div className="space-y-3 md:col-span-1">
             <Logo size="default" />

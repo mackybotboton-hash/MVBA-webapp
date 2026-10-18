@@ -187,12 +187,12 @@ export default function AdminContentPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
           Content Management
         </h1>
-        <p className="text-sm text-neutral-500 mt-1">
+        <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
           Manage dynamic content shown to tourists across the application.
         </p>
       </div>
@@ -200,7 +200,7 @@ export default function AdminContentPage() {
       <div className="flex border-b border-neutral-200">
         <button
           onClick={() => setActiveTab("explore")}
-          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
             activeTab === "explore"
               ? "border-black text-black"
               : "border-transparent text-neutral-500 hover:text-neutral-800"
@@ -210,7 +210,7 @@ export default function AdminContentPage() {
         </button>
         <button
           onClick={() => setActiveTab("hotlines")}
-          className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-colors ${
             activeTab === "hotlines"
               ? "border-black text-black"
               : "border-transparent text-neutral-500 hover:text-neutral-800"
@@ -221,43 +221,43 @@ export default function AdminContentPage() {
       </div>
 
       {activeTab === "explore" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Manage Islands</h2>
+            <h2 className="text-base font-semibold">Manage Islands</h2>
             <Button
               onClick={() => setEditingIsland({ id: "new", name: "", tagline: "", description: "", image_url: "", display_order: islands.length + 1 })}
               size="sm"
-              className="bg-black text-white hover:bg-neutral-800"
+              className="bg-black text-white hover:bg-neutral-800 text-xs h-8"
             >
-              <Plus className="w-4 h-4 mr-2" /> Add Island
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Island
             </Button>
           </div>
 
           {isLoadingIslands ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+            <div className="flex justify-center p-6">
+              <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {islands.map((island) => (
-                <div key={island.id} className="p-4 bg-white border rounded-lg flex items-center justify-between shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <img src={island.image_url} alt={island.name} className="w-16 h-16 object-cover rounded-md" />
+                <div key={island.id} className="p-3.5 bg-white border border-neutral-200 rounded-xl flex items-center justify-between shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <img src={island.image_url} alt={island.name} className="w-14 h-14 object-cover rounded-lg" />
                     <div>
-                      <h3 className="font-semibold text-neutral-900">{island.name}</h3>
-                      <p className="text-sm text-neutral-500">{island.tagline}</p>
+                      <h3 className="font-semibold text-sm text-neutral-900">{island.name}</h3>
+                      <p className="text-xs text-neutral-500">{island.tagline}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditingIsland(island)}>Edit</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDeleteIsland(island.id)} className="text-red-600 hover:text-red-700">
-                      <Trash2 className="w-4 h-4" />
+                    <Button variant="outline" size="sm" onClick={() => setEditingIsland(island)} className="text-xs h-8">Edit</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteIsland(island.id)} className="text-red-600 hover:text-red-700 text-xs h-8">
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
               {islands.length === 0 && (
-                <p className="text-center text-neutral-500 py-8 border rounded-lg border-dashed">No islands found. Add one or run the migration.</p>
+                <p className="text-center text-xs text-neutral-500 py-6 border rounded-xl border-dashed border-neutral-200">No islands found. Add one or run the migration.</p>
               )}
             </div>
           )}
@@ -342,46 +342,46 @@ export default function AdminContentPage() {
       )}
 
       {activeTab === "hotlines" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Emergency Hotlines</h2>
-              <p className="text-sm text-neutral-500">
+              <h2 className="text-base font-semibold">Emergency Hotlines</h2>
+              <p className="text-xs text-neutral-500">
                 Manage the emergency contact numbers shown in the tourist app.
               </p>
             </div>
             <Button
               onClick={() => setEditingHotline({ id: "new", name: "", description: "", number: "", display_order: hotlines.length + 1 })}
               size="sm"
-              className="bg-black text-white hover:bg-neutral-800"
+              className="bg-black text-white hover:bg-neutral-800 text-xs h-8"
             >
-              <Plus className="w-4 h-4 mr-2" /> Add Hotline
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Add Hotline
             </Button>
           </div>
 
           {isLoadingHotlines ? (
-            <div className="flex justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+            <div className="flex justify-center p-6">
+              <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
             </div>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-3">
               {hotlines.map((hotline) => (
-                <div key={hotline.id} className="p-4 bg-white border rounded-lg shadow-sm flex items-start justify-between">
+                <div key={hotline.id} className="p-3.5 bg-white border border-neutral-200 rounded-xl shadow-2xs flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-neutral-900">{hotline.name}</h3>
-                    <p className="text-sm font-bold text-emerald-700 mt-1">{hotline.number}</p>
-                    <p className="text-xs text-neutral-500 mt-1">{hotline.description}</p>
+                    <h3 className="font-semibold text-sm text-neutral-900">{hotline.name}</h3>
+                    <p className="text-xs font-bold text-emerald-700 mt-0.5">{hotline.number}</p>
+                    <p className="text-xs text-neutral-500 mt-0.5">{hotline.description}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setEditingHotline(hotline)}>Edit</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDeleteHotline(hotline.id)} className="text-red-600 hover:text-red-700">
-                      <Trash2 className="w-4 h-4" />
+                    <Button variant="outline" size="sm" onClick={() => setEditingHotline(hotline)} className="text-xs h-8">Edit</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteHotline(hotline.id)} className="text-red-600 hover:text-red-700 text-xs h-8">
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
               ))}
               {hotlines.length === 0 && (
-                <p className="text-center text-neutral-500 py-8 border rounded-lg border-dashed">No hotlines configured.</p>
+                <p className="text-center text-xs text-neutral-500 py-6 border rounded-xl border-dashed border-neutral-200">No hotlines configured.</p>
               )}
             </div>
           )}

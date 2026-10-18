@@ -331,7 +331,7 @@ export default function TouristDiscoveryPage() {
       />
 
       {/* Main Content Area */}
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-7xl px-3.5 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
         {/* 2. Category Filter Pill Bar */}
         <div className="flex items-center justify-between gap-4 border-b border-neutral-100 pb-3">
           <CategoryFilterBar
@@ -500,8 +500,8 @@ export default function TouristDiscoveryPage() {
           <div
             className={
               viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-                : "flex flex-col gap-6 max-w-2xl mx-auto"
+                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"
+                : "flex flex-col gap-4 max-w-2xl mx-auto"
             }
           >
             {filteredProperties.map((property, idx) => (

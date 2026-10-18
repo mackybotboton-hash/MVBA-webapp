@@ -139,15 +139,15 @@ export default function HomestaySettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl pb-10">
-      <div className="border-b border-neutral-200 pb-5">
-        <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Host Settings</h1>
-        <p className="text-sm text-neutral-600 mt-1">
+    <div className="space-y-4 sm:space-y-5 max-w-4xl pb-8">
+      <div className="border-b border-neutral-200 pb-3.5 sm:pb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">Host Settings</h1>
+        <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
           Manage your business details, payout methods, and notifications.
         </p>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-5">
         {/* Business Details (Placeholder for future action) */}
         <Card>
           <CardHeader>
@@ -268,7 +268,7 @@ export default function HomestaySettingsPage() {
               Control how you receive alerts for new bookings and messages.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="text-base">Push Notifications</Label>

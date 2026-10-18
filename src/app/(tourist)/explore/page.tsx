@@ -124,12 +124,12 @@ export default function TouristExplorePage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-8 space-y-8">
+      <main className="mx-auto max-w-7xl px-3.5 sm:px-6 py-4 sm:py-6 space-y-5 sm:space-y-6">
         {/* Active Coast Guard Weather Alert */}
         <WeatherAlertBanner />
 
         {/* Hero Section */}
-        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-6 sm:p-10 relative overflow-hidden">
+        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-5 sm:p-8 relative overflow-hidden">
           <div className="max-w-2xl space-y-4">
             <div className="flex items-center gap-2">
               <Badge variant="default" size="sm">
@@ -165,13 +165,13 @@ export default function TouristExplorePage() {
         </div>
 
         {/* Interactive Island Showcase */}
-        <section className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-neutral-200 pb-4">
+        <section className="space-y-4 sm:space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-neutral-200 pb-3">
             <div>
-              <h2 className="text-xl font-bold text-neutral-900 tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold text-neutral-900 tracking-tight">
                 Top Islands on the Tourist Circuit
               </h2>
-              <p className="text-sm text-neutral-600 mt-1">
+              <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
                 Click an island to view highlights, photography points, and tips
               </p>
             </div>
@@ -182,7 +182,7 @@ export default function TouristExplorePage() {
                 <button
                   key={island.name}
                   onClick={() => setActiveIsland(island.name)}
-                  className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all shrink-0 ${
+                  className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium transition-all shrink-0 ${
                     activeIsland === island.name
                       ? "bg-black text-white"
                       : "border border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300"
@@ -195,7 +195,7 @@ export default function TouristExplorePage() {
           </div>
 
           {/* Active Island Card Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center rounded-2xl border border-neutral-200 bg-white p-6 sm:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-center rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6">
             <div className="lg:col-span-6 relative aspect-[16/10] w-full rounded-xl overflow-hidden bg-neutral-100">
               <Image
                 src={selectedIsland.imageUrl}
@@ -278,27 +278,27 @@ export default function TouristExplorePage() {
             </p>
           </div>
 
-          <div className="rounded-xl border border-neutral-200 p-5 space-y-2 bg-neutral-50/50">
-            <Info className="h-6 w-6 text-neutral-900" />
-            <h4 className="font-semibold text-base text-neutral-900">
+          <div className="rounded-xl border border-neutral-200 p-4 sm:p-5 space-y-1.5 bg-neutral-50/50">
+            <Info className="h-5 w-5 text-neutral-900" />
+            <h4 className="font-semibold text-sm sm:text-base text-neutral-900">
               Responsible Eco-Tourism
             </h4>
-            <p className="text-sm text-neutral-600 leading-relaxed">
+            <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed">
               San Agustin practices Clean-as-You-Go (CLAYGO). Please bring your trash back to mainland waste disposal points. Single-use plastics are discouraged.
             </p>
           </div>
         </section>
 
         {/* CTA to main listing */}
-        <section className="space-y-4 pt-4">
-          <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <section className="space-y-3 pt-2">
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-neutral-900">Find Your Stay Near Bretania Port</h2>
-              <p className="text-sm text-neutral-600 mt-1">Browse all accredited homestays and resorts available for booking.</p>
+              <h2 className="text-base sm:text-lg font-bold text-neutral-900">Find Your Stay Near Bretania Port</h2>
+              <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">Browse all accredited homestays and resorts available for booking.</p>
             </div>
             <Link
               href="/"
-              className="shrink-0 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-black text-white text-sm font-semibold hover:bg-neutral-800 transition-colors"
+              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-black text-white text-xs sm:text-sm font-semibold hover:bg-neutral-800 transition-colors"
             >
               Browse All Stays
               <ChevronRight className="h-3.5 w-3.5" />

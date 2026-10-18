@@ -326,11 +326,11 @@ function AdminTransactionsContent() {
   }, [transactions]);
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+    <div className="space-y-4 sm:space-y-5 max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-3.5 sm:pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">Commissions & Payouts</h1>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">Verify GCash deposits and manage host payouts.</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">Commissions & Payouts</h1>
+          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5 font-medium">Verify GCash deposits and manage host payouts.</p>
         </div>
         <button onClick={() => refetch()} className="p-2 rounded-xl border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition-colors">
           <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
@@ -443,7 +443,7 @@ function AdminTransactionsContent() {
       {/* Mobile Card View (below md) */}
       <div className="block md:hidden space-y-3">
         {filteredTransactions.length === 0 ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-xs text-neutral-500 shadow-2xs">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6 text-center text-xs text-neutral-500 shadow-2xs">
             No transactions found for the selected filter.
           </div>
         ) : (

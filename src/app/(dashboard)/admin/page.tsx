@@ -114,12 +114,12 @@ export default function AdminDashboardPage() {
   } = financialMetrics;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-3.5 sm:pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
               Panaw Portal
             </h1>
 
@@ -127,15 +127,15 @@ export default function AdminDashboardPage() {
               Administrator
             </Badge>
           </div>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-1">
+          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
             Municipal tourism oversight, commission revenue, and booking operations
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
           <button
             onClick={() => setIsAddUserModalOpen(true)}
-            className="flex items-center gap-1.5 text-xs font-semibold text-white bg-black hover:bg-neutral-800 px-4 py-2 rounded-xl transition-colors shadow-xs"
+            className="flex items-center gap-1.5 text-xs font-semibold text-white bg-black hover:bg-neutral-800 px-3.5 py-2 rounded-xl transition-colors shadow-2xs"
           >
             <UserPlus className="h-3.5 w-3.5" />
             <span>Add User</span>
@@ -160,7 +160,7 @@ export default function AdminDashboardPage() {
       />
 
       {/* Business Goal Tracker Card */}
-      <div className="rounded-2xl border border-neutral-200 bg-linear-to-br from-white to-neutral-50/70 p-6 shadow-xs space-y-5">
+      <div className="rounded-2xl border border-neutral-200 bg-linear-to-br from-white to-neutral-50/70 p-4 sm:p-5 shadow-2xs space-y-3.5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100">

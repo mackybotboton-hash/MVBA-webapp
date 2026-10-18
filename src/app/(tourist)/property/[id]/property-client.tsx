@@ -526,7 +526,7 @@ export default function PropertyStorefrontPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-6 space-y-8">
+      <main className="mx-auto max-w-5xl px-3.5 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
         {/* Visual Hero Gallery */}
         <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 group cursor-pointer">
           {property.cover_image_url ? (
@@ -622,7 +622,7 @@ export default function PropertyStorefrontPage() {
 
         {/* Tab 1: Overview */}
         {activeTab === "overview" && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             {property.promo_video_url && (
               <div className="space-y-3">
                 <h2 className="text-base font-bold text-neutral-900 flex items-center gap-1.5">
@@ -995,7 +995,7 @@ export default function PropertyStorefrontPage() {
 
         {/* Tab 4: Reviews */}
         {activeTab === "reviews" && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-5">
             <div className="flex items-center gap-4 border-b border-neutral-100 pb-4">
               <div className="flex items-center gap-1.5 text-2xl font-bold text-neutral-900">
                 <Star className="h-6 w-6 fill-amber-400 text-amber-400" />

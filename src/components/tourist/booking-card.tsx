@@ -191,12 +191,12 @@ export function BookingCard({
     <div
       onClick={() => setIsExpanded((prev) => !prev)}
       className={cn(
-        "flex flex-col rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-xs hover:border-neutral-300 transition-all cursor-pointer sm:cursor-default select-none sm:select-auto",
+        "flex flex-col rounded-2xl border border-neutral-200 bg-white p-3.5 sm:p-4 shadow-2xs hover:border-neutral-300 transition-all cursor-pointer sm:cursor-default select-none sm:select-auto",
         className
       )}
     >
       {/* Header: Property & Status */}
-      <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-3 sm:pb-4">
+      <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-2.5 sm:pb-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-sm sm:text-base text-neutral-900 truncate">
@@ -262,7 +262,7 @@ export function BookingCard({
       {/* Booking Details Grid - always visible on desktop, on mobile only when expanded */}
       <div
         className={cn(
-          "grid grid-cols-2 sm:grid-cols-3 gap-4 py-3 sm:py-4 text-xs",
+          "grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 py-2.5 sm:py-3 text-xs",
           isExpanded ? "grid" : "hidden sm:grid"
         )}
       >
@@ -299,15 +299,15 @@ export function BookingCard({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "bg-neutral-50/50 border-t border-b border-neutral-100 px-4 sm:px-5 py-4 text-xs mt-1 sm:mt-2 mb-2 rounded-xl sm:rounded-none",
+          "bg-neutral-50/50 border-t border-b border-neutral-100 px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs mt-1 mb-1.5 rounded-xl sm:rounded-none",
           isExpanded ? "block" : "hidden sm:block"
         )}
       >
-        <h4 className="font-semibold text-neutral-800 mb-3 flex items-center gap-1.5">
-          <Receipt className="h-4 w-4 text-neutral-500" />
+        <h4 className="font-semibold text-neutral-800 mb-2 flex items-center gap-1.5">
+          <Receipt className="h-3.5 w-3.5 text-neutral-500" />
           Price Breakdown
         </h4>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {/* Room Base */}
           <div className="flex justify-between items-center text-neutral-600">
             <span>Room Base Price ({diffDays} {diffDays === 1 ? "night" : "nights"})</span>
@@ -327,7 +327,7 @@ export function BookingCard({
             </div>
           )}
 
-          <div className="border-t border-neutral-200/60 my-2"></div>
+          <div className="border-t border-neutral-200/60 my-1.5"></div>
           
           {/* Guest Fee */}
           <div className="flex justify-between items-center text-neutral-600">
@@ -335,7 +335,7 @@ export function BookingCard({
             <span>₱{booking.convenience_fee?.toLocaleString() || 100}</span>
           </div>
 
-          <div className="border-t border-neutral-200/60 my-2"></div>
+          <div className="border-t border-neutral-200/60 my-1.5"></div>
 
           {/* Final Total */}
           <div className="flex justify-between items-center font-bold text-neutral-900 text-sm">
@@ -343,7 +343,7 @@ export function BookingCard({
             <span>₱{booking.total_price.toLocaleString()}</span>
           </div>
           
-          <div className="border-t border-neutral-200/60 my-2"></div>
+          <div className="border-t border-neutral-200/60 my-1.5"></div>
           
           {/* Downpayment reminder */}
           {booking.downpayment_amount && (
@@ -483,7 +483,7 @@ export function BookingCard({
       <div
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "pt-3 sm:pt-4 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+          "pt-2.5 sm:pt-3 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3",
           isExpanded ? "flex" : "hidden sm:flex"
         )}
       >

@@ -62,13 +62,13 @@ export function StateView({
         role="status"
         aria-live="polite"
         className={cn(
-          "flex flex-col items-center justify-center py-16 px-4 text-center rounded-2xl border border-neutral-100 bg-white/50 backdrop-blur-xs min-h-[220px]",
+          "flex flex-col items-center justify-center py-6 sm:py-8 px-4 text-center rounded-2xl border border-neutral-100 bg-white/50 backdrop-blur-xs min-h-[160px]",
           className
         )}
         {...props}
       >
         {loadingComponent || (
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-2.5">
             <LoadingLogo size="default" />
             <p className="text-xs font-semibold text-neutral-600 tracking-wide animate-pulse">
               {loadingText}
@@ -85,23 +85,23 @@ export function StateView({
         role="alert"
         aria-live="assertive"
         className={cn(
-          "flex flex-col items-center justify-center py-12 px-6 text-center rounded-2xl border border-red-100 bg-red-50/40 min-h-[220px]",
+          "flex flex-col items-center justify-center py-6 sm:py-8 px-4 sm:px-6 text-center rounded-2xl border border-red-100 bg-red-50/40 min-h-[160px]",
           className
         )}
         {...props}
       >
-        <div className="h-12 w-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mb-3 shadow-xs">
-          <AlertCircle className="h-6 w-6" />
+        <div className="h-10 w-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mb-2.5 shadow-xs">
+          <AlertCircle className="h-5 w-5" />
         </div>
         <h3 className="text-sm font-bold text-neutral-900">{errorTitle}</h3>
-        <p className="text-xs text-neutral-600 max-w-sm mt-1 mb-4 leading-relaxed">
+        <p className="text-xs text-neutral-600 max-w-sm mt-1 mb-3.5 leading-relaxed">
           {errorMessage}
         </p>
         {onRetry && (
           <Button
             size="sm"
             onClick={onRetry}
-            className="rounded-xl bg-black text-white hover:bg-neutral-800 text-xs font-bold gap-1.5 shadow-sm"
+            className="rounded-xl bg-black text-white hover:bg-neutral-800 text-xs font-bold gap-1.5 shadow-xs"
           >
             <RefreshCw className="h-3.5 w-3.5" />
             <span>{retryText}</span>
@@ -117,19 +117,19 @@ export function StateView({
         role="region"
         aria-label={emptyTitle}
         className={cn(
-          "flex flex-col items-center justify-center py-16 px-6 text-center rounded-2xl border border-neutral-200/80 bg-white shadow-xs min-h-[240px]",
+          "flex flex-col items-center justify-center py-6 sm:py-8 px-4 sm:px-6 text-center rounded-2xl border border-neutral-200/80 bg-white shadow-2xs min-h-[160px]",
           className
         )}
         {...props}
       >
-        <div className="h-14 w-14 rounded-2xl bg-neutral-100 text-neutral-500 flex items-center justify-center mb-3.5 shadow-xs">
-          {emptyIcon || <Inbox className="h-6 w-6 text-neutral-600" />}
+        <div className="h-11 w-11 rounded-xl bg-neutral-100 text-neutral-500 flex items-center justify-center mb-2.5 shadow-2xs">
+          {emptyIcon || <Inbox className="h-5 w-5 text-neutral-600" />}
         </div>
-        <h3 className="text-base font-bold text-neutral-900">{emptyTitle}</h3>
-        <p className="text-xs text-neutral-600 max-w-sm mt-1.5 mb-5 leading-relaxed">
+        <h3 className="text-sm sm:text-base font-bold text-neutral-900">{emptyTitle}</h3>
+        <p className="text-xs text-neutral-600 max-w-sm mt-1 mb-3.5 leading-relaxed">
           {emptyDescription}
         </p>
-        {emptyAction && <div className="mt-1">{emptyAction}</div>}
+        {emptyAction && <div className="mt-0.5">{emptyAction}</div>}
       </div>
     );
   }

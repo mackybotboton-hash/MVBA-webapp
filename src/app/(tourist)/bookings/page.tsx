@@ -411,7 +411,7 @@ export default function TouristBookingsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-4 sm:px-6 py-8 space-y-6">
+      <main className="mx-auto max-w-5xl px-3.5 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-5">
         {/* Offline Banner Callout when disconnected */}
         {!isOnline && (
           <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in">

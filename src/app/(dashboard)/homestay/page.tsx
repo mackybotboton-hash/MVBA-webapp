@@ -117,16 +117,16 @@ export default function HomestayDashboardPage() {
   const metrics = calculateHostMetrics(bookings);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-3.5 sm:pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
               Homestay Operations Center
             </h1>
           </div>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-1">
+          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5">
             Manage your homestay listing, add rooms, and approve guest bookings in Bretania
           </p>
         </div>
@@ -143,17 +143,17 @@ export default function HomestayDashboardPage() {
           {property ? (
             <Button
               onClick={() => setIsRoomModalOpen(true)}
-              className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-4 font-semibold"
+              className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-3.5 font-semibold"
             >
-              <Plus className="h-4 w-4 mr-1.5" />
+              <Plus className="h-3.5 w-3.5 mr-1" />
               Add Room
             </Button>
           ) : (
             <Button
               onClick={() => setIsPropertyModalOpen(true)}
-              className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-4 font-semibold"
+              className="bg-black text-white hover:bg-neutral-800 text-xs h-9 px-3.5 font-semibold"
             >
-              <Plus className="h-4 w-4 mr-1.5" />
+              <Plus className="h-3.5 w-3.5 mr-1" />
               List Homestay
             </Button>
           )}
@@ -165,7 +165,7 @@ export default function HomestayDashboardPage() {
 
       {/* Property Setup State */}
       {!property ? (
-        <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/60 p-8 sm:p-12 text-center space-y-4">
+        <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/60 p-6 sm:p-8 text-center space-y-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white border border-neutral-200 mx-auto shadow-xs">
             <Home className="h-6 w-6 text-neutral-800" />
           </div>

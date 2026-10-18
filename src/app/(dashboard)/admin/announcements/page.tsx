@@ -143,14 +143,14 @@ export default function AdminAnnouncementsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-4 sm:space-y-5 max-w-5xl">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-3.5 sm:pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
             Announcements
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5 font-medium">
             Broadcast advisories, meeting notices, and coast guard weather alerts to property owner dashboards
           </p>
         </div>

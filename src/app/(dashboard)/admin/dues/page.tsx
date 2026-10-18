@@ -145,17 +145,16 @@ export default function AdminDuesPage() {
     .reduce((sum, d) => sum + d.amount, 0);
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="space-y-4 sm:space-y-5 max-w-6xl">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-3.5 sm:pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
             Platform Fee Tracker
           </h1>
-          <p className="text-xs sm:text-sm text-neutral-600 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5 font-medium">
             Monitor monthly municipal and Panaw contributions (₱500/homestay, ₱1,500/resort)
           </p>
-
         </div>
 
         <div className="flex items-center gap-2">

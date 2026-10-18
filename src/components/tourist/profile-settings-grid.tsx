@@ -212,24 +212,24 @@ export function ProfileSettingsGrid({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 4 Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5">
         {/* 1. Personal Info */}
         <button
           type="button"
           onClick={() => setActiveModal("personal")}
-          className="flex flex-col gap-4 p-5 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-md transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
+          className="flex flex-col gap-3 p-4 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-xs transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
         >
           <div className="flex items-center justify-between w-full">
-            <User className="h-8 w-8 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.5} />
+            <User className="h-6 w-6 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.75} />
             <span className="text-[11px] font-semibold text-neutral-400 group-hover:text-neutral-900 transition-colors">
               Edit details &rarr;
             </span>
           </div>
           <div>
-            <h3 className="font-semibold text-neutral-900 mb-1">Personal info</h3>
-            <p className="text-sm text-neutral-500 leading-snug">
+            <h3 className="font-semibold text-sm sm:text-base text-neutral-900 mb-0.5">Personal info</h3>
+            <p className="text-xs sm:text-sm text-neutral-500 leading-snug">
               Provide personal details and how we can reach you
             </p>
           </div>
@@ -239,17 +239,17 @@ export function ProfileSettingsGrid({
         <button
           type="button"
           onClick={() => setActiveModal("payment")}
-          className="flex flex-col gap-4 p-5 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-md transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
+          className="flex flex-col gap-3 p-4 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-xs transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
         >
           <div className="flex items-center justify-between w-full">
-            <CreditCard className="h-8 w-8 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.5} />
+            <CreditCard className="h-6 w-6 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.75} />
             <span className="text-[11px] font-semibold text-neutral-400 group-hover:text-neutral-900 transition-colors">
               Manage GCash &rarr;
             </span>
           </div>
           <div>
-            <h3 className="font-semibold text-neutral-900 mb-1">Payment methods</h3>
-            <p className="text-sm text-neutral-500 leading-snug">
+            <h3 className="font-semibold text-sm sm:text-base text-neutral-900 mb-0.5">Payment methods</h3>
+            <p className="text-xs sm:text-sm text-neutral-500 leading-snug">
               Add your GCash or cards for seamless booking
             </p>
           </div>
@@ -259,17 +259,17 @@ export function ProfileSettingsGrid({
         <button
           type="button"
           onClick={() => setActiveModal("security")}
-          className="flex flex-col gap-4 p-5 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-md transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
+          className="flex flex-col gap-3 p-4 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-xs transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
         >
           <div className="flex items-center justify-between w-full">
-            <Lock className="h-8 w-8 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.5} />
+            <Lock className="h-6 w-6 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.75} />
             <span className="text-[11px] font-semibold text-neutral-400 group-hover:text-neutral-900 transition-colors">
               Update password &rarr;
             </span>
           </div>
           <div>
-            <h3 className="font-semibold text-neutral-900 mb-1">Login & security</h3>
-            <p className="text-sm text-neutral-500 leading-snug">
+            <h3 className="font-semibold text-sm sm:text-base text-neutral-900 mb-0.5">Login & security</h3>
+            <p className="text-xs sm:text-sm text-neutral-500 leading-snug">
               Update your password and secure your account
             </p>
           </div>
@@ -279,17 +279,17 @@ export function ProfileSettingsGrid({
         <button
           type="button"
           onClick={() => setActiveModal("help")}
-          className="flex flex-col gap-4 p-5 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-md transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
+          className="flex flex-col gap-3 p-4 rounded-2xl border border-neutral-200 bg-white hover:border-neutral-900 hover:shadow-xs transition-all text-left group h-full focus:outline-hidden focus:ring-2 focus:ring-neutral-900"
         >
           <div className="flex items-center justify-between w-full">
-            <PhoneCall className="h-8 w-8 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.5} />
+            <PhoneCall className="h-6 w-6 text-neutral-800 group-hover:scale-105 transition-transform" strokeWidth={1.75} />
             <span className="text-[11px] font-semibold text-neutral-400 group-hover:text-neutral-900 transition-colors">
               Hotlines & Guide &rarr;
             </span>
           </div>
           <div>
-            <h3 className="font-semibold text-neutral-900 mb-1">Help & support</h3>
-            <p className="text-sm text-neutral-500 leading-snug">
+            <h3 className="font-semibold text-sm sm:text-base text-neutral-900 mb-0.5">Help & support</h3>
+            <p className="text-xs sm:text-sm text-neutral-500 leading-snug">
               {helpSupportDesc}
             </p>
           </div>

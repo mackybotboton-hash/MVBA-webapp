@@ -148,46 +148,46 @@ export default function AdminSettingsPage() {
   const isLoading = isLoadingQuery || isInitializing;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="max-w-4xl space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900 flex items-center gap-2">
-          <Settings className="h-8 w-8 text-neutral-400" />
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900 flex items-center gap-2">
+          <Settings className="h-6 w-6 text-neutral-400" />
           System Settings
         </h1>
-        <p className="text-neutral-500 mt-1">
+        <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
           Manage global platform configurations such as commission rates and central payment methods.
         </p>
       </div>
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
-          <p className="text-sm font-medium text-neutral-500">Loading settings...</p>
+        <div className="flex flex-col items-center justify-center py-16 space-y-3">
+          <Loader2 className="h-7 w-7 animate-spin text-neutral-400" />
+          <p className="text-xs font-medium text-neutral-500">Loading settings...</p>
         </div>
       ) : isError ? (
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6 flex flex-col items-center text-center">
-            <p className="text-red-600 font-medium mb-4">Failed to load system settings.</p>
+          <CardContent className="pt-5 flex flex-col items-center text-center">
+            <p className="text-red-600 font-medium mb-3">Failed to load system settings.</p>
             <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ["system-settings"] })}>
               Try Again
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <Card className="shadow-xs border-neutral-200/60 overflow-hidden rounded-2xl">
-          <div className="bg-neutral-50/50 px-6 py-4 border-b border-neutral-100">
-            <CardTitle className="text-lg flex items-center gap-2">
+        <Card className="shadow-2xs border-neutral-200/60 overflow-hidden rounded-2xl">
+          <div className="bg-neutral-50/50 px-4 sm:px-5 py-3.5 border-b border-neutral-100">
+            <CardTitle className="text-base flex items-center gap-2">
               Financial Configuration
             </CardTitle>
-            <CardDescription className="mt-1">
+            <CardDescription className="mt-0.5 text-xs">
               Changes to commission will affect all new bookings. GCash details are shown to tourists for deposit payments.
             </CardDescription>
           </div>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-5">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                 
-                <div className="grid gap-6 md:grid-cols-2">
+                <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
                   <div className="space-y-6">
                     <h3 className="font-semibold text-sm text-neutral-900 flex items-center gap-2 border-b pb-2">
                       <Percent className="h-4 w-4 text-emerald-600" />

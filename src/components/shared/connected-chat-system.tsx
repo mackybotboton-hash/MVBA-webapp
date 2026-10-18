@@ -1197,14 +1197,14 @@ function ChatSystemContent({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5 sm:space-y-4">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-200 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-neutral-200 pb-3 sm:pb-3.5">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 tracking-tight">
             {portalTitle}
           </h1>
-          <p className="text-sm sm:text-base text-neutral-600 mt-0.5 font-medium">
+          <p className="text-xs sm:text-sm text-neutral-600 mt-0.5 font-medium">
             {portalSubtitle}
           </p>
         </div>

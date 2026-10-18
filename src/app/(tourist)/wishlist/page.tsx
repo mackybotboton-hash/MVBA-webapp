@@ -181,15 +181,15 @@ export default function WishlistPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl p-4 sm:p-6 space-y-6">
+      <main className="mx-auto max-w-5xl px-3.5 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5">
         {/* Title Banner */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-neutral-200 rounded-2xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white border border-neutral-200 rounded-2xl p-4 sm:p-5 shadow-2xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-red-50 text-red-500">
-                <Heart className="h-5 w-5 fill-red-500 text-red-500" />
+              <span className="p-1.5 rounded-xl bg-red-50 text-red-500">
+                <Heart className="h-4.5 w-4.5 fill-red-500 text-red-500" />
               </span>
-              <h1 className="text-2xl font-black text-neutral-900 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">
                 My Saved Stays
               </h1>
             </div>
@@ -199,7 +199,7 @@ export default function WishlistPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge variant="subtle" size="sm" className="bg-neutral-100 text-neutral-800 text-xs px-3 py-1.5 font-bold">
+            <Badge variant="subtle" size="sm" className="bg-neutral-100 text-neutral-800 text-xs px-2.5 py-1 font-bold">
               {properties.length} {properties.length === 1 ? "Stay" : "Stays"} Saved
             </Badge>
           </div>
@@ -359,12 +359,12 @@ export default function WishlistPage() {
           </div>
         ) : (
           /* Empty State */
-          <div className="flex flex-col items-center justify-center text-center p-8 sm:p-12 bg-white border border-neutral-200 rounded-2xl shadow-sm space-y-4">
-            <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
-              <Heart className="h-8 w-8 text-red-400" />
+          <div className="flex flex-col items-center justify-center text-center p-6 sm:p-8 bg-white border border-neutral-200 rounded-2xl shadow-2xs space-y-3">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-500 flex items-center justify-center">
+              <Heart className="h-6 w-6 text-red-400" />
             </div>
-            <div className="space-y-1.5 max-w-sm">
-              <h3 className="text-lg font-bold text-neutral-900">
+            <div className="space-y-1 max-w-sm">
+              <h3 className="text-base sm:text-lg font-bold text-neutral-900">
                 {selectedFilter === "all"
                   ? "Your Wishlist is Empty"
                   : `No ${selectedFilter === "resort" ? "Resorts" : "Homestays"} in Wishlist`}
@@ -375,9 +375,9 @@ export default function WishlistPage() {
             </div>
             <Link
               href="/"
-              className="px-6 py-3 rounded-xl bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-all flex items-center gap-2 mt-2"
+              className="px-5 py-2.5 rounded-xl bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-all flex items-center gap-1.5 mt-1"
             >
-              <Compass className="h-4 w-4" />
+              <Compass className="h-3.5 w-3.5" />
               <span>Explore Stays in Bretania</span>
             </Link>
           </div>
