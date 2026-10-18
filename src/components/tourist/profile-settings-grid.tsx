@@ -303,11 +303,11 @@ export function ProfileSettingsGrid({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setActiveModal(null)}
         >
           <div
-            className="w-full max-w-md rounded-3xl bg-white border border-neutral-200 p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md rounded-3xl bg-white border border-neutral-200 p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 max-h-[85dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
@@ -402,11 +402,11 @@ export function ProfileSettingsGrid({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setActiveModal(null)}
         >
           <div
-            className="w-full max-w-md rounded-3xl bg-white border border-neutral-200 p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md rounded-3xl bg-white border border-neutral-200 p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 max-h-[85dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
@@ -497,11 +497,11 @@ export function ProfileSettingsGrid({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setActiveModal(null)}
         >
           <div
-            className="w-full max-w-md rounded-3xl bg-white border border-neutral-200 p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md rounded-3xl bg-white border border-neutral-200 p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 max-h-[85dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
@@ -597,7 +597,7 @@ export function ProfileSettingsGrid({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
           onClick={() => setActiveModal(null)}
           ref={(node) => {
             if (node && systemHotlines.length === 0 && !isLoadingHotlines) {
@@ -611,16 +611,17 @@ export function ProfileSettingsGrid({
           }}
         >
           <div
-            className="w-full max-w-lg rounded-3xl bg-white border border-neutral-200 p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-lg rounded-3xl bg-white border border-neutral-200 p-4 sm:p-5 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[82dvh] sm:max-h-[88vh] flex flex-col overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+            {/* Sticky Header */}
+            <div className="flex items-center justify-between border-b border-neutral-100 pb-2.5 shrink-0">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
                   <PhoneCall className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-neutral-900 text-base">Help & Support</h3>
+                  <h3 className="font-bold text-neutral-900 text-sm sm:text-base">Help & Support</h3>
                   <p className="text-xs text-neutral-500">San Agustin emergency & guidelines</p>
                 </div>
               </div>
@@ -633,117 +634,121 @@ export function ProfileSettingsGrid({
               </button>
             </div>
 
-            {/* Emergency Hotlines */}
-            <div className="space-y-3">
-              <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
-                Official Emergency Hotlines
-              </span>
+            {/* Scrollable Content Body */}
+            <div className="flex-1 overflow-y-auto space-y-3.5 py-3 pr-1 min-h-0 overscroll-contain">
+              {/* Emergency Hotlines */}
+              <div className="space-y-2.5">
+                <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
+                  Official Emergency Hotlines
+                </span>
 
-              <div className="space-y-2">
-                {isLoadingHotlines ? (
-                  <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-400" /></div>
-                ) : systemHotlines.length > 0 ? (
-                  systemHotlines.map((item) => (
-                    <div
-                      key={item.number}
-                      className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-0.5">
-                      <p className="font-bold text-neutral-900">{item.name}</p>
-                      <p className="text-[11px] text-neutral-500">{item.description}</p>
-                      <p className="font-mono text-xs font-semibold text-emerald-700">
-                        {item.number}
-                      </p>
-                    </div>
+                <div className="space-y-2">
+                  {isLoadingHotlines ? (
+                    <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-neutral-400" /></div>
+                  ) : systemHotlines.length > 0 ? (
+                    systemHotlines.map((item) => (
+                      <div
+                        key={item.number}
+                        className="p-3 sm:p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-0.5 min-w-0">
+                          <p className="font-bold text-neutral-900 truncate">{item.name}</p>
+                          <p className="text-[11px] text-neutral-500 line-clamp-2">{item.description}</p>
+                          <p className="font-mono text-xs font-semibold text-emerald-700">
+                            {item.number}
+                          </p>
+                        </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <a
-                        href={`tel:${item.number}`}
-                        className="p-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
-                        title="Call hotline"
-                      >
-                        <PhoneCall className="h-3.5 w-3.5" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => copyHotline(item.number, item.name)}
-                        className="p-2 rounded-xl bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-100 transition-colors"
-                        title="Copy number"
-                      >
-                        {copiedNumber === item.number ? (
-                          <Check className="h-3.5 w-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="h-3.5 w-3.5" />
-                        )}
-                      </button>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <a
+                            href={`tel:${item.number}`}
+                            className="p-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                            title="Call hotline"
+                          >
+                            <PhoneCall className="h-3.5 w-3.5" />
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => copyHotline(item.number, item.name)}
+                            className="p-2 rounded-xl bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-100 transition-colors"
+                            title="Copy number"
+                          >
+                            {copiedNumber === item.number ? (
+                              <Check className="h-3.5 w-3.5 text-emerald-600" />
+                            ) : (
+                              <Copy className="h-3.5 w-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-4 text-center text-xs text-neutral-500 border border-dashed rounded-xl">
+                      No hotlines configured.
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="py-4 text-center text-xs text-neutral-500 border border-dashed rounded-xl">
-                  No hotlines configured.
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Platform Guides & Policies */}
+              <div className="space-y-2 pt-2 border-t border-neutral-100">
+                <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
+                  Platform Rules & Travel Guides
+                </span>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <Link
+                    href="/policies"
+                    target="_blank"
+                    className="p-2.5 sm:p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <Anchor className="h-3.5 w-3.5 text-blue-600 shrink-0" />
+                      <span className="truncate">Eco-Tourism Rules</span>
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-neutral-400 shrink-0" />
+                  </Link>
+
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="p-2.5 sm:p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <FileText className="h-3.5 w-3.5 text-neutral-600 shrink-0" />
+                      <span className="truncate">Terms of Service</span>
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-neutral-400 shrink-0" />
+                  </Link>
+
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    className="p-2.5 sm:p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate">Privacy Policy</span>
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-neutral-400 shrink-0" />
+                  </Link>
+
+                  <Link
+                    href="/explore"
+                    className="p-2.5 sm:p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5 min-w-0">
+                      <LifeBuoy className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                      <span className="truncate">24 Islands Guide</span>
+                    </span>
+                    <ExternalLink className="h-3 w-3 text-neutral-400 shrink-0" />
+                  </Link>
+                </div>
               </div>
             </div>
 
-            {/* Platform Guides & Policies */}
-            <div className="space-y-2 pt-2 border-t border-neutral-100">
-              <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
-                Platform Rules & Travel Guides
-              </span>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <Link
-                  href="/policies"
-                  target="_blank"
-                  className="p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <Anchor className="h-3.5 w-3.5 text-blue-600" />
-                    Eco-Tourism Rules
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-neutral-400" />
-                </Link>
-
-                <Link
-                  href="/terms"
-                  target="_blank"
-                  className="p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <FileText className="h-3.5 w-3.5 text-neutral-600" />
-                    Terms of Service
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-neutral-400" />
-                </Link>
-
-                <Link
-                  href="/privacy"
-                  target="_blank"
-                  className="p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                    Privacy Policy
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-neutral-400" />
-                </Link>
-
-                <Link
-                  href="/explore"
-                  className="p-3 rounded-xl border border-neutral-200 hover:border-neutral-900 bg-white flex items-center justify-between font-semibold text-neutral-800 transition-colors"
-                >
-                  <span className="flex items-center gap-1.5">
-                    <LifeBuoy className="h-3.5 w-3.5 text-amber-600" />
-                    24 Islands Guide
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-neutral-400" />
-                </Link>
-              </div>
-            </div>
-
-            <div className="pt-2">
+            {/* Sticky Action Footer */}
+            <div className="pt-2.5 border-t border-neutral-100 shrink-0">
               <Button
                 type="button"
                 onClick={() => setActiveModal(null)}
