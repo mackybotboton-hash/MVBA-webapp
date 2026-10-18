@@ -12,6 +12,8 @@ import {
   AlertCircle,
   MessageSquare,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Receipt,
   QrCode,
   Star,
@@ -97,6 +99,7 @@ export function BookingCard({
   onRateStay,
   className,
 }: BookingCardProps) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = React.useState(false);
   const [receiptModal, setReceiptModal] = React.useState<{
     open: boolean;
@@ -186,29 +189,35 @@ export function BookingCard({
 
   return (
     <div
+      onClick={() => setIsExpanded((prev) => !prev)}
       className={cn(
-        "flex flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-xs hover:border-neutral-300 transition-all",
+        "flex flex-col rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 shadow-xs hover:border-neutral-300 transition-all cursor-pointer sm:cursor-default select-none sm:select-auto",
         className
       )}
     >
       {/* Header: Property & Status */}
-      <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-base text-neutral-900">
+      <div className="flex items-start justify-between gap-3 border-b border-neutral-100 pb-3 sm:pb-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-sm sm:text-base text-neutral-900 truncate">
               {booking.property_name}
             </h3>
             {booking.property_type && (
-              <Badge variant="subtle" size="sm" className="capitalize">
+              <Badge variant="subtle" size="sm" className="capitalize text-[10px] px-1.5 py-0">
                 {booking.property_type}
               </Badge>
             )}
           </div>
-          <p className="text-xs font-medium text-neutral-600 mt-0.5">
+          <p className="text-xs font-medium text-neutral-600 mt-0.5 truncate">
             {booking.room_name}
           </p>
           {gcashRef && (
-            <div className="inline-flex items-center gap-1.5 text-xs bg-blue-50 border border-blue-200 text-blue-900 px-2.5 py-1 rounded-lg mt-2">
+            <div
+              className={cn(
+                "inline-flex items-center gap-1.5 text-xs bg-blue-50 border border-blue-200 text-blue-900 px-2.5 py-1 rounded-lg mt-2",
+                isExpanded ? "inline-flex" : "hidden sm:inline-flex"
+              )}
+            >
               <Receipt className="h-3.5 w-3.5 text-blue-600 shrink-0" />
               <span className="font-medium text-blue-700">GCash Ref:</span>
               <span className="font-mono font-bold tracking-tight">#{gcashRef}</span>
@@ -226,14 +235,37 @@ export function BookingCard({
           )}
         </div>
 
-        <Badge variant={currentStatus.variant} className="shrink-0 gap-1">
+        <Badge variant={currentStatus.variant} size="sm" className="shrink-0 gap-1 text-xs">
           <StatusIcon className="h-3 w-3" />
           <span>{currentStatus.label}</span>
         </Badge>
       </div>
 
-      {/* Booking Details Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-4 text-xs">
+      {/* Mobile Compact Overview (Dates & Total) - visible only on mobile when collapsed */}
+      <div className={cn("flex sm:hidden items-center justify-between py-2.5 text-xs", isExpanded && "hidden")}>
+        <div className="flex items-center gap-1.5 text-neutral-700 min-w-0">
+          <Calendar className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
+          <span className="font-medium truncate">
+            {formatDate(checkIn)} – {formatDate(checkOut)}
+          </span>
+          <span className="text-[11px] text-neutral-500 shrink-0">
+            ({diffDays}n)
+          </span>
+        </div>
+        <div className="text-right shrink-0 pl-2">
+          <span className="font-bold text-sm text-neutral-900">
+            {formattedTotal}
+          </span>
+        </div>
+      </div>
+
+      {/* Booking Details Grid - always visible on desktop, on mobile only when expanded */}
+      <div
+        className={cn(
+          "grid grid-cols-2 sm:grid-cols-3 gap-4 py-3 sm:py-4 text-xs",
+          isExpanded ? "grid" : "hidden sm:grid"
+        )}
+      >
         <div>
           <span className="text-neutral-500 font-medium block">Dates</span>
           <p className="font-medium text-neutral-800 mt-0.5">
@@ -263,8 +295,14 @@ export function BookingCard({
         </div>
       </div>
 
-      {/* Itemized Breakdown Section */}
-      <div className="bg-neutral-50/50 border-t border-b border-neutral-100 px-5 py-4 text-xs mt-2 mb-2">
+      {/* Itemized Breakdown Section - always visible on desktop, on mobile only when expanded */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "bg-neutral-50/50 border-t border-b border-neutral-100 px-4 sm:px-5 py-4 text-xs mt-1 sm:mt-2 mb-2 rounded-xl sm:rounded-none",
+          isExpanded ? "block" : "hidden sm:block"
+        )}
+      >
         <h4 className="font-semibold text-neutral-800 mb-3 flex items-center gap-1.5">
           <Receipt className="h-4 w-4 text-neutral-500" />
           Price Breakdown
@@ -441,8 +479,14 @@ export function BookingCard({
         </div>
       </div>
 
-      {/* Actions footer */}
-      <div className="pt-4 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Actions footer - always on desktop, on mobile only when expanded */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "pt-3 sm:pt-4 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3",
+          isExpanded ? "flex" : "hidden sm:flex"
+        )}
+      >
         <p className="text-[11px] text-neutral-500">
           Booking ID: #{booking.id.slice(0, 8)}
         </p>
@@ -574,6 +618,21 @@ export function BookingCard({
             </Link>
           )}
         </div>
+      </div>
+
+      {/* Mobile Expand / Collapse Footer Bar */}
+      <div className="flex sm:hidden items-center justify-between pt-2.5 mt-1 border-t border-neutral-100 text-[11px] font-semibold text-neutral-500">
+        <span className="flex items-center gap-1 text-neutral-700">
+          {isExpanded ? "Hide breakdown & actions" : "Tap to view breakdown & actions"}
+          {isExpanded ? (
+            <ChevronUp className="h-3.5 w-3.5 text-neutral-500" />
+          ) : (
+            <ChevronDown className="h-3.5 w-3.5 text-neutral-500" />
+          )}
+        </span>
+        <span className="text-[10px] text-neutral-400 font-mono font-normal">
+          #{booking.id.slice(0, 8)}
+        </span>
       </div>
 
       {/* Refund Receipt Viewer Modal */}
