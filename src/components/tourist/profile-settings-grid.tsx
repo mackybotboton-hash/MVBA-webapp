@@ -20,6 +20,9 @@ import {
   FileText,
   LifeBuoy,
   Anchor,
+  Mail,
+  KeyRound,
+  RotateCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,11 +69,23 @@ export function ProfileSettingsGrid({
   const [isSavingPayment, setIsSavingPayment] = React.useState(false);
   const [isPaymentSaved, setIsPaymentSaved] = React.useState(false);
 
+  // User Email state (hydrated from initialProfile or Supabase session)
+  const [userEmail, setUserEmail] = React.useState(initialProfile.email || "");
+
   // Password Security Form State
   const [newPassword, setNewPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = React.useState(false);
+
+  // Email OTP Verification State for Password Change
+  const [otpCode, setOtpCode] = React.useState("");
+  const [isSendingOtp, setIsSendingOtp] = React.useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = React.useState(false);
+  const [otpSent, setOtpSent] = React.useState(false);
+  const [isVerified, setIsVerified] = React.useState(false);
+  const [resendCooldown, setResendCooldown] = React.useState(0);
 
   // Copied hotline feedback
   const [copiedNumber, setCopiedNumber] = React.useState<string | null>(null);
@@ -94,6 +109,27 @@ export function ProfileSettingsGrid({
       }
     } catch {}
   }, [initialProfile]);
+
+  // Sync email from Supabase session if initialProfile didn't contain it
+  React.useEffect(() => {
+    if (!userEmail) {
+      const supabase = createClient();
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user?.email) {
+          setUserEmail(data.user.email);
+        }
+      });
+    }
+  }, [userEmail]);
+
+  // Countdown timer for resending OTP code
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
   // Handle Personal Info Update
   const handleSavePersonalInfo = async (e: React.FormEvent) => {
@@ -173,9 +209,86 @@ export function ProfileSettingsGrid({
     }
   };
 
-  // Handle Password Update
+  // Handle Sending Verification Code to Gmail/Email
+  const handleSendOtp = async () => {
+    if (!userEmail) {
+      toast.error("No email associated with this account. Please update personal info.");
+      return;
+    }
+    if (resendCooldown > 0) return;
+
+    setIsSendingOtp(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email: userEmail,
+      });
+
+      if (error) {
+        toast.error(error.message || "Failed to send verification code.");
+      } else {
+        toast.success(`Verification code sent to ${userEmail}!`);
+        setOtpSent(true);
+        setResendCooldown(60);
+      }
+    } catch {
+      toast.error("Could not send code. Please try again.");
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  // Handle Verifying the 6-digit OTP Code
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanCode = otpCode.trim();
+    if (cleanCode.length < 6) {
+      toast.error("Please enter the complete 6-digit code.");
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.verifyOtp({
+        email: userEmail,
+        token: cleanCode,
+        type: "email",
+      });
+
+      if (error) {
+        toast.error(error.message || "Invalid or expired verification code.");
+      } else {
+        toast.success("Identity verified! You may now set your new password.");
+        setIsVerified(true);
+      }
+    } catch {
+      toast.error("Failed to verify code. Please try again.");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  // Close & reset security modal
+  const handleCloseSecurityModal = () => {
+    setActiveModal(null);
+    setNewPassword("");
+    setConfirmPassword("");
+    setOtpCode("");
+    setOtpSent(false);
+    setIsVerified(false);
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  // Handle Password Update (Only allowed after OTP is verified)
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isVerified) {
+      toast.error("Please verify the code sent to your email first.");
+      return;
+    }
+
     if (!newPassword || newPassword.length < 8) {
       toast.error("New password must be at least 8 characters long.");
       return;
@@ -191,9 +304,7 @@ export function ProfileSettingsGrid({
       const res = await updateAccountPasswordAction(newPassword);
       if (res.success) {
         toast.success("Account password changed successfully!");
-        setNewPassword("");
-        setConfirmPassword("");
-        setActiveModal(null);
+        handleCloseSecurityModal();
       } else {
         toast.error(res.error || "Failed to update password.");
       }
@@ -498,94 +609,256 @@ export function ProfileSettingsGrid({
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setActiveModal(null)}
+          onClick={handleCloseSecurityModal}
         >
           <div
             className="w-full max-w-md rounded-3xl bg-white border border-neutral-200 p-5 sm:p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 max-h-[85dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-purple-50 text-purple-700">
-                  <Lock className="h-5 w-5" />
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`p-2 rounded-xl transition-colors ${
+                    isVerified
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-purple-50 text-purple-700"
+                  }`}
+                >
+                  {isVerified ? (
+                    <ShieldCheck className="h-5 w-5" />
+                  ) : (
+                    <Lock className="h-5 w-5" />
+                  )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-neutral-900 text-base">Login & Security</h3>
-                  <p className="text-xs text-neutral-500">Update your account password</p>
+                  <h3 className="font-bold text-neutral-900 text-base">
+                    Login & Security
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    {isVerified
+                      ? "Step 2 of 2: Set New Password"
+                      : "Step 1 of 2: Gmail Verification"}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setActiveModal(null)}
+                onClick={handleCloseSecurityModal}
                 className="p-1.5 rounded-full hover:bg-neutral-100 text-neutral-500 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <form onSubmit={handleUpdatePassword} className="space-y-4 text-xs">
-              <div className="space-y-1.5">
-                <label className="font-semibold text-neutral-700 block">New Password</label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Min. 8 characters"
-                    className="h-10 text-xs rounded-xl pr-10"
-                    required
-                  />
-                  <button
+            {/* STEP 1: Email OTP Verification */}
+            {!isVerified ? (
+              <div className="space-y-4 text-xs">
+                <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-amber-900 space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-xs text-amber-950">
+                    <Mail className="h-4 w-4 text-amber-600 shrink-0" />
+                    <span>Email Verification Required</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-amber-800">
+                    To keep your account secure, we must send a 6-digit confirmation code to your registered email before allowing password updates.
+                  </p>
+                  <div className="pt-0.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="font-semibold text-amber-900">Destination:</span>
+                    <span className="font-mono bg-white/90 px-2 py-0.5 rounded-md border border-amber-200 text-neutral-800 break-all">
+                      {userEmail || "No registered email detected"}
+                    </span>
+                  </div>
+                </div>
+
+                {!otpSent ? (
+                  <div className="space-y-3 pt-1">
+                    <p className="text-[11px] text-neutral-500 leading-relaxed">
+                      Click the button below to request your single-use verification code.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={isSendingOtp || !userEmail}
+                      className="w-full h-11 text-xs font-bold rounded-xl bg-neutral-900 hover:bg-black text-white shadow-xs flex items-center justify-center gap-2"
+                    >
+                      {isSendingOtp ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Sending Code...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4" />
+                          <span>Send Verification Code to Gmail</span>
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleCloseSecurityModal}
+                      className="w-full h-9 text-xs text-neutral-500 hover:text-neutral-900 font-medium"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleVerifyOtp} className="space-y-4 pt-1">
+                    <div className="space-y-1.5">
+                      <label className="font-semibold text-neutral-700 block text-xs">
+                        Enter 6-Digit Code
+                      </label>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        autoFocus
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(e) =>
+                          setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        placeholder="000000"
+                        className="h-12 text-center text-xl tracking-[0.4em] font-mono font-bold rounded-xl border-neutral-300 focus:border-neutral-900"
+                      />
+                      <p className="text-[11px] text-neutral-500">
+                        Check your Gmail inbox or spam folder for the code.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-0.5">
+                      <span className="text-[11px] text-neutral-500">
+                        Didn&apos;t receive it?
+                      </span>
+                      <button
+                        type="button"
+                        disabled={resendCooldown > 0 || isSendingOtp}
+                        onClick={handleSendOtp}
+                        className="text-[11px] font-semibold text-purple-700 hover:text-purple-900 disabled:text-neutral-400 disabled:cursor-not-allowed flex items-center gap-1"
+                      >
+                        {isSendingOtp && <Loader2 className="h-3 w-3 animate-spin" />}
+                        {resendCooldown > 0
+                          ? `Resend code in ${resendCooldown}s`
+                          : "Resend Code"}
+                      </button>
+                    </div>
+
+                    <div className="pt-2 flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCloseSecurityModal}
+                        className="flex-1 h-10 text-xs font-semibold rounded-xl"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isVerifyingOtp || otpCode.trim().length < 6}
+                        className="flex-1 h-10 text-xs font-bold rounded-xl bg-neutral-900 hover:bg-black text-white"
+                      >
+                        {isVerifyingOtp ? (
+                          <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                        ) : (
+                          "Verify Code & Continue"
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            ) : (
+              /* STEP 2: Password Setting after Identity Verification */
+              <form onSubmit={handleUpdatePassword} className="space-y-4 text-xs">
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900 font-medium">
+                  <Check className="h-4 w-4 text-emerald-700 shrink-0" />
+                  <span>Gmail verified. You can now set your new password.</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-neutral-700 block">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Min. 8 characters"
+                      className="h-10 text-xs rounded-xl pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="font-semibold text-neutral-700 block">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-type new password"
+                      className="h-10 text-xs rounded-xl pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-start gap-2 text-[11px] text-neutral-600">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Secure Session Update:</strong> Your new password will be encrypted and applied immediately.
+                  </div>
+                </div>
+
+                <div className="pt-2 flex items-center gap-2">
+                  <Button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700"
+                    variant="outline"
+                    onClick={handleCloseSecurityModal}
+                    className="flex-1 h-10 text-xs font-semibold rounded-xl"
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isUpdatingPassword}
+                    className="flex-1 h-10 text-xs font-bold rounded-xl bg-neutral-900 hover:bg-black text-white"
+                  >
+                    {isUpdatingPassword ? (
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                    ) : (
+                      "Save New Password"
+                    )}
+                  </Button>
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="font-semibold text-neutral-700 block">Confirm New Password</label>
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-type new password"
-                  className="h-10 text-xs rounded-xl"
-                  required
-                />
-              </div>
-
-              <div className="p-3 rounded-2xl bg-neutral-50 border border-neutral-200 flex items-start gap-2 text-[11px] text-neutral-600">
-                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-                <div>
-                  <strong>Zero-Trust Session Security:</strong> Your password is cryptographically salted and hashed. Updating your password immediately secures all your active sessions.
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setActiveModal(null)}
-                  className="flex-1 h-10 text-xs font-semibold rounded-xl"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isUpdatingPassword}
-                  className="flex-1 h-10 text-xs font-bold rounded-xl bg-neutral-900 hover:bg-black text-white"
-                >
-                  {isUpdatingPassword ? (
-                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                  ) : (
-                    "Update Password"
-                  )}
-                </Button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
         </div>
       )}
