@@ -110,7 +110,7 @@ export default function AdminSettingsPage() {
         commissionPercentage: Number(settingsData.commission_percentage),
         addonCommissionPercentage: Number(settingsData.addon_commission_percentage || 8.0),
         minDownpaymentPercent: Number(settingsData.min_downpayment_percent || 20),
-        convenienceFee: Number(settingsData.convenience_fee || 100),
+        convenienceFee: Number(settingsData.convenience_fee ?? 100),
         adminGcashNumber: settingsData.admin_gcash_number,
         adminGcashName: settingsData.admin_gcash_name,
         refundFullDays: Number(settingsData.refund_full_days ?? 7),

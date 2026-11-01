@@ -410,7 +410,7 @@ export default function PropertyStorefrontPage() {
       const breakdown = calculatePaymentBreakdown(
         total,
         resolvedPercent,
-        systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
+        systemSettings?.convenience_fee != null ? Number(systemSettings.convenience_fee) : 100
       );
 
       setBookingError(null);
@@ -1222,7 +1222,7 @@ export default function PropertyStorefrontPage() {
                 const breakdown = calculatePaymentBreakdown(
                   total,
                   resolvedPercent,
-                  systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
+                  systemSettings?.convenience_fee != null ? Number(systemSettings.convenience_fee) : 100
                 );
 
                 const policy = property?.cancellation_policy || "standard";
@@ -1371,7 +1371,7 @@ export default function PropertyStorefrontPage() {
                 const breakdown = calculatePaymentBreakdown(
                   total,
                   resolvedPercent,
-                  systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100
+                  systemSettings?.convenience_fee != null ? Number(systemSettings.convenience_fee) : 100
                 );
                 expectedDownpayment = breakdown.expectedDownpayment;
               }

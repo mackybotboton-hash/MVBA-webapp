@@ -551,7 +551,7 @@ function AdminTransactionsContent() {
                       </div>
                       <div className="flex justify-between text-neutral-500 text-[11px]">
                         <span>Convenience Fee (Platform)</span>
-                        <span>₱{(t.convenience_fee || 100).toLocaleString()}</span>
+                        <span>₱{(t.convenience_fee ?? 0).toLocaleString()}</span>
                       </div>
                       <div className="border-t border-neutral-200/60 my-1"></div>
                       <div className="flex justify-between text-green-700 font-medium">

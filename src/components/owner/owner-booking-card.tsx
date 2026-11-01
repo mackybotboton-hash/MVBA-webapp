@@ -360,7 +360,7 @@ export function OwnerBookingCard({
 
           {/* Informational Note for Guest Convenience Fee */}
           <p className="text-[11px] text-neutral-500 pt-1">
-            * Note: Guest pays a separate ₱{(booking.convenience_fee || 100).toLocaleString()} convenience fee directly to Panaw (not deducted from your earnings).
+            * Note: Guest pays a separate ₱{(booking.convenience_fee ?? 0).toLocaleString()} convenience fee directly to Panaw (not deducted from your earnings).
           </p>
 
           {/* Cancellation & Refund Alert Banner */}
