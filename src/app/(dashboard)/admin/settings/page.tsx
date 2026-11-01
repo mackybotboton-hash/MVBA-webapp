@@ -33,8 +33,8 @@ const systemSettingsSchema = z.object({
     .max(100, "Cannot exceed 100%"),
   convenienceFee: z
     .number()
-    .min(80, "Fee must be at least ₱80")
-    .max(120, "Fee cannot exceed ₱120"),
+    .min(0, "Fee must be at least ₱0")
+    .max(500, "Fee cannot exceed ₱500"),
   minDownpaymentPercent: z
     .number()
     .min(1, "Must be at least 1%")
@@ -296,7 +296,7 @@ export default function AdminSettingsPage() {
                             </div>
                           </FormControl>
                           <FormDescription>
-                            Flat fee charged to the tourist at checkout (₱80–120). Goes entirely to the platform.
+                            Flat fee charged to the tourist at checkout. Goes entirely to the platform.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
