@@ -73,7 +73,27 @@ export function PropertyFormModal({
   const [floorPercent, setFloorPercent] = React.useState<number>(_cachedPropertyFormFloor || 15);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [mapsUrlError, setMapsUrlError] = React.useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Fetch current user's role to strictly isolate classification options
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const supabase = createClient();
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        const { data: profile } = await (supabase.from("profiles") as any)
+          .select("role")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (profile?.role) {
+          setCurrentUserRole(profile.role);
+        }
+      }
+    });
+  }, [isOpen]);
+
+  const isActualAdmin = isAdmin || currentUserRole === "admin";
 
   // Fetch platform default downpayment percent once when modal opens
   React.useEffect(() => {
@@ -105,16 +125,21 @@ export function PropertyFormModal({
 
   React.useEffect(() => {
     setMapsUrlError(null);
+    const resolvedType = !isActualAdmin
+      ? (defaultType === "resort" || initialData?.type === "resort" || currentUserRole === "resort" ? "resort" : "homestay")
+      : (initialData?.type || defaultType);
+
     if (initialData) {
       setFormData({
         ...initialData,
+        type: resolvedType,
         google_maps_url: (initialData as any)?.google_maps_url || "",
         cancellation_policy: initialData.cancellation_policy || "standard",
       });
     } else {
       setFormData({
         name: "",
-        type: defaultType,
+        type: resolvedType,
         address: "Bretania, San Agustin, Surigao del Sur",
         description: "",
         cover_image_url: "",
@@ -125,7 +150,7 @@ export function PropertyFormModal({
         cancellation_policy: "standard",
       });
     }
-  }, [initialData, defaultType, isOpen, platformDefaultPercent]);
+  }, [initialData, defaultType, isOpen, platformDefaultPercent, isActualAdmin, currentUserRole]);
 
   if (!isOpen) return null;
 
@@ -227,12 +252,16 @@ export function PropertyFormModal({
         return;
       }
 
+      const finalType = !isActualAdmin
+        ? (defaultType === "resort" || currentUserRole === "resort" || formData.type === "resort" ? "resort" : "homestay")
+        : formData.type;
+
       if (formData.id) {
         // Update existing property (both owner and admin can update)
         const { data, error } = await (supabase.from("properties") as any)
           .update({
             name: formData.name.trim(),
-            type: formData.type,
+            type: finalType,
             address: formData.address.trim(),
             description: formData.description.trim(),
             cover_image_url: formData.cover_image_url.trim(),
@@ -263,7 +292,7 @@ export function PropertyFormModal({
           .insert({
             owner_id: ownerId,
             name: formData.name.trim(),
-            type: formData.type,
+            type: finalType,
             address: formData.address.trim(),
             description: formData.description.trim(),
             cover_image_url:
@@ -361,30 +390,44 @@ export function PropertyFormModal({
             <label className="font-bold text-neutral-900 uppercase tracking-wider text-[11px] block">
               Association Classification
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: "homestay" })}
-                className={`py-2 px-3 rounded-xl border text-center font-bold transition-all ${
-                  formData.type === "homestay"
-                    ? "border-black bg-black text-white shadow-xs"
-                    : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50"
-                }`}
-              >
-                Homestay
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, type: "resort" })}
-                className={`py-2 px-3 rounded-xl border text-center font-bold transition-all ${
-                  formData.type === "resort"
-                    ? "border-black bg-black text-white shadow-xs"
-                    : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50"
-                }`}
-              >
-                Resort
-              </button>
-            </div>
+            {isActualAdmin ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: "homestay" })}
+                  className={`py-2 px-3 rounded-xl border text-center font-bold transition-all ${
+                    formData.type === "homestay"
+                      ? "border-black bg-black text-white shadow-xs"
+                      : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50"
+                  }`}
+                >
+                  Homestay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, type: "resort" })}
+                  className={`py-2 px-3 rounded-xl border text-center font-bold transition-all ${
+                    formData.type === "resort"
+                      ? "border-black bg-black text-white shadow-xs"
+                      : "border-neutral-300 bg-white text-neutral-700 hover:border-neutral-400 hover:bg-neutral-50"
+                  }`}
+                >
+                  Resort
+                </button>
+              </div>
+            ) : formData.type === "resort" ? (
+              <div>
+                <div className="py-2.5 px-4 rounded-xl border border-black bg-black text-white text-center font-bold shadow-xs">
+                  Resort
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="py-2.5 px-4 rounded-xl border border-black bg-black text-white text-center font-bold shadow-xs">
+                  Homestay
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Address */}
