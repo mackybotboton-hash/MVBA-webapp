@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Building2, Save, Loader2, Link as LinkIcon, Camera, MapPin, Clock } from "lucide-react";
 import { syncProfileAvatar } from "@/app/actions/settings-actions";
+import { validateMapsUrl } from "@/lib/validate-maps-url";
 
 export function PropertyProfileForm({ propertyType }: { propertyType: "homestay" | "resort" }) {
   const [property, setProperty] = React.useState<any>(null);
@@ -20,9 +21,11 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
   const [checkInTime, setCheckInTime] = React.useState("14:00");
   const [checkOutTime, setCheckOutTime] = React.useState("12:00");
   
-  // Social Links
+  // Social Links & Maps
   const [facebookUrl, setFacebookUrl] = React.useState("");
   const [tiktokUrl, setTiktokUrl] = React.useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = React.useState("");
+  const [mapsUrlError, setMapsUrlError] = React.useState<string | null>(null);
   
   // Policies (Checkboxes + Custom text)
   const [policies, setPolicies] = React.useState({
@@ -59,6 +62,7 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
           setCheckOutTime(prop.check_out_time || "12:00");
           setFacebookUrl(prop.facebook_url || "");
           setTiktokUrl(prop.tiktok_url || "");
+          setGoogleMapsUrl(prop.google_maps_url || "");
 
           if (prop.policies) {
             try {
@@ -78,12 +82,33 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
     fetchProperty();
   }, [propertyType]);
 
+  const handleMapsUrlBlur = () => {
+    if (!googleMapsUrl.trim()) {
+      setMapsUrlError(null);
+      return;
+    }
+    const result = validateMapsUrl(googleMapsUrl);
+    if (!result.ok) {
+      setMapsUrlError(result.error);
+    } else {
+      setMapsUrlError(null);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!property) {
       toast.error("Please create a property listing from your dashboard first.");
       return;
     }
+
+    const mapsValidation = validateMapsUrl(googleMapsUrl);
+    if (!mapsValidation.ok) {
+      setMapsUrlError(mapsValidation.error);
+      toast.error(mapsValidation.error);
+      return;
+    }
+    setMapsUrlError(null);
 
     setIsSaving(true);
     try {
@@ -98,6 +123,7 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
           check_out_time: checkOutTime,
           facebook_url: facebookUrl,
           tiktok_url: tiktokUrl,
+          google_maps_url: mapsValidation.value,
           policies: JSON.stringify(policies),
         })
         .eq("id", property.id);
@@ -170,6 +196,36 @@ export function PropertyProfileForm({ propertyType }: { propertyType: "homestay"
                   className="w-full pl-9 pr-3 h-10 rounded-xl border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-neutral-400 transition-all"
                 />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-neutral-800 uppercase tracking-wider">
+                Google Maps Link <span className="text-neutral-400 font-normal lowercase">(optional)</span>
+              </label>
+              <div className="relative">
+                <MapPin className={`absolute left-3 top-3 h-4 w-4 ${mapsUrlError ? "text-red-500" : "text-neutral-400"}`} />
+                <input
+                  type="url"
+                  value={googleMapsUrl}
+                  onChange={(e) => {
+                    setGoogleMapsUrl(e.target.value);
+                    if (mapsUrlError) setMapsUrlError(null);
+                  }}
+                  onBlur={handleMapsUrlBlur}
+                  placeholder="https://maps.app.goo.gl/... or https://google.com/maps/..."
+                  className={`w-full pl-9 pr-3 h-10 rounded-xl border text-sm transition-all focus:outline-none focus:ring-2 ${
+                    mapsUrlError
+                      ? "border-red-400 bg-red-50/30 text-red-900 focus:ring-red-200 focus:border-red-500"
+                      : "border-neutral-200 text-neutral-900 focus:ring-black/5 focus:border-neutral-400"
+                  }`}
+                />
+              </div>
+              {mapsUrlError && (
+                <p className="text-xs font-medium text-red-600 mt-1">{mapsUrlError}</p>
+              )}
+              <p className="text-[11px] text-neutral-500 leading-normal">
+                Open Google Maps → find or long-press your exact spot to drop a pin → tap Share → Copy link → paste here.
+              </p>
             </div>
           </div>
 

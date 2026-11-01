@@ -18,6 +18,7 @@ import { syncProfileAvatar } from "@/app/actions/settings-actions";
 import { uploadFile, generateFilePath } from "@/lib/supabase/storage";
 import { STORAGE_BUCKETS } from "@/lib/constants";
 import { getEffectiveDownpaymentFloor } from "@/lib/pricing/downpayment";
+import { validateMapsUrl } from "@/lib/validate-maps-url";
 
 /** Module-level cache so we don't refetch on every modal open */
 let _cachedPropertyFormPlatformDefault: number | null = null;
@@ -33,6 +34,7 @@ export interface PropertyFormData {
   cover_image_url: string;
   promo_video_url: string;
   status: "active" | "renovating" | "full" | "closed";
+  google_maps_url?: string | null;
   downpayment_percent?: number | null;
   cancellation_policy?: "standard" | "flexible" | "non_refundable";
 }
@@ -61,6 +63,7 @@ export function PropertyFormModal({
     description: "",
     cover_image_url: "",
     promo_video_url: "",
+    google_maps_url: "",
     status: "active",
     downpayment_percent: null,
   });
@@ -69,6 +72,7 @@ export function PropertyFormModal({
   const [platformDefaultPercent, setPlatformDefaultPercent] = React.useState<number | null>(_cachedPropertyFormPlatformDefault);
   const [floorPercent, setFloorPercent] = React.useState<number>(_cachedPropertyFormFloor || 15);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const [mapsUrlError, setMapsUrlError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Fetch platform default downpayment percent once when modal opens
@@ -100,9 +104,11 @@ export function PropertyFormModal({
   }, [isOpen]);
 
   React.useEffect(() => {
+    setMapsUrlError(null);
     if (initialData) {
       setFormData({
         ...initialData,
+        google_maps_url: (initialData as any)?.google_maps_url || "",
         cancellation_policy: initialData.cancellation_policy || "standard",
       });
     } else {
@@ -113,6 +119,7 @@ export function PropertyFormModal({
         description: "",
         cover_image_url: "",
         promo_video_url: "",
+        google_maps_url: "",
         status: "active",
         downpayment_percent: platformDefaultPercent,
         cancellation_policy: "standard",
@@ -168,12 +175,34 @@ export function PropertyFormModal({
     }
   };
 
+  const handleMapsUrlBlur = () => {
+    const url = formData.google_maps_url;
+    if (!url || !url.trim()) {
+      setMapsUrlError(null);
+      return;
+    }
+    const result = validateMapsUrl(url);
+    if (!result.ok) {
+      setMapsUrlError(result.error);
+    } else {
+      setMapsUrlError(null);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
       toast.error("Property name is required");
       return;
     }
+
+    const mapsValidation = validateMapsUrl(formData.google_maps_url);
+    if (!mapsValidation.ok) {
+      setMapsUrlError(mapsValidation.error);
+      toast.error(mapsValidation.error);
+      return;
+    }
+    setMapsUrlError(null);
 
     setIsSubmitting(true);
     try {
@@ -208,6 +237,7 @@ export function PropertyFormModal({
             description: formData.description.trim(),
             cover_image_url: formData.cover_image_url.trim(),
             promo_video_url: formData.promo_video_url?.trim() || "",
+            google_maps_url: mapsValidation.value,
             status: formData.status,
             downpayment_percent: formData.downpayment_percent || null,
             cancellation_policy: formData.cancellation_policy || "standard",
@@ -242,6 +272,7 @@ export function PropertyFormModal({
                 ? "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1200&q=80"
                 : "https://images.unsplash.com/photo-1587061949409-02df41d5e562?auto=format&fit=crop&w=1200&q=80"),
             promo_video_url: formData.promo_video_url?.trim() || "",
+            google_maps_url: mapsValidation.value,
             status: formData.status,
             downpayment_percent: formData.downpayment_percent || null,
             cancellation_policy: formData.cancellation_policy || "standard",
@@ -368,6 +399,34 @@ export function PropertyFormModal({
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               className="w-full h-10 px-3.5 rounded-xl border border-neutral-300 text-neutral-900 font-medium placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-black"
             />
+          </div>
+
+          {/* Google Maps Link */}
+          <div className="space-y-1.5">
+            <label className="font-bold text-neutral-900 uppercase tracking-wider text-[11px] block">
+              Google Maps Link <span className="text-neutral-400 font-normal lowercase">(optional)</span>
+            </label>
+            <input
+              type="url"
+              placeholder="https://maps.app.goo.gl/... or https://google.com/maps/..."
+              value={formData.google_maps_url || ""}
+              onChange={(e) => {
+                setFormData({ ...formData, google_maps_url: e.target.value });
+                if (mapsUrlError) setMapsUrlError(null);
+              }}
+              onBlur={handleMapsUrlBlur}
+              className={`w-full h-10 px-3.5 rounded-xl border text-neutral-900 font-medium placeholder:text-neutral-500 focus:outline-none focus:ring-2 text-xs transition-colors ${
+                mapsUrlError
+                  ? "border-red-400 bg-red-50/30 focus:ring-red-200"
+                  : "border-neutral-300 focus:ring-black"
+              }`}
+            />
+            {mapsUrlError && (
+              <p className="text-[11px] font-medium text-red-600 mt-1">{mapsUrlError}</p>
+            )}
+            <p className="text-[11px] text-neutral-600 leading-normal">
+              Open Google Maps → find or long-press your exact spot to drop a pin → tap Share → Copy link → paste here.
+            </p>
           </div>
 
           {/* Cover Photo: Direct Upload & URL */}

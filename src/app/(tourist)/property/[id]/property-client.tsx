@@ -34,6 +34,7 @@ import { createClient } from "@/lib/supabase/client";
 import { LoadingLogo } from "@/components/shared/loading-logo";
 import { resolveDownpaymentPercent, calculatePaymentBreakdown } from "@/lib/pricing/downpayment";
 import { Badge } from "@/components/ui/badge";
+import { validateMapsUrl } from "@/lib/validate-maps-url";
 const formatTime12Hour = (timeStr?: string) => {
   if (!timeStr) return "";
   const [hourStr, minStr] = timeStr.split(":");
@@ -99,6 +100,7 @@ export default function PropertyStorefrontPage() {
   const [user, setUser] = React.useState<any>(null);
   const isHost = user?.id && property?.owner_id && property.owner_id === user.id;
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [isLocationModalOpen, setIsLocationModalOpen] = React.useState(false);
   const [pendingRoomToBook, setPendingRoomToBook] = React.useState<RoomItem | null>(null);
   const [selectedRoom, setSelectedRoom] = React.useState<RoomItem | null>(null);
   const [gallery, setGallery] = React.useState<{
@@ -275,6 +277,7 @@ export default function PropertyStorefrontPage() {
             check_out_time,
             facebook_url,
             tiktok_url,
+            google_maps_url,
             downpayment_percent,
             cancellation_policy,
             rooms (*, room_images(id, image_url, display_order)),
@@ -319,6 +322,13 @@ export default function PropertyStorefrontPage() {
       loadProperty();
     }
   }, [propertyId]);
+
+  // Validate stored Google Maps URL on render (reject if invalid)
+  const validatedLocationUrl = React.useMemo(() => {
+    if (!property?.google_maps_url) return null;
+    const res = validateMapsUrl(property.google_maps_url);
+    return res.ok && res.value ? res.value : null;
+  }, [property?.google_maps_url]);
 
   // Price calculations
   const calculateTotalNights = () => {
@@ -663,6 +673,16 @@ export default function PropertyStorefrontPage() {
                   <MessageCircle className="w-4 h-4" />
                   Direct Message
                 </button>
+                {validatedLocationUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setIsLocationModalOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold text-sm rounded-xl transition-colors border border-neutral-200/80 active:scale-95"
+                  >
+                    <MapPin className="w-4 h-4 text-neutral-600" />
+                    Location
+                  </button>
+                )}
                 {property.facebook_url && (
                   <a
                     href={isHost ? undefined : property.facebook_url}
@@ -1521,6 +1541,85 @@ export default function PropertyStorefrontPage() {
                   </span>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Property Location Modal / Bottom Sheet */}
+      {isLocationModalOpen && validatedLocationUrl && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="location-dialog-title"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200"
+          onClick={() => setIsLocationModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-t-3xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl border border-neutral-100 space-y-4 animate-in slide-in-from-bottom duration-200 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+          >
+            {/* Mobile drag handle bar */}
+            <div className="w-10 h-1 bg-neutral-300 rounded-full mx-auto -mt-1 mb-2 sm:hidden" />
+
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                  <MapPin className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 id="location-dialog-title" className="text-base font-bold text-neutral-900 leading-tight">
+                    Property Location
+                  </h3>
+                  <p className="text-xs text-neutral-500 mt-0.5 truncate max-w-[220px]">
+                    {property.name}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setIsLocationModalOpen(false)}
+                className="p-1.5 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Address Card */}
+            <div className="bg-neutral-50 border border-neutral-200/70 rounded-xl p-3.5 space-y-1">
+              <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider block">
+                Address in San Agustin
+              </span>
+              <p className="text-sm font-medium text-neutral-800 leading-relaxed">
+                {property.address || "Bretania, San Agustin, Surigao del Sur"}
+              </p>
+            </div>
+
+            <p className="text-xs text-neutral-500 leading-normal">
+              This link was provided by the host to help you navigate directly to the property in Google Maps.
+            </p>
+
+            {/* Actions */}
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsLocationModalOpen(false)}
+                className="h-11 px-4 rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 text-neutral-700 font-semibold text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <a
+                href={validatedLocationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsLocationModalOpen(false)}
+                className="flex-1 inline-flex items-center justify-center gap-2 h-11 px-4 rounded-xl bg-black hover:bg-neutral-800 text-white font-semibold text-sm transition-colors shadow-sm active:scale-98"
+              >
+                <MapPin className="w-4 h-4 text-emerald-400" />
+                Open in Google Maps
+              </a>
             </div>
           </div>
         </div>

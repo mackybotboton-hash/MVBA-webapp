@@ -18,6 +18,7 @@
 | `20261014000000_reattach_security_triggers.sql` | Hardens `public.handle_new_user()` to enforce role 'tourist' on signup (ignoring client metadata), reattaches `prevent_profile_role_tampering()` on `profiles`, attaches `trg_prevent_booking_financial_tampering` to `bookings`, and attaches `prevent_message_tampering()` on `messages` if present. | applied: yes |
 | `20261014010000_drop_direct_booking_insert_policy.sql` | Drops direct INSERT policy "Tourists can create bookings" on `public.bookings`, enforcing all booking creation through `request_booking_atomic_v2`. | applied: yes |
 | `20261014020000_drop_stale_booking_rpc_v1overload.sql` | Drops the stale 11-parameter overload of `request_booking_atomic_v2` that was created when `p_downpayment_percent` was added but the old REVOKE/GRANT lines used the wrong signature. | applied: yes |
+| `20261101000000_add_property_google_maps_url.sql` | Adds optional `google_maps_url` TEXT column with a length (<= 500) and format CHECK constraint on `properties`. | applied: yes |
 | `add_social_links.sql` | Adds `facebook_url` and `messenger_url` TEXT columns to `properties`. | unknown |
 | `audit-schema.sql` | Adds `verified_by UUID` and `verified_at TIMESTAMPTZ` audit columns to `bookings`. | unknown |
 | `calendar-events-schema.sql` | Creates `calendar_events` table for owner manual bookings / date blocks with RLS owner CRUD policies. | unknown |

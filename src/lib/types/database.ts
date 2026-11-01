@@ -47,6 +47,7 @@ export interface Property {
   status: PropertyStatus;
   facebook_url: string | null;
   tiktok_url: string | null;
+  google_maps_url: string | null;
   /** Optional property-level downpayment override (1–100). Falls back to system setting if null. */
   downpayment_percent?: number | null;
   /** Property-level cancellation policy: 'standard' | 'flexible' | 'non_refundable' */
