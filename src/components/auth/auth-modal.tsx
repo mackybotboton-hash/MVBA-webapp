@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Logo } from "@/components/shared/logo";
 import { createClient } from "@/lib/supabase/client";
-import { Eye, EyeOff, Loader2, X, Lock, Mail, User, Phone } from "lucide-react";
+import { Eye, EyeOff, Loader2, X, Lock, Mail, User, Phone, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { ROLE_HOME_ROUTES, type UserRole } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -34,11 +34,14 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSuccess, redirectOnSuccess = true }: AuthModalProps) {
   const [mounted, setMounted] = useState(false);
-  const [mode, setMode] = useState<"login" | "register">(initialMode);
+  const [mode, setMode] = useState<"login" | "register" | "forgot_password">(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -96,6 +99,8 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
       setMode(initialMode);
       setError("");
       setIsGoogleLoading(false);
+      setForgotSuccess(false);
+      setForgotEmail("");
       loginForm.reset();
       registerForm.reset();
     }
@@ -147,6 +152,51 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
     } catch {
       setError("An unexpected error occurred during Google sign in.");
       setIsGoogleLoading(false);
+    }
+  }
+
+  async function onForgotPasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const cleanEmail = forgotEmail.trim();
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    setError("");
+    setIsForgotLoading(true);
+
+    try {
+      const supabase = createClient();
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        (typeof window !== "undefined" ? window.location.origin : "");
+      const redirectTo = `${siteUrl}/auth/reset-password`;
+
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        cleanEmail,
+        { redirectTo }
+      );
+
+      if (resetError) {
+        const isRateLimit =
+          resetError.status === 429 ||
+          /rate|limit|security purposes|seconds/i.test(resetError.message);
+        if (isRateLimit) {
+          setError(
+            "For security, please wait a moment before requesting another reset link."
+          );
+        } else {
+          setError(resetError.message || "Failed to send reset link. Please try again.");
+        }
+        return;
+      }
+
+      setForgotSuccess(true);
+    } catch {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsForgotLoading(false);
     }
   }
 
@@ -287,44 +337,52 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
             <Logo size="large" />
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-neutral-900">
-            {mode === "login" ? "Welcome back" : "Create an account"}
+            {mode === "login"
+              ? "Welcome back"
+              : mode === "register"
+              ? "Create an account"
+              : "Reset password"}
           </h2>
           <p className="text-xs sm:text-sm text-neutral-600">
             {mode === "login"
               ? "Sign in to access your bookings & operator portal"
-              : "Join Panaw — book direct with Britania's homestays and resorts"}
+              : mode === "register"
+              ? "Join Panaw — book direct with Britania's homestays and resorts"
+              : "Enter your email to receive a password reset link"}
           </p>
         </div>
 
-        {/* Mode Switcher Tabs */}
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 mb-4">
-          <button
-            type="button"
-            onClick={() => {
-              setMode("login");
-              setError("");
-            }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "login"
-              ? "bg-white text-black shadow-xs"
-              : "text-neutral-600 hover:text-black"
-              }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("register");
-              setError("");
-            }}
-            className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "register"
-              ? "bg-white text-black shadow-xs"
-              : "text-neutral-600 hover:text-black"
-              }`}
-          >
-            Create Account
-          </button>
-        </div>
+        {mode !== "forgot_password" && (
+          /* Mode Switcher Tabs */
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-neutral-100 p-1 mb-4">
+            <button
+              type="button"
+              onClick={() => {
+                setMode("login");
+                setError("");
+              }}
+              className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "login"
+                ? "bg-white text-black shadow-xs"
+                : "text-neutral-600 hover:text-black"
+                }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode("register");
+                setError("");
+              }}
+              className={`py-2 text-xs font-semibold rounded-lg transition-all ${mode === "register"
+                ? "bg-white text-black shadow-xs"
+                : "text-neutral-600 hover:text-black"
+                }`}
+            >
+              Create Account
+            </button>
+          </div>
+        )}
 
         {/* Global Error Banner */}
         {error && (
@@ -333,33 +391,37 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
           </div>
         )}
 
-        {/* Continue with Google Button */}
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isLoading || isGoogleLoading}
-          onClick={handleGoogleSignIn}
-          className="w-full h-11 rounded-xl border border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 text-neutral-800 text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all shadow-xs"
-        >
-          {isGoogleLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-neutral-600" />
-          ) : (
-            <>
-              <GoogleIcon className="h-4 w-4 shrink-0" />
-              <span>Continue with Google</span>
-            </>
-          )}
-        </Button>
+        {mode !== "forgot_password" && (
+          <>
+            {/* Continue with Google Button */}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLoading || isGoogleLoading}
+              onClick={handleGoogleSignIn}
+              className="w-full h-11 rounded-xl border border-neutral-300 hover:bg-neutral-50 hover:border-neutral-400 text-neutral-800 text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all shadow-xs"
+            >
+              {isGoogleLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-neutral-600" />
+              ) : (
+                <>
+                  <GoogleIcon className="h-4 w-4 shrink-0" />
+                  <span>Continue with Google</span>
+                </>
+              )}
+            </Button>
 
-        {/* Divider */}
-        <div className="relative my-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-neutral-200" />
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-white px-2.5 text-neutral-400 font-medium">or continue with email</span>
-          </div>
-        </div>
+            {/* Divider */}
+            <div className="relative my-5">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-neutral-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-2.5 text-neutral-400 font-medium">or continue with email</span>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* LOGIN MODE */}
         {mode === "login" && (
@@ -422,6 +484,24 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
                   )}
                 />
 
+                <div className="flex justify-end -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setForgotSuccess(false);
+                      const currentEmail = loginForm.getValues("email");
+                      if (currentEmail) {
+                        setForgotEmail(currentEmail);
+                      }
+                      setMode("forgot_password");
+                    }}
+                    className="text-xs font-medium text-neutral-500 hover:text-black transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
                 <Button
                   type="submit"
                   disabled={isLoading || isGoogleLoading}
@@ -432,6 +512,84 @@ export function AuthModal({ isOpen, onClose, initialMode = "login", onLoginSucce
               </form>
             </Form>
 
+          </div>
+        )}
+
+        {/* FORGOT PASSWORD MODE */}
+        {mode === "forgot_password" && (
+          <div className="space-y-4">
+            {forgotSuccess ? (
+              <div className="space-y-4">
+                <div className="rounded-2xl bg-emerald-50 border border-emerald-200/80 p-4 text-emerald-800 text-xs sm:text-sm space-y-1.5 animate-in fade-in-50 duration-200">
+                  <div className="flex items-center gap-2 font-semibold text-emerald-900">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    <span>Check your email</span>
+                  </div>
+                  <p className="text-neutral-600 text-xs leading-relaxed">
+                    If an account exists for this email, we sent a reset link. Please check your inbox and spam folder.
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    setForgotSuccess(false);
+                    setMode("login");
+                  }}
+                  className="w-full h-10 rounded-xl bg-black text-white hover:bg-neutral-800 text-xs font-bold transition-all"
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={onForgotPasswordSubmit} className="space-y-4">
+                <div className="space-y-1.5">
+                  <label htmlFor="forgot-email" className="text-xs font-semibold text-neutral-700">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                    <Input
+                      id="forgot-email"
+                      autoComplete="email"
+                      placeholder="email@gmail.com"
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="h-10 pl-9 rounded-xl border-neutral-300 text-xs sm:text-sm focus-visible:ring-black"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isForgotLoading}
+                  className="w-full h-10 rounded-xl bg-black text-white hover:bg-neutral-800 text-xs font-bold transition-all"
+                >
+                  {isForgotLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  ) : (
+                    "Send Reset Link"
+                  )}
+                </Button>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setMode("login");
+                    }}
+                    className="text-xs text-neutral-500 hover:text-black font-semibold transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    <span>Back to Sign In</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 

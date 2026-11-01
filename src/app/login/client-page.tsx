@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getSafeRedirectUrl } from "@/lib/utils";
 
+import { toast } from "sonner";
+
 export function AuthClientPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -12,7 +14,10 @@ export function AuthClientPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (searchParams.get("reset") === "success") {
+      toast.success("Password reset successfully! Please sign in with your new password.");
+    }
+  }, [searchParams]);
 
   if (!mounted) return null;
 
