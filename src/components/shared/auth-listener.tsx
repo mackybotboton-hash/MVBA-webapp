@@ -12,8 +12,13 @@ export function AuthListener() {
     const error = params.get("error");
     const errorDescription = params.get("error_description");
 
-    // 1. If code lands on root or any page other than /auth/callback, forward to callback handler
-    if (code && !window.location.pathname.startsWith("/auth/callback")) {
+    // 1. If code lands on root or any page other than /auth/callback, forward to callback handler.
+    // NEVER redirect away from /auth/reset-password so recovery flow is not broken.
+    if (
+      code &&
+      !window.location.pathname.startsWith("/auth/callback") &&
+      !window.location.pathname.startsWith("/auth/reset-password")
+    ) {
       const callbackUrl = `/auth/callback?${params.toString()}`;
       window.location.href = callbackUrl;
       return;

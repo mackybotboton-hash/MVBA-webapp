@@ -65,13 +65,30 @@ export function ResetPasswordClient() {
     });
 
     // Also check current session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // If there's an active session or a code was present, link is valid
-      const hasCode = searchParams.has("code");
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const code = searchParams.get("code");
       const hasHash = typeof window !== "undefined" && window.location.hash.includes("access_token");
 
-      if (session || hasCode || hasHash) {
+      if (code && !session) {
+        // Exchange code client-side if the user landed on /auth/reset-password directly
+        const { error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeErr) {
+          setLinkError(
+            "This password reset link is invalid or has expired. Please request a new one."
+          );
+        } else {
+          setLinkError(null);
+        }
+        setIsCheckingLink(false);
+        return;
+      }
+
+      if (session || hasHash) {
         setLinkError(null);
+      } else {
+        setLinkError(
+          "This password reset link is invalid or has expired. Please request a new one."
+        );
       }
       setIsCheckingLink(false);
     });
