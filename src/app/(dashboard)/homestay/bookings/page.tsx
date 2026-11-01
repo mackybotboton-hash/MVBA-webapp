@@ -280,7 +280,12 @@ export default function HomestayBookingsPage() {
 
   const metrics = React.useMemo(() => {
     const validTxs = bookings.filter(b => (b.status === "accepted" || b.status === "completed") && b.payment_status !== "awaiting_deposit");
-    const totalDeposits = validTxs.reduce((sum, b) => sum + (b.downpayment_amount || 0), 0);
+    // Exclude the convenience fee from the deposit total — that fee belongs to the platform,
+    // not to the host. The room downpayment = downpayment_amount - convenience_fee.
+    const totalDeposits = validTxs.reduce((sum, b) => {
+      const roomDeposit = Math.max(0, (b.downpayment_amount || 0) - (b.convenience_fee || 0));
+      return sum + roomDeposit;
+    }, 0);
     const totalCommissions = validTxs.reduce((sum, b) => sum + (b.commission_amount || 0), 0);
     return { totalDeposits, totalCommissions };
   }, [bookings]);
@@ -330,9 +335,9 @@ export default function HomestayBookingsPage() {
       {/* Metrics Dashboard */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <MetricCard
-          label="Total Deposits Collected"
+          label="Deposits Held by Panaw"
           value={`₱${metrics.totalDeposits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          subtext="From your confirmed/completed bookings"
+          subtext="Room deposits from your confirmed/completed bookings"
           icon={Wallet}
           variant="emerald"
         />
