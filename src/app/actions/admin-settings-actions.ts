@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 const SystemSettingsSchema = z.object({
   commissionPercentage: z.number().min(0).max(100, "Percentage must be between 0 and 100"),
   minDownpaymentPercent: z.number().min(1).max(100, "Percentage must be between 1 and 100"),
-  convenienceFee: z.number().min(80).max(120, "Fee must be between 80 and 120"),
+  convenienceFee: z.number().min(0, "Fee must be at least 0").max(500, "Fee cannot exceed 500"),
   addonCommissionPercentage: z.number().min(0).max(100, "Percentage must be between 0 and 100"),
   adminGcashNumber: z.string().regex(/^09\d{9}$/, {
     message: "GCash number must be exactly 11 digits and start with 09.",

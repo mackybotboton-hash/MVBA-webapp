@@ -33,8 +33,8 @@ const systemSettingsSchema = z.object({
     .max(100, "Cannot exceed 100%"),
   convenienceFee: z
     .number()
-    .min(80, "Fee must be at least ₱80")
-    .max(120, "Fee cannot exceed ₱120"),
+    .min(0, "Fee must be at least ₱0")
+    .max(500, "Fee cannot exceed ₱500"),
   minDownpaymentPercent: z
     .number()
     .min(1, "Must be at least 1%")
@@ -110,7 +110,7 @@ export default function AdminSettingsPage() {
         commissionPercentage: Number(settingsData.commission_percentage),
         addonCommissionPercentage: Number(settingsData.addon_commission_percentage || 8.0),
         minDownpaymentPercent: Number(settingsData.min_downpayment_percent || 20),
-        convenienceFee: Number(settingsData.convenience_fee || 100),
+        convenienceFee: Number(settingsData.convenience_fee ?? 100),
         adminGcashNumber: settingsData.admin_gcash_number,
         adminGcashName: settingsData.admin_gcash_name,
         refundFullDays: Number(settingsData.refund_full_days ?? 7),
@@ -296,7 +296,7 @@ export default function AdminSettingsPage() {
                             </div>
                           </FormControl>
                           <FormDescription>
-                            Flat fee charged to the tourist at checkout (₱80–120). Goes entirely to the platform.
+                            Flat fee charged to the tourist at checkout. Goes entirely to the platform.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

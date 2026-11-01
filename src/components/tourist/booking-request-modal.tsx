@@ -136,7 +136,7 @@ export function BookingRequestModal({ isOpen, onClose, propertyId, rooms, onSubm
 
     // Use dynamic settings; the modal receives simplified Room objects without
     // downpayment_percent, so room/property params are null — falls through to platformDefault.
-    const convenienceFee = systemSettings?.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
+    const convenienceFee = systemSettings?.convenience_fee != null ? Number(systemSettings.convenience_fee) : 100;
     const resolvedPercent = resolveDownpaymentPercent(
       null,
       null,

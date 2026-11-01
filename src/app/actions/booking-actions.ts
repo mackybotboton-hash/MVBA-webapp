@@ -185,7 +185,7 @@ export async function createReservationAction(payload: {
     }
     
     // Convenience fee
-    const convenienceFee = systemSettings.convenience_fee ? Number(systemSettings.convenience_fee) : 100;
+    const convenienceFee = systemSettings.convenience_fee != null ? Number(systemSettings.convenience_fee) : 100;
     const finalGrandTotal = totalPrice + addonsTotal + convenienceFee;
 
     // Resolve downpayment percent and calculate amounts
