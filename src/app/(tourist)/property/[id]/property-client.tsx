@@ -119,17 +119,17 @@ export default function PropertyStorefrontPage() {
     const dayAfter = addDays(new Date(), 2);
     return { from: tomorrow, to: dayAfter };
   });
-  
+
   const formatLocalDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
-  
+
   const checkInDate = dateRange?.from ? formatLocalDate(dateRange.from) : "";
   const checkOutDate = dateRange?.to ? formatLocalDate(dateRange.to) : "";
-  
+
   const [guestCount, setGuestCount] = React.useState(2);
   const [arrivalTime, setArrivalTime] = React.useState("");
   const [selectedAddons, setSelectedAddons] = React.useState<string[]>([]); // array of service_ids
@@ -295,7 +295,7 @@ export default function PropertyStorefrontPage() {
           .select("commission_percentage, addon_commission_percentage, convenience_fee, default_downpayment_percent, min_downpayment_percent, refund_full_days, refund_partial_days, refund_partial_percent, convenience_fee_refund_rule, host_refund_deadline_hours")
           .limit(1)
           .single();
-        
+
         if (settingsData) {
           setSystemSettings(settingsData);
         }
@@ -415,7 +415,7 @@ export default function PropertyStorefrontPage() {
         systemSettings?.commission_percentage,
         systemSettings?.addon_commission_percentage
       );
-      
+
       const total = calculateTotalPrice(selectedRoom.base_price);
       const breakdown = calculatePaymentBreakdown(
         total,
@@ -513,10 +513,13 @@ export default function PropertyStorefrontPage() {
 
           <div className="flex items-center gap-2">
             {property && (
-              <ShareButton 
-                propertyId={propertyId} 
-                propertyName={property.name} 
-                propertyDescription={property.description}
+              <ShareButton
+                property={{
+                  id: propertyId,
+                  name: property.name,
+                  type: property.type,
+                  address: property.address,
+                }}
               />
             )}
             <button
@@ -527,9 +530,8 @@ export default function PropertyStorefrontPage() {
               aria-label="Save property"
             >
               <Heart
-                className={`h-4 w-4 transition-colors ${
-                  isFavorited ? "fill-red-500 text-red-500" : "text-neutral-600"
-                }`}
+                className={`h-4 w-4 transition-colors ${isFavorited ? "fill-red-500 text-red-500" : "text-neutral-600"
+                  }`}
               />
             </button>
           </div>
@@ -540,7 +542,7 @@ export default function PropertyStorefrontPage() {
         {/* Visual Hero Gallery */}
         <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 group cursor-pointer">
           {property.cover_image_url ? (
-            <div 
+            <div
               className="absolute inset-0"
               onClick={() => {
                 setGallery({
@@ -591,8 +593,8 @@ export default function PropertyStorefrontPage() {
             <div className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900">
               <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               <span>
-                {reviews.length > 0 
-                  ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
+                {reviews.length > 0
+                  ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
                   : "New"}
               </span>
               <span className="text-xs text-neutral-600 font-normal">
@@ -644,7 +646,7 @@ export default function PropertyStorefrontPage() {
                 </div>
               </div>
             )}
-            
+
             <div className="space-y-3">
               <h2 className="text-base font-bold text-neutral-900">
                 About this Property
@@ -692,7 +694,7 @@ export default function PropertyStorefrontPage() {
                     className={`inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#1877F2]/10 text-[#1877F2] font-semibold text-sm rounded-xl transition-colors ${isHost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#1877F2]/20'}`}
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                     </svg>
                     Facebook Page
                   </a>
@@ -706,7 +708,7 @@ export default function PropertyStorefrontPage() {
                     className={`inline-flex items-center justify-center gap-2 px-4 py-2 bg-black/5 text-black font-semibold text-sm rounded-xl transition-colors ${isHost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black/10'}`}
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 448 512">
-                      <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/>
+                      <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z" />
                     </svg>
                     TikTok
                   </a>
@@ -718,7 +720,7 @@ export default function PropertyStorefrontPage() {
             {property.policies && (
               <div className="space-y-3 pt-4 border-t border-neutral-100">
                 <h3 className="text-base font-bold text-neutral-900">House Rules</h3>
-                
+
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-sm font-medium text-neutral-700 bg-neutral-50 p-4 rounded-xl border border-neutral-200">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-neutral-500" />
@@ -764,7 +766,7 @@ export default function PropertyStorefrontPage() {
                         )}
                       </div>
                     );
-                  } catch(e) { return null; }
+                  } catch (e) { return null; }
                 })()}
               </div>
             )}
@@ -853,8 +855,8 @@ export default function PropertyStorefrontPage() {
                   room.room_images && room.room_images.length > 0
                     ? room.room_images.map((img) => img.image_url)
                     : room.image_url
-                    ? [room.image_url]
-                    : [
+                      ? [room.image_url]
+                      : [
                         "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=800&q=80",
                         "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=800&q=80",
                         "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
@@ -974,7 +976,7 @@ export default function PropertyStorefrontPage() {
             <h2 className="text-base font-bold text-neutral-900">
               Additional Services & Packages
             </h2>
-            
+
             {services.length === 0 ? (
               <div className="text-center py-6 sm:py-8 bg-neutral-50 rounded-2xl border border-neutral-200 border-dashed">
                 <Ship className="h-7 w-7 text-neutral-400 mx-auto mb-2" />
@@ -1020,8 +1022,8 @@ export default function PropertyStorefrontPage() {
               <div className="flex items-center gap-1.5 text-2xl font-bold text-neutral-900">
                 <Star className="h-6 w-6 fill-amber-400 text-amber-400" />
                 <span>
-                  {reviews.length > 0 
-                    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
+                  {reviews.length > 0
+                    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
                     : "New"}
                 </span>
               </div>
@@ -1260,7 +1262,7 @@ export default function PropertyStorefrontPage() {
                           ₱{(selectedRoom.base_price * nights).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
-                      
+
                       {selectedAddons.length > 0 && (
                         <div className="flex justify-between text-neutral-600">
                           <span className="font-medium text-neutral-700">Extra Services</span>
@@ -1316,11 +1318,9 @@ export default function PropertyStorefrontPage() {
                       <div className="font-bold flex items-center justify-between">
                         <span>{formatPolicyName(policy)}</span>
                         <Link
-                          href={`/terms?from=booking&propertyId=${propertyId}${
-                            selectedRoom ? `&roomId=${selectedRoom.id}` : ""
-                          }${checkInDate ? `&checkIn=${checkInDate}` : ""}${
-                            checkOutDate ? `&checkOut=${checkOutDate}` : ""
-                          }&guests=${guestCount}`}
+                          href={`/terms?from=booking&propertyId=${propertyId}${selectedRoom ? `&roomId=${selectedRoom.id}` : ""
+                            }${checkInDate ? `&checkIn=${checkInDate}` : ""}${checkOutDate ? `&checkOut=${checkOutDate}` : ""
+                            }&guests=${guestCount}`}
                           className="text-amber-800 underline font-medium hover:text-black"
                         >
                           View Terms
@@ -1342,7 +1342,7 @@ export default function PropertyStorefrontPage() {
                       </p>
 
                       <div className="pt-2 border-t border-amber-200/60 flex items-start gap-2.5">
-                        <input 
+                        <input
                           type="checkbox"
                           id="drawer-policy-checkbox"
                           checked={policyAccepted}
@@ -1529,11 +1529,10 @@ export default function PropertyStorefrontPage() {
                 <button
                   key={idx}
                   onClick={() => setGallery((prev) => ({ ...prev, currentIndex: idx }))}
-                  className={`relative h-14 w-20 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${
-                    gallery.currentIndex === idx
+                  className={`relative h-14 w-20 rounded-lg overflow-hidden shrink-0 border-2 transition-all ${gallery.currentIndex === idx
                       ? "border-white scale-105 shadow-md"
                       : "border-transparent opacity-60 hover:opacity-100"
-                  }`}
+                    }`}
                 >
                   <Image src={img} alt={`Angle ${idx + 1}`} fill sizes="100px" className="object-cover" />
                   <span className="absolute bottom-0.5 right-1 text-[9px] font-mono text-white bg-black/70 px-1 rounded">

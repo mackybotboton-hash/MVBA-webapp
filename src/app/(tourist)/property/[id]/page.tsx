@@ -1,23 +1,34 @@
-import { Metadata, ResolvingMetadata } from "next";
+import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 import PropertyClient from "./property-client";
+import type { Property } from "@/lib/types/database";
+import { absoluteUrl, getSiteUrl } from "@/lib/site-url";
+import {
+  buildMetadataDescription,
+  buildMetadataTitle,
+  getPropertyPath,
+} from "@/lib/share-content";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
-export async function generateMetadata(
-  { params }: Props,
-  _parent: ResolvingMetadata
-): Promise<Metadata> {
+type PropertyMetadataRow = Pick<Property, "name" | "type" | "address" | "cover_image_url" | "updated_at">;
+
+const FALLBACK_METADATA: Metadata = {
+  title: "Stay Details | Panaw",
+  description: "Explore accredited homestays and resorts in Bretania, San Agustin, Surigao del Sur.",
+};
+
+// Default image until a proper 1200x630 Panaw OG image is added to /public.
+const DEFAULT_OG_IMAGE_PATH = "/icons/icon-512.png";
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const propertyId = resolvedParams?.id;
 
   if (!propertyId) {
-    return {
-      title: "Stay Details | Panaw",
-      description: "Explore accredited homestays and resorts in Bretania, San Agustin.",
-    };
+    return FALLBACK_METADATA;
   }
 
   // Initialize Supabase with anon key
@@ -29,66 +40,74 @@ export async function generateMetadata(
   try {
     const { data: property } = await supabase
       .from("properties")
-      .select("name, description, address, cover_image_url, updated_at")
+      .select("name, type, address, cover_image_url, updated_at")
       .eq("id", propertyId)
-      .maybeSingle();
+      .maybeSingle<PropertyMetadataRow>();
 
     if (!property) {
-      return {
-        title: "Stay Details | Panaw",
-        description: "Explore accredited homestays and resorts in Bretania, San Agustin.",
-      };
+      return FALLBACK_METADATA;
     }
 
-    const title = `${property.name} | Bretania Stays | Panaw`;
-    const description = property.description
-      ? property.description.substring(0, 160) + "..."
-      : `Book your accredited stay at ${property.name} in Bretania, San Agustin, Surigao del Sur.`;
+    const title = buildMetadataTitle(property);
+    const description = buildMetadataDescription(property);
+    const pageUrl = absoluteUrl(getPropertyPath(propertyId));
+    const hasCover = Boolean(property.cover_image_url?.trim());
 
     const timestamp = property.updated_at
       ? new Date(property.updated_at).getTime()
       : Date.now();
-    const proxyImageUrl = `https://mvba-webapp.vercel.app/api/property/${propertyId}/og-image?v=${timestamp}`;
-    const directImageUrl = property.cover_image_url || "https://mvba-webapp.vercel.app/icons/icon-512.png";
+    const proxyImageUrl = absoluteUrl(`/api/property/${propertyId}/og-image?v=${timestamp}`);
+    const defaultImageUrl = absoluteUrl(DEFAULT_OG_IMAGE_PATH);
 
-    return {
-      metadataBase: new URL("https://mvba-webapp.vercel.app"),
-      title,
-      description,
-      openGraph: {
-        title,
-        description,
-        url: `https://mvba-webapp.vercel.app/property/${propertyId}`,
-        siteName: "Panaw",
-        images: [
+    const ogImages = hasCover
+      ? [
           {
             url: proxyImageUrl,
             secureUrl: proxyImageUrl,
             width: 1200,
             height: 630,
             alt: property.name,
-            type: "image/jpeg",
           },
           {
-            url: directImageUrl,
-            secureUrl: directImageUrl,
+            url: property.cover_image_url!.trim(),
+            secureUrl: property.cover_image_url!.trim(),
             alt: property.name,
           },
-        ],
+        ]
+      : [
+          {
+            url: defaultImageUrl,
+            secureUrl: defaultImageUrl,
+            width: 512,
+            height: 512,
+            alt: "Panaw",
+          },
+        ];
+
+    return {
+      metadataBase: new URL(getSiteUrl()),
+      title,
+      description,
+      alternates: { canonical: pageUrl },
+      openGraph: {
+        title,
+        description,
+        url: pageUrl,
+        siteName: "Panaw",
+        images: ogImages,
         type: "website",
       },
       twitter: {
-        card: "summary_large_image",
+        // Square fallback icon renders poorly as a large card, so only use
+        // summary_large_image when the property has a real cover photo.
+        card: hasCover ? "summary_large_image" : "summary",
         title,
         description,
-        images: [proxyImageUrl],
+        images: [hasCover ? proxyImageUrl : defaultImageUrl],
       },
     };
-  } catch (_error) {
-    return {
-      title: "Stay Details | Panaw",
-      description: "Explore accredited homestays and resorts in Bretania, San Agustin.",
-    };
+  } catch {
+    return FALLBACK_METADATA;
   }
 }
 

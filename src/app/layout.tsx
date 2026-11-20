@@ -7,6 +7,7 @@ import { QueryProvider } from "@/providers/query-provider";
 import { NotificationCountsProvider } from "@/hooks/use-notification-counts";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthListener } from "@/components/shared/auth-listener";
+import { getSiteUrl } from "@/lib/site-url";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -17,7 +18,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mvba-webapp.vercel.app"),
+  metadataBase: new URL(getSiteUrl()),
   title: "Panaw — book direct sa Britania, San Agustin",
   description: "Panaw — book direct sa Britania, San Agustin",
   keywords: [

@@ -4,25 +4,32 @@ import * as React from "react";
 import { Share2, Copy, Mail, MessageCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { buildShareContent, type ShareableProperty } from "@/lib/share-content";
+import { getSiteUrl } from "@/lib/site-url";
 
 interface ShareButtonProps {
-  propertyName: string;
-  propertyDescription?: string;
-  propertyId: string;
+  property: ShareableProperty;
 }
 
-export function ShareButton({ propertyName, propertyDescription, propertyId }: ShareButtonProps) {
+function isAbortError(err: unknown): boolean {
+  return err instanceof Error && err.name === "AbortError";
+}
+
+export function ShareButton({ property }: ShareButtonProps) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  
-  // We compute the URL here so it's guaranteed to be correct for the client
-  const shareUrl = typeof window !== "undefined" ? window.location.href : `https://panaw.app/property/${propertyId}`;
-  
-  const shareTitle = `Stay at ${propertyName} | Bretania`;
-  const shareText = `Check out this amazing stay in Bretania! ${propertyName}. Book your trip today.`;
+
+  // Prefer the live browser origin; fall back to the configured site URL during SSR.
+  const origin = typeof window !== "undefined" ? window.location.origin : getSiteUrl();
+  const {
+    title: shareTitle,
+    text: shareText,
+    url: shareUrl,
+    clipboardText,
+  } = buildShareContent(property, origin);
 
   const handleShareClick = async () => {
     // 1. Try Native Web Share API first
-    if (navigator.share) {
+    if (typeof navigator.share === "function") {
       try {
         await navigator.share({
           title: shareTitle,
@@ -30,11 +37,11 @@ export function ShareButton({ propertyName, propertyDescription, propertyId }: S
           url: shareUrl,
         });
         toast.success("Thanks for sharing!");
-      } catch (err: any) {
-        // If the user aborts, don't show the fallback modal
-        if (err.name !== "AbortError") {
-          setIsModalOpen(true);
-        }
+      } catch (err: unknown) {
+        // User cancelled the share sheet: do nothing
+        if (isAbortError(err)) return;
+        console.error("Native share failed:", err);
+        setIsModalOpen(true);
       }
     } else {
       // 2. Fallback to custom Modal
@@ -42,9 +49,14 @@ export function ShareButton({ propertyName, propertyDescription, propertyId }: S
     }
   };
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    toast.success("Link copied to clipboard!");
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(clipboardText);
+      toast.success("Link copied!");
+    } catch (err: unknown) {
+      console.error("Copy to clipboard failed:", err);
+      toast.error("Couldn't copy the link. Please copy it manually.");
+    }
   };
 
   const openPopup = (url: string) => {
@@ -55,7 +67,7 @@ export function ShareButton({ propertyName, propertyDescription, propertyId }: S
   const shareLinks = {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
     twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`,
-    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + " " + shareUrl)}`,
+    whatsapp: `https://api.whatsapp.com/send?text=${encodeURIComponent(clipboardText)}`,
     email: `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent(shareText + "\n\n" + shareUrl)}`,
   };
 
